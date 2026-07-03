@@ -7,14 +7,20 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// Une demande faite par un patient depuis le site
+// Une demande faite par un patient ou un établissement depuis le site
 model Demande {
-  id         Int      @id @default(autoincrement())
-  service    String   // transport | domicile | medicaments
-  telephone  String
-  date       String   // date souhaitée (AAAA-MM-JJ)
-  recurrence String   @default("Une seule fois")
-  statut     String   @default("A_RAPPELER") // A_RAPPELER | CONFIRMEE | AFFECTEE | ANNULEE
-  chauffeur  String?  // affecté par l'équipe
-  creeLe     DateTime @default(now())
+  id          Int      @id @default(autoincrement())
+  service     String   // transport | domicile | medicaments
+  typeTrajet  String?  // simple | accompagne | medicalise
+  nom         String?
+  telephone   String
+  depart      String?
+  destination String?
+  date        String   // date/heure souhaitée (AAAA-MM-JJTHH:MM)
+  recurrence  String   @default("Une seule fois")
+  notes       String?
+  espace      String   @default("patient") // patient | pro
+  statut      String   @default("A_RAPPELER") // A_RAPPELER | CONFIRMEE | AFFECTEE | ANNULEE
+  chauffeur   String?  // affecté par l'équipe
+  creeLe      DateTime @default(now())
 }

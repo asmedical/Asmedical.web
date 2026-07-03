@@ -1,26 +1,43 @@
-import Link from "next/link";
+"use client";
+import { useRouter } from "next/navigation";
+import { useAsm } from "./providers";
+import { IcoPersonne, IcoEtablissement } from "./components/icones";
 
-// Écran d'entrée : choix entre Espace Patient et Espace Professionnel
-export default function ChoixEspace() {
+// Démarrage : choix de l'espace (Patient / Professionnel) — fond vert
+export default function Demarrage() {
+  const { t, choisirEspace } = useAsm();
+  const routeur = useRouter();
+
+  const aller = (espace) => {
+    choisirEspace(espace);
+    routeur.push(espace === "pro" ? "/connexion" : "/accueil");
+  };
+
   return (
-    <div className="voile-choix">
-      <div className="logo-rond">+</div>
-      <div className="devise-ar">دائماً قريبون منكم</div>
-      <h1>Bienvenue chez ASM</h1>
-      <div className="choix-espaces">
-        <Link href="/patient" className="carte-espace patient">
-          <span className="emoji">🧑‍🦽</span>
-          <strong>Espace Patient</strong>
-          <small>
-            Réserver un transport, une aide à domicile ou une livraison de
-            médicaments
-          </small>
-        </Link>
-        <Link href="/pro" className="carte-espace pro">
-          <span className="emoji">🏥</span>
-          <strong>Espace Professionnel</strong>
-          <small>Cliniques, centres de dialyse, EHPAD et équipe ASM</small>
-        </Link>
+    <div className="page page-demarrage">
+      <div className="accueil-centre">
+        <h1>{t("dem_t")}</h1>
+        <p className="sous-dem">{t("dem_s")}</p>
+        <div className="grille-role" style={{ width: "100%", maxWidth: 440 }}>
+          <button className="carte-role" onClick={() => aller("patient")}>
+            <span className="ico-service">
+              <IcoPersonne />
+            </span>
+            <span>
+              <strong>{t("esp_patient")}</strong>
+              <small>{t("esp_patient_d")}</small>
+            </span>
+          </button>
+          <button className="carte-role" onClick={() => aller("pro")}>
+            <span className="ico-service">
+              <IcoEtablissement />
+            </span>
+            <span>
+              <strong>{t("esp_pro")}</strong>
+              <small>{t("esp_pro_d")}</small>
+            </span>
+          </button>
+        </div>
       </div>
     </div>
   );

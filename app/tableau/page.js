@@ -1,22 +1,18 @@
 "use client";
 import Link from "next/link";
 import { useAsm } from "@/app/providers";
-import { IcoVehicule } from "@/app/components/icones";
+import { IcoVehicule, IcoMaison } from "@/app/components/icones";
 
-// Espace Professionnel (établissement) : commander pour un patient, suivre.
-export default function EspacePro() {
+// Tableau de bord patient : prochains rendez-vous
+export default function Tableau() {
   const { t } = useAsm();
   return (
     <div className="page">
       <div className="contenu-page">
         <div className="bienvenue">
-          <strong>{t("pro_bonjour")}</strong>
-          <p>{t("pro_p")}</p>
+          <strong>{t("bonjour")}</strong>
+          <p>{t("bienvenue_p")}</p>
         </div>
-        <Link className="btn-action" href="/rdv">
-          {t("pro_commander")}
-        </Link>
-        <div className="titre-section">{t("pro_encours")}</div>
         <Link
           className="item-liste carte-suivi-lien"
           href="/suivi"
@@ -26,24 +22,24 @@ export default function EspacePro() {
             <IcoVehicule />
           </span>
           <span>
-            <strong>Patient — M. Saïd A.</strong>
-            <small>{t("pro_ligne1")}</small>
+            <strong>{t("rdv_dialyse")}</strong>
+            <small>{t("rdv_dialyse_d")}</small>
           </span>
           <span className="pastille verte">{t("suivre_court")}</span>
         </Link>
         <div className="item-liste">
           <span className="ico-service">
-            <IcoVehicule />
+            <IcoMaison />
           </span>
           <span>
-            <strong>Patient — Mme Fatima K.</strong>
-            <small>{t("pro_ligne2")}</small>
+            <strong>{t("s_domicile")}</strong>
+            <small>{t("rdv_dom_d")}</small>
           </span>
-          <span className="pastille">{t("programme")}</span>
+          <span className="pastille">{t("attente")}</span>
         </div>
-        <p className="lien-bas">
-          <Link href="/equipe">Accès équipe ASM →</Link>
-        </p>
+        <Link className="btn-action" style={{ marginTop: 8 }} href="/accueil">
+          {t("nouvelle")}
+        </Link>
       </div>
     </div>
   );

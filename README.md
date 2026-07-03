@@ -52,9 +52,18 @@ Le déploiement crée automatiquement la table `Demande` dans la base
 - Version arabe (le site est prêt à l'accueillir)
 - Nom de domaine personnalisé (ex : asm-dz.com) à brancher sur Vercel
 
-## Structure du projet
-- `app/page.js` — écran de choix Patient / Pro
-- `app/patient/page.js` — réservation en 3 étapes
-- `app/pro/page.js` — tableau de bord (code d'accès requis)
+## Structure du projet (maquette ASM V10)
+- `app/page.js` — démarrage : choix Espace Patient / Espace Professionnel (fond vert)
+- `app/accueil/page.js` — choix du service (transport / aide à domicile / médicaments)
+- `app/connexion` · `app/role` · `app/inscription/patient` · `app/inscription/pro` — comptes (simulés pour le MVP, OTP à venir)
+- `app/rdv/page.js` — prise de rendez-vous (type de trajet, adresses, récurrence dialyse, notes) → enregistrée en base
+- `app/tableau/page.js` — tableau de bord patient
+- `app/suivi/page.js` — suivi en direct (démo animée, en attendant le GPS de l'app chauffeur)
+- `app/pro/page.js` — espace établissement
+- `app/messagerie` · `app/documentation` · `app/connaitre` — messagerie, documents CNAS, présentation
+- `app/equipe/page.js` — back-office équipe : dispatch des demandes (code d'accès `NEXT_PUBLIC_CODE_PRO`)
+- `app/components/` — bandeau d'appel, header, barre de navigation, assistant, icônes
+- `app/providers.js` — état global : langue FR/AR (bascule RTL), espace, connexion
+- `lib/i18n.js` — dictionnaire de traduction FR / العربية (une clé, deux valeurs)
 - `app/api/demandes/route.js` — API (créer / lire / mettre à jour)
 - `prisma/schema.prisma` — le modèle de la base de données

@@ -1,22 +1,30 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 
-// POST /api/demandes — un patient envoie une demande depuis le site
+// POST /api/demandes — un patient ou un établissement envoie une demande
 export async function POST(req) {
   try {
     const corps = await req.json();
-    const { service, telephone, date, recurrence } = corps;
+    const { service, telephone } = corps;
 
     if (!service || !telephone || telephone.trim().length < 9) {
       return NextResponse.json({ erreur: "Données invalides" }, { status: 400 });
     }
 
+    const texte = (v, max) => (v ? String(v).slice(0, max) : null);
+
     const demande = await prisma.demande.create({
       data: {
         service: String(service).slice(0, 30),
+        typeTrajet: texte(corps.typeTrajet, 30),
+        nom: texte(corps.nom, 80),
         telephone: String(telephone).slice(0, 20),
-        date: String(date || "").slice(0, 10),
-        recurrence: String(recurrence || "Une seule fois").slice(0, 80),
+        depart: texte(corps.depart, 160),
+        destination: texte(corps.destination, 160),
+        date: String(corps.date || "").slice(0, 16),
+        recurrence: String(corps.recurrence || "Une seule fois").slice(0, 80),
+        notes: texte(corps.notes, 500),
+        espace: corps.espace === "pro" ? "pro" : "patient",
       },
     });
     return NextResponse.json({ ok: true, id: demande.id }, { status: 201 });
@@ -25,7 +33,7 @@ export async function POST(req) {
   }
 }
 
-// GET /api/demandes — l'équipe consulte les demandes (espace pro)
+// GET /api/demandes — l'équipe consulte les demandes (back-office)
 export async function GET() {
   try {
     const demandes = await prisma.demande.findMany({
