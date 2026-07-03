@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { notifierEquipe } from "@/lib/notifier";
 
 // POST /api/demandes — un patient ou un établissement envoie une demande
 export async function POST(req) {
@@ -27,6 +28,7 @@ export async function POST(req) {
         espace: corps.espace === "pro" ? "pro" : "patient",
       },
     });
+    await notifierEquipe(demande);
     return NextResponse.json({ ok: true, id: demande.id }, { status: 201 });
   } catch (e) {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });

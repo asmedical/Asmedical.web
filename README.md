@@ -45,12 +45,36 @@ Le déploiement crée automatiquement la table `Demande` dans la base
 
 ---
 
-## Ce qui viendra ensuite (phase 2)
-- Notification WhatsApp/SMS à l'équipe quand une demande arrive
-- Vraie authentification pour l'espace pro (comptes utilisateurs)
+## Être prévenu à chaque nouvelle demande (recommandé)
+
+Le site peut prévenir l'équipe instantanément quand une demande arrive,
+pour tenir la promesse du **rappel en moins de 30 minutes**.
+Deux canaux, à activer dans les variables d'environnement Vercel :
+
+**Telegram (gratuit, 5 minutes à mettre en place)** :
+1. Dans Telegram, cherchez **@BotFather** → envoyez `/newbot` → suivez
+   les instructions → copiez le **token** du bot
+2. Créez un groupe Telegram avec l'équipe ASM et ajoutez-y le bot
+3. Récupérez l'identifiant du groupe : ouvrez
+   `https://api.telegram.org/bot<TOKEN>/getUpdates` après avoir envoyé
+   un message dans le groupe → champ `chat.id` (nombre négatif)
+4. Sur Vercel, ajoutez :
+   - `TELEGRAM_BOT_TOKEN` = le token du bot
+   - `TELEGRAM_CHAT_ID` = l'identifiant du groupe
+
+**Webhook générique** (Slack, Discord, Make, Zapier…) :
+- `NOTIFY_WEBHOOK_URL` = l'adresse qui recevra un POST JSON
+  (`{ text, demande }`) à chaque demande.
+
+Les deux peuvent être actifs en même temps. Sans ces variables,
+le site fonctionne normalement, simplement sans notification.
+
+## Ce qui viendra ensuite
+- Vraie authentification par téléphone + code SMS (OTP)
+- Suivi GPS réel du chauffeur (app chauffeur)
 - Photos réelles de l'équipe via Cloudinary
-- Version arabe (le site est prêt à l'accueillir)
 - Nom de domaine personnalisé (ex : asm-dz.com) à brancher sur Vercel
+  (puis renseigner `NEXT_PUBLIC_SITE_URL` pour le sitemap)
 
 ## Structure du projet (maquette ASM V10)
 - `app/page.js` — démarrage : choix Espace Patient / Espace Professionnel (fond vert)
@@ -65,5 +89,6 @@ Le déploiement crée automatiquement la table `Demande` dans la base
 - `app/components/` — bandeau d'appel, header, barre de navigation, assistant, icônes
 - `app/providers.js` — état global : langue FR/AR (bascule RTL), espace, connexion
 - `lib/i18n.js` — dictionnaire de traduction FR / العربية (une clé, deux valeurs)
+- `lib/notifier.js` — notification de l'équipe à chaque demande (Telegram / webhook)
 - `app/api/demandes/route.js` — API (créer / lire / mettre à jour)
 - `prisma/schema.prisma` — le modèle de la base de données
