@@ -81,6 +81,8 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .choix small{color:var(--gris);font-size:14px}
 .rassurance{margin-top:24px;color:var(--gris);font-size:14px}
 .sous-dem{color:var(--gris);margin-bottom:26px;font-size:16px}
+/* Devise de la marque — Amiri ornemental, or (accent rare) */
+.devise-amiri{font-family:'Amiri',serif;font-size:21px;color:var(--or);margin:-14px 0 4px;letter-spacing:.01em}
 /* Page de démarrage : fond vert, uniquement cette page */
 .page-demarrage{background:linear-gradient(165deg,#0E6B3F,#0A5230)}
 .page-demarrage .accueil-centre{background:transparent;min-height:calc(100vh - 200px)}

@@ -17,6 +17,9 @@ export default function Demarrage() {
     <div className="page page-demarrage">
       <div className="accueil-centre">
         <h1>{t("dem_t")}</h1>
+        <p className="devise-amiri" dir="rtl" lang="ar">
+          دائماً قريبون منكم
+        </p>
         <p className="sous-dem">{t("dem_s")}</p>
         <div className="grille-role" style={{ width: "100%", maxWidth: 440 }}>
           <button className="carte-role" onClick={() => aller("patient")}>

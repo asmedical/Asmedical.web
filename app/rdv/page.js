@@ -58,6 +58,13 @@ export default function PriseRdv() {
         }),
       });
       if (!r.ok) throw new Error();
+      // Mémorise la demande sur l'appareil pour l'afficher dans « Mes rendez-vous »
+      // (en attendant les comptes réels, où l'historique viendra du serveur)
+      try {
+        const liste = JSON.parse(localStorage.getItem("asm_demandes") || "[]");
+        liste.unshift({ service, date, destination, recurrence: RECURRENCES[recurrence] });
+        localStorage.setItem("asm_demandes", JSON.stringify(liste.slice(0, 10)));
+      } catch {}
       setConfirme(true);
     } catch {
       setErreur(`${t("err_serveur")} ${TEL_AFFICHE}.`);
