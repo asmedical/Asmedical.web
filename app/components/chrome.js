@@ -25,11 +25,11 @@ export function BandeauAppel() {
 }
 
 export function EnTete() {
-  const { t, langue, setLangue } = useAsm();
+  const { t, langue, setLangue, espaceChoisi } = useAsm();
   return (
     <header className="principal">
       <div className="header-inner">
-        <Link className="marque" href="/accueil">
+        <Link className="marque" href={espaceChoisi === "pro" ? "/pro" : "/accueil"}>
           <span className="logo-rond" aria-hidden="true">
             <Image
               className="logo-img"
@@ -40,6 +40,11 @@ export function EnTete() {
             />
           </span>
           <strong>ASM</strong>
+          {espaceChoisi === "pro" && (
+            <span className="badge-pro" title={t("esp_pro")}>
+              {t("badge_pro")}
+            </span>
+          )}
         </Link>
         <div className="header-droite">
           <Link className="lien-connaitre" href="/connaitre">
@@ -135,17 +140,21 @@ export function PiedDePage() {
 
 // Enveloppe : la page de démarrage (/) et le back-office (/equipe)
 // n'affichent ni la barre inférieure ni l'assistant.
+// L'espace professionnel est teinté d'or (badge PRO + header) pour
+// qu'on ne le confonde jamais avec l'espace patient.
 export function Habillage({ children, assistant }) {
   const chemin = usePathname();
+  const { espaceChoisi } = useAsm();
   const nu = chemin === "/" || chemin.startsWith("/equipe");
+  const modePro = espaceChoisi === "pro" && chemin !== "/";
   return (
-    <>
+    <div className={modePro ? "mode-pro" : ""}>
       <BandeauAppel />
       <EnTete />
       <main className={nu ? "" : "avec-barre"}>{children}</main>
       {!nu && <PiedDePage />}
       {!nu && <BarreNav />}
       {!nu && assistant}
-    </>
+    </div>
   );
 }
