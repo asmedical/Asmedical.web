@@ -15,6 +15,8 @@ const CLES_SERVICE = {
 export default function PriseRdv() {
   const { t, serviceEnCours, espaceChoisi } = useAsm();
   const service = serviceEnCours || "transport";
+  // Après confirmation, retour vers l'espace d'où l'on vient
+  const monEspace = espaceChoisi === "pro" ? "/pro" : "/tableau";
 
   const [typeTrajet, setTypeTrajet] = useState("simple");
   const [depart, setDepart] = useState("");
@@ -84,7 +86,7 @@ export default function PriseRdv() {
             <Link className="btn-action" style={{ marginTop: 18 }} href="/suivi">
               {t("rdv_ok_suivre")}
             </Link>
-            <Link className="btn-secondaire" style={{ marginTop: 10 }} href="/tableau">
+            <Link className="btn-secondaire" style={{ marginTop: 10 }} href={monEspace}>
               {t("rdv_ok_tableau")}
             </Link>
           </div>

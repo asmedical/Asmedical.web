@@ -38,7 +38,12 @@ export default function Tableau() {
         {demandes.map((d, i) => {
           const Icone = ICONES[d.service] || IcoVehicule;
           return (
-            <div className="item-liste" key={i}>
+            <Link
+              className="item-liste"
+              href="/suivi"
+              key={i}
+              style={{ cursor: "pointer", textDecoration: "none", color: "inherit" }}
+            >
               <span className="ico-service">
                 <Icone />
               </span>
@@ -50,7 +55,7 @@ export default function Tableau() {
                 </small>
               </span>
               <span className="pastille">{t("attente")}</span>
-            </div>
+            </Link>
           );
         })}
 

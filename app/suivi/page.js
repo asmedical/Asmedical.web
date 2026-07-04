@@ -8,7 +8,9 @@ import { IcoPersonne, IcoTelephone } from "@/app/components/icones";
 // Suivi en temps réel (démonstration animée — la position GPS réelle
 // arrivera avec l'app chauffeur, via un canal Realtime).
 export default function Suivi() {
-  const { t, langue } = useAsm();
+  const { t, langue, connecte, compteType } = useAsm();
+  // Retour vers l'espace d'où l'on vient : établissement ou patient
+  const retourVers = connecte && compteType === "pro" ? "/pro" : "/tableau";
   const routeRef = useRef(null);
   const routeFaiteRef = useRef(null);
   const vehiculeRef = useRef(null);
@@ -59,7 +61,7 @@ export default function Suivi() {
   return (
     <div className="page">
       <div className="contenu-page">
-        <Link className="btn-retour" href="/tableau">
+        <Link className="btn-retour" href={retourVers}>
           {t("retour")}
         </Link>
         <h2 className="titre-page">{t("suivi_t")}</h2>
