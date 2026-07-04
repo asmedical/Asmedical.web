@@ -18,6 +18,7 @@ const STATUTS = {
   A_RAPPELER: "🟡 À rappeler",
   CONFIRMEE: "🟢 Confirmée",
   AFFECTEE: "✅ Affectée",
+  TERMINEE: "🏁 Terminée",
   ANNULEE: "❌ Annulée",
 };
 const CHAUFFEURS = ["Karim B. — V1 Berline", "Mounir S. — V2 Minibus", "Sofiane A. — V3 Break"];
