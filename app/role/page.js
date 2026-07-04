@@ -24,7 +24,7 @@ export default function ChoixRole() {
               <small>{t("role_patient_d")}</small>
             </span>
           </Link>
-          <Link className="carte-role" href="/inscription/pro">
+          <Link className="carte-role carte-role-pro" href="/inscription/pro">
             <span className="ico-service">
               <IcoEtablissement />
             </span>

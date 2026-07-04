@@ -235,18 +235,29 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .chat-saisie button svg{width:19px;height:19px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
 [dir="rtl"] .chat-saisie button svg{transform:scaleX(-1)}
 
-/* ============ MODE PROFESSIONNEL ============ */
-/* L'or (accent rare) signale l'espace établissement ; le patient reste vert. */
-.badge-pro{background:var(--or);color:#fff;font-size:11px;font-weight:800;letter-spacing:.07em;border-radius:6px;padding:3px 8px;margin-inline-start:4px;flex-shrink:0}
+/* ============ MODE PROFESSIONNEL (bleu) ============ */
+/* L'espace établissement est bleu ; l'espace patient reste vert.
+   On surcharge les variables : tout (boutons, icônes, barre, assistant,
+   suivi, pastilles) passe en bleu automatiquement dans .mode-pro. */
+.mode-pro{
+  --vert:#1A6BAA; --vert-fonce:#12507F; --vert-pale:#F0F6FB;
+  --ligne:#DEEAF4;
+  --ombre-flottant:0 6px 22px rgba(26,107,170,.14);
+}
+.badge-pro{background:#1A6BAA;color:#fff;font-size:11px;font-weight:800;letter-spacing:.07em;border-radius:6px;padding:3px 8px;margin-inline-start:4px;flex-shrink:0}
 [dir="rtl"] .badge-pro{letter-spacing:0}
-.mode-pro .bandeau-info{background:#F3EAD3;color:#6E5518;border-bottom-color:#EBDFC2}
-.mode-pro .bandeau-info svg{stroke:#A8842F}
-.mode-pro .bandeau-info a{color:#6E5518}
-.mode-pro header.principal{background:#FCF9F1;border-bottom-color:#EBDFC2}
-.mode-pro .lang-toggle{border-color:#EBDFC2}
-.mode-pro .bienvenue{background:#FBF6E9;border:1px solid #EFE5CB}
-.mode-pro .bienvenue strong{color:#6E5518}
-.mode-pro .titre-section::before{background:var(--or)}
+.mode-pro .bandeau-info{background:#D6E8F7;color:#12507F;border-bottom-color:#DEEAF4}
+.mode-pro .bandeau-info svg{stroke:#1A6BAA}
+.mode-pro .bandeau-info a{color:#12507F}
+.mode-pro header.principal{background:#F7FAFD;border-bottom-color:#DEEAF4}
+.mode-pro .titre-section::before{background:#1A6BAA}
+.mode-pro .btn-accueil .croix{box-shadow:0 4px 14px rgba(26,107,170,.28)}
+/* Carte « Espace Professionnel » sur les pages de choix (démarrage, rôle) */
+.carte-role-pro{background:#EFF6FC;border-color:#CFE3F2}
+.carte-role-pro .ico-service{background:#DCEBF8}
+.carte-role-pro .ico-service svg{stroke:#1A6BAA}
+.carte-role-pro strong{color:#12507F}
+.carte-role-pro:hover{border-color:#1A6BAA;background:#E2EFFA}
 
 /* ============ BACK-OFFICE ÉQUIPE ============ */
 .pro-contenu{max-width:860px;margin:0 auto;padding:34px 20px 56px}

@@ -31,7 +31,7 @@ export default function Demarrage() {
               <small>{t("esp_patient_d")}</small>
             </span>
           </button>
-          <button className="carte-role" onClick={() => aller("pro")}>
+          <button className="carte-role carte-role-pro" onClick={() => aller("pro")}>
             <span className="ico-service">
               <IcoEtablissement />
             </span>
