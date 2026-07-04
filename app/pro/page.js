@@ -84,26 +84,16 @@ export default function EspacePro() {
           {t("pro_commander")}
         </Link>
 
-        <div className="bascule-rdv" role="tablist">
+        {/* Petit lien discret en haut à droite pour ouvrir l'historique */}
+        <div className="barre-histo">
           <button
-            role="tab"
-            className={vue === "actifs" ? "actif" : ""}
+            className={"lien-histo" + (vue === "historique" ? " actif" : "")}
             onClick={() => {
-              setVue("actifs");
+              setVue(vue === "actifs" ? "historique" : "actifs");
               setOuvert(null);
             }}
           >
-            {t("rdv_actifs")}
-          </button>
-          <button
-            role="tab"
-            className={vue === "historique" ? "actif" : ""}
-            onClick={() => {
-              setVue("historique");
-              setOuvert(null);
-            }}
-          >
-            {t("rdv_historique")}
+            {vue === "actifs" ? t("rdv_historique") : t("retour_actifs")}
           </button>
         </div>
 
