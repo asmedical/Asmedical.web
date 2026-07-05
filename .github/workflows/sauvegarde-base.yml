@@ -40,8 +40,12 @@ jobs:
             echo "❌ Secrets DATABASE_URL et/ou BACKUP_PASSPHRASE manquants." >&2
             exit 1
           fi
+          # Utiliser explicitement le pg_dump 18 (le pg_dump 16 préinstallé
+          # sur le runner GitHub masque sinon la version 18 dans le PATH).
+          PGDUMP=/usr/lib/postgresql/18/bin/pg_dump
+          "$PGDUMP" --version
           NOM="asm-$(date +%F).sql"
-          pg_dump "$DATABASE_URL" > "$NOM"
+          "$PGDUMP" "$DATABASE_URL" > "$NOM"
           gpg --batch --yes --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 "$NOM"
           rm -f "$NOM"
           echo "✅ Sauvegarde chiffrée : ${NOM}.gpg"
