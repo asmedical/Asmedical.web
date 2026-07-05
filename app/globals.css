@@ -111,6 +111,10 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .lien-bas a{color:var(--vert);font-weight:800;text-decoration:none;cursor:pointer}
 .erreur{color:#A4432F;font-size:14.5px;margin-top:12px;text-align:center;font-weight:700}
 .req{color:#A4432F;font-weight:800}
+.onglets-connexion{display:flex;gap:6px;background:var(--vert-pale);border-radius:999px;padding:5px;margin-bottom:20px}
+.onglets-connexion button{flex:1;padding:11px 8px;border:none;background:transparent;border-radius:999px;font-weight:800;font-size:14px;color:var(--gris);cursor:pointer;font-family:inherit;transition:background .15s,color .15s}
+.onglets-connexion button.actif{background:var(--blanc);color:var(--vert-fonce);box-shadow:var(--ombre)}
+[dir="rtl"] .onglets-connexion button{font-family:'Tajawal',sans-serif}
 .champ-code{text-align:center;letter-spacing:.35em;font-size:24px;font-weight:800}
 .champ-code::placeholder{letter-spacing:.15em;font-size:18px}
 

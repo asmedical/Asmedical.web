@@ -8,6 +8,7 @@ import {
   verifierCode,
   normaliserTel,
   chargerProfil,
+  connexionIdentifiant,
   supabaseConfigured,
 } from "@/lib/supabase";
 
@@ -17,12 +18,29 @@ function FormulaireConnexion() {
   const params = useSearchParams();
   const gate = params.get("gate") === "1";
 
-  const [etape, setEtape] = useState("tel"); // tel | code
+  const [mode, setMode] = useState("sms"); // sms | identifiant
+  const [etape, setEtape] = useState("tel"); // tel | code (mode sms)
   const [tel, setTel] = useState("");
   const [phoneE164, setPhoneE164] = useState("");
   const [code, setCode] = useState("");
+  const [identifiant, setIdentifiant] = useState("");
+  const [motDePasse, setMotDePasse] = useState("");
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
+
+  // Après connexion : nouveau compte → inscription ; sinon → app.
+  async function apresConnexion(user) {
+    const type = espaceChoisi === "pro" ? "pro" : "patient";
+    const profil = await chargerProfil(user?.id);
+    if (!profil) {
+      routeur.push(type === "pro" ? "/inscription/pro" : "/inscription/patient");
+      return;
+    }
+    seConnecter(type);
+    if (type === "pro") routeur.push("/pro");
+    else if (serviceEnCours) routeur.push("/rdv");
+    else routeur.push("/tableau");
+  }
 
   async function demanderCode() {
     setErreur("");
@@ -43,25 +61,31 @@ function FormulaireConnexion() {
     }
   }
 
-  async function valider() {
+  async function validerCode() {
     setErreur("");
     setOccupe(true);
     try {
       const user = await verifierCode(phoneE164, code.trim());
-      const type = espaceChoisi === "pro" ? "pro" : "patient";
-      // Nouveau compte (aucun profil) → passage obligatoire par le
-      // formulaire des champs requis. Compte existant → accès direct.
-      const profil = await chargerProfil(user?.id);
-      if (!profil) {
-        routeur.push(type === "pro" ? "/inscription/pro" : "/inscription/patient");
-        return;
-      }
-      seConnecter(type);
-      if (type === "pro") routeur.push("/pro");
-      else if (serviceEnCours) routeur.push("/rdv");
-      else routeur.push("/tableau");
+      await apresConnexion(user);
     } catch {
       setErreur(t("err_code"));
+    } finally {
+      setOccupe(false);
+    }
+  }
+
+  async function validerIdentifiant() {
+    setErreur("");
+    if (!identifiant.trim() || !motDePasse) {
+      setErreur(t("err_champs"));
+      return;
+    }
+    setOccupe(true);
+    try {
+      const user = await connexionIdentifiant(identifiant, motDePasse);
+      await apresConnexion(user);
+    } catch {
+      setErreur(t("err_identifiant"));
     } finally {
       setOccupe(false);
     }
@@ -78,7 +102,29 @@ function FormulaireConnexion() {
       <div className="contenu-page" style={{ maxWidth: 420 }}>
         <h2 className="titre-page">{t("connexion_t")}</h2>
 
-        {etape === "tel" && (
+        <div className="onglets-connexion">
+          <button
+            className={mode === "sms" ? "actif" : ""}
+            onClick={() => {
+              setMode("sms");
+              setErreur("");
+            }}
+          >
+            {t("onglet_sms")}
+          </button>
+          <button
+            className={mode === "identifiant" ? "actif" : ""}
+            onClick={() => {
+              setMode("identifiant");
+              setErreur("");
+            }}
+          >
+            {t("onglet_id")}
+          </button>
+        </div>
+
+        {/* ---- Connexion par SMS ---- */}
+        {mode === "sms" && etape === "tel" && (
           <>
             <p className="sous-page">{sousTitre}</p>
             <div className="champ">
@@ -98,11 +144,10 @@ function FormulaireConnexion() {
           </>
         )}
 
-        {etape === "code" && (
+        {mode === "sms" && etape === "code" && (
           <>
             <p className="sous-page">
-              {t("otp_envoye_a")}{" "}
-              <strong dir="ltr">{phoneE164}</strong>
+              {t("otp_envoye_a")} <strong dir="ltr">{phoneE164}</strong>
             </p>
             <div className="champ">
               <label>{t("code_l")}</label>
@@ -114,11 +159,11 @@ function FormulaireConnexion() {
                 placeholder={t("code_ph")}
                 value={code}
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                onKeyDown={(e) => e.key === "Enter" && valider()}
+                onKeyDown={(e) => e.key === "Enter" && validerCode()}
                 autoFocus
               />
             </div>
-            <button className="btn-action" onClick={valider} disabled={occupe || code.length < 4}>
+            <button className="btn-action" onClick={validerCode} disabled={occupe || code.length < 4}>
               {occupe ? t("otp_verif") : t("otp_valider")}
             </button>
             <p className="lien-bas">
@@ -134,6 +179,34 @@ function FormulaireConnexion() {
               {" · "}
               <a onClick={demanderCode}>{t("otp_renvoyer")}</a>
             </p>
+          </>
+        )}
+
+        {/* ---- Connexion par identifiant ---- */}
+        {mode === "identifiant" && (
+          <>
+            <div className="champ">
+              <label>{t("id_l")}</label>
+              <input
+                type="text"
+                placeholder={t("id_ph")}
+                value={identifiant}
+                onChange={(e) => setIdentifiant(e.target.value)}
+              />
+            </div>
+            <div className="champ">
+              <label>{t("mdp2_l")}</label>
+              <input
+                type="password"
+                placeholder={t("mdp2_ph")}
+                value={motDePasse}
+                onChange={(e) => setMotDePasse(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && validerIdentifiant()}
+              />
+            </div>
+            <button className="btn-action" onClick={validerIdentifiant} disabled={occupe}>
+              {occupe ? t("otp_verif") : t("connexion_b")}
+            </button>
           </>
         )}
 

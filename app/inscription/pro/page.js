@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
-import { utilisateurCourant, enregistrerProfil } from "@/lib/supabase";
+import { utilisateurCourant, enregistrerProfil, definirEmailMotDePasse } from "@/lib/supabase";
 
 // Finalisation du compte Établissement : champs obligatoires
 // (nom de l'établissement, type, personne à contacter, téléphone).
@@ -16,6 +16,9 @@ export default function InscriptionPro() {
   const [contact, setContact] = useState("");
   const [tel, setTel] = useState("");
   const [telFige, setTelFige] = useState(false);
+  const [email, setEmail] = useState("");
+  const [motDePasse, setMotDePasse] = useState("");
+  const [nomUtilisateur, setNomUtilisateur] = useState("");
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
 
@@ -30,7 +33,8 @@ export default function InscriptionPro() {
       .catch(() => {});
   }, []);
 
-  const complet = etablissement.trim() && type.trim() && contact.trim() && tel.trim();
+  const complet =
+    etablissement.trim() && type.trim() && contact.trim() && tel.trim() && email.trim() && motDePasse;
 
   async function valider() {
     setErreur("");
@@ -38,14 +42,25 @@ export default function InscriptionPro() {
       setErreur(t("err_champs"));
       return;
     }
+    if (!/\S+@\S+\.\S+/.test(email.trim())) {
+      setErreur(t("err_email"));
+      return;
+    }
+    if (motDePasse.length < 6) {
+      setErreur(t("err_mdp"));
+      return;
+    }
     setOccupe(true);
     try {
+      await definirEmailMotDePasse(email.trim(), motDePasse);
       await enregistrerProfil({
         role: "pro",
         etablissement: etablissement.trim(),
         type_etab: type,
         contact: contact.trim(),
         telephone: tel.trim(),
+        email: email.trim(),
+        nom_utilisateur: nomUtilisateur.trim() || null,
       });
       seConnecter("pro");
       routeur.push("/pro");
@@ -112,6 +127,29 @@ export default function InscriptionPro() {
             readOnly={telFige}
             style={telFige ? { background: "var(--vert-pale)", color: "var(--gris)" } : undefined}
           />
+        </div>
+        <div className="champ">
+          <label>
+            {t("email_l")}
+            <Etoile />
+          </label>
+          <input type="email" placeholder={t("email_ph")} value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="champ">
+          <label>
+            {t("mdp2_l")}
+            <Etoile />
+          </label>
+          <input
+            type="password"
+            placeholder={t("mdp2_ph")}
+            value={motDePasse}
+            onChange={(e) => setMotDePasse(e.target.value)}
+          />
+        </div>
+        <div className="champ">
+          <label>{t("user_l")}</label>
+          <input type="text" placeholder={t("user_ph")} value={nomUtilisateur} onChange={(e) => setNomUtilisateur(e.target.value)} />
         </div>
 
         <button className="btn-action" onClick={valider} disabled={occupe || !complet}>

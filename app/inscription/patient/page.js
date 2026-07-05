@@ -3,7 +3,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
-import { utilisateurCourant, enregistrerProfil } from "@/lib/supabase";
+import { utilisateurCourant, enregistrerProfil, definirEmailMotDePasse } from "@/lib/supabase";
 
 // Finalisation du compte Patient : champs obligatoires (prénom, nom,
 // commune, téléphone). Sans eux, on ne peut pas valider le compte.
@@ -16,6 +16,9 @@ export default function InscriptionPatient() {
   const [commune, setCommune] = useState("");
   const [tel, setTel] = useState("");
   const [telFige, setTelFige] = useState(false);
+  const [email, setEmail] = useState("");
+  const [motDePasse, setMotDePasse] = useState("");
+  const [nomUtilisateur, setNomUtilisateur] = useState("");
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
 
@@ -30,7 +33,8 @@ export default function InscriptionPatient() {
       .catch(() => {});
   }, []);
 
-  const complet = prenom.trim() && nom.trim() && commune.trim() && tel.trim();
+  const complet =
+    prenom.trim() && nom.trim() && commune.trim() && tel.trim() && email.trim() && motDePasse;
 
   async function valider() {
     setErreur("");
@@ -38,14 +42,26 @@ export default function InscriptionPatient() {
       setErreur(t("err_champs"));
       return;
     }
+    if (!/\S+@\S+\.\S+/.test(email.trim())) {
+      setErreur(t("err_email"));
+      return;
+    }
+    if (motDePasse.length < 6) {
+      setErreur(t("err_mdp"));
+      return;
+    }
     setOccupe(true);
     try {
+      // Ajoute email + mot de passe au compte (créé par SMS)
+      await definirEmailMotDePasse(email.trim(), motDePasse);
       await enregistrerProfil({
         role: "patient",
         prenom: prenom.trim(),
         nom: nom.trim(),
         commune: commune.trim(),
         telephone: tel.trim(),
+        email: email.trim(),
+        nom_utilisateur: nomUtilisateur.trim() || null,
       });
       seConnecter("patient");
       routeur.push(serviceEnCours ? "/rdv" : "/tableau");
@@ -101,6 +117,29 @@ export default function InscriptionPatient() {
             readOnly={telFige}
             style={telFige ? { background: "var(--vert-pale)", color: "var(--gris)" } : undefined}
           />
+        </div>
+        <div className="champ">
+          <label>
+            {t("email_l")}
+            <Etoile />
+          </label>
+          <input type="email" placeholder={t("email_ph")} value={email} onChange={(e) => setEmail(e.target.value)} />
+        </div>
+        <div className="champ">
+          <label>
+            {t("mdp2_l")}
+            <Etoile />
+          </label>
+          <input
+            type="password"
+            placeholder={t("mdp2_ph")}
+            value={motDePasse}
+            onChange={(e) => setMotDePasse(e.target.value)}
+          />
+        </div>
+        <div className="champ">
+          <label>{t("user_l")}</label>
+          <input type="text" placeholder={t("user_ph")} value={nomUtilisateur} onChange={(e) => setNomUtilisateur(e.target.value)} />
         </div>
 
         <button className="btn-action" onClick={valider} disabled={occupe || !complet}>
