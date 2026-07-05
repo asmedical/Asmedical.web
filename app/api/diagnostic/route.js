@@ -1,5 +1,13 @@
 import { NextResponse } from "next/server";
 
+// Jamais mis en cache : chaque appel reflète l'état réel de la config.
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const SANS_CACHE = {
+  "Cache-Control": "no-store, no-cache, must-revalidate, max-age=0",
+};
+
 // Diagnostic de configuration (lecture seule, aucune donnée sensible exposée).
 // Vérifie que les variables Supabase sont présentes et que le projet répond.
 export async function GET() {
@@ -21,7 +29,7 @@ export async function GET() {
   if (!resultat.url_valide || !anon) {
     resultat.conseil =
       "NEXT_PUBLIC_SUPABASE_URL doit être exactement https://xxxx.supabase.co (sans /rest/v1/) et NEXT_PUBLIC_SUPABASE_ANON_KEY doit être renseignée. Corrigez dans Vercel puis Redeploy.";
-    return NextResponse.json(resultat);
+    return NextResponse.json(resultat, { headers: SANS_CACHE });
   }
 
   const base = url.replace(/\/$/, "");
@@ -76,5 +84,5 @@ export async function GET() {
     resultat.conseil = "✅ Tout est prêt. Rechargez « Mes documents ».";
   }
 
-  return NextResponse.json(resultat);
+  return NextResponse.json(resultat, { headers: SANS_CACHE });
 }
