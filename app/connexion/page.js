@@ -3,7 +3,13 @@ import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
-import { envoyerCode, verifierCode, normaliserTel, supabaseConfigured } from "@/lib/supabase";
+import {
+  envoyerCode,
+  verifierCode,
+  normaliserTel,
+  chargerProfil,
+  supabaseConfigured,
+} from "@/lib/supabase";
 
 function FormulaireConnexion() {
   const { t, espaceChoisi, serviceEnCours, seConnecter } = useAsm();
@@ -41,8 +47,15 @@ function FormulaireConnexion() {
     setErreur("");
     setOccupe(true);
     try {
-      await verifierCode(phoneE164, code.trim());
+      const user = await verifierCode(phoneE164, code.trim());
       const type = espaceChoisi === "pro" ? "pro" : "patient";
+      // Nouveau compte (aucun profil) → passage obligatoire par le
+      // formulaire des champs requis. Compte existant → accès direct.
+      const profil = await chargerProfil(user?.id);
+      if (!profil) {
+        routeur.push(type === "pro" ? "/inscription/pro" : "/inscription/patient");
+        return;
+      }
       seConnecter(type);
       if (type === "pro") routeur.push("/pro");
       else if (serviceEnCours) routeur.push("/rdv");

@@ -110,6 +110,7 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .lien-bas{text-align:center;margin-top:18px;font-size:14.5px;color:var(--gris)}
 .lien-bas a{color:var(--vert);font-weight:800;text-decoration:none;cursor:pointer}
 .erreur{color:#A4432F;font-size:14.5px;margin-top:12px;text-align:center;font-weight:700}
+.req{color:#A4432F;font-weight:800}
 .champ-code{text-align:center;letter-spacing:.35em;font-size:24px;font-weight:800}
 .champ-code::placeholder{letter-spacing:.15em;font-size:18px}
 
