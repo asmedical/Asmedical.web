@@ -105,17 +105,41 @@ Le HTTPS est **automatique et gratuit** sur Vercel (certificat Let's Encrypt).
 ## 6. Sauvegardes & restauration
 
 ### Base PostgreSQL (Railway) — la donnée critique
-- **Sauvegardes automatiques** : Railway → projet → base Postgres → onglet **Backups**. Vérifier qu'elles sont **activées** (snapshots quotidiens selon l'offre).
-- **Sauvegarde manuelle** (recommandée avant tout changement de structure) :
-  ```bash
-  # Récupérer DATABASE_URL depuis Railway, puis :
-  pg_dump "$DATABASE_URL" > asm-sauvegarde-$(date +%F).sql
-  ```
-- **Restauration** :
-  ```bash
-  psql "$DATABASE_URL" < asm-sauvegarde-AAAA-MM-JJ.sql
-  ```
-- **Stratégie** : garder au moins les 7 derniers jours + une sauvegarde avant chaque migration Prisma. Stocker une copie hors Railway (ex. Google Drive de l'équipe).
+
+> ⚠️ L'onglet **Backups** de Railway est souvent **vide** : les sauvegardes ne
+> sont pas activées par défaut (et sont limitées selon l'offre). Ne pas s'y fier
+> tel quel.
+
+**Solution en place — sauvegarde automatique quotidienne via GitHub Actions**
+(`.github/workflows/sauvegarde-base.yml`) : exporte la base chaque nuit (03:00 UTC),
+**chiffre** le fichier (AES-256) et le conserve comme artefact privé (90 jours).
+
+Activation (une seule fois) — GitHub → dépôt → **Settings → Secrets and variables
+→ Actions** → ajouter deux secrets :
+- `DATABASE_URL` : l'URL PostgreSQL de Railway
+- `BACKUP_PASSPHRASE` : un mot de passe secret (à **conserver précieusement** —
+  sans lui, impossible de déchiffrer la sauvegarde)
+
+Test immédiat : onglet **Actions** → « Sauvegarde base de données » → **Run workflow**.
+Récupérer une sauvegarde : onglet Actions → l'exécution voulue → section **Artifacts**.
+
+**Sauvegarde manuelle** (avant tout changement de structure) :
+```bash
+pg_dump "$DATABASE_URL" > asm-sauvegarde-$(date +%F).sql
+```
+
+**Restauration** :
+```bash
+# Depuis une sauvegarde chiffrée du workflow :
+gpg --batch --passphrase "<BACKUP_PASSPHRASE>" -d asm-AAAA-MM-JJ.sql.gpg > asm.sql
+psql "$DATABASE_URL" < asm.sql
+# Depuis une sauvegarde manuelle (non chiffrée) :
+psql "$DATABASE_URL" < asm-sauvegarde-AAAA-MM-JJ.sql
+```
+
+**Stratégie** : sauvegarde quotidienne automatique (ci-dessus) + une sauvegarde
+manuelle avant chaque migration Prisma. En complément, activer aussi les backups
+Railway si l'offre le permet (défense en profondeur).
 
 ### Documents (Supabase Storage)
 - Bucket `documents` **privé**. Sauvegarde : Supabase → Storage permet l'export ; sinon script via `SUPABASE_SERVICE_ROLE_KEY` listant/copiant les fichiers. Les métadonnées sont dans la table `document` (incluse dans le dump Postgres Supabase, séparé de Railway).

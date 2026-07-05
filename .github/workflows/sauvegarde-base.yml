@@ -1,0 +1,51 @@
+name: Sauvegarde base de données
+
+# Sauvegarde automatique quotidienne de la base PostgreSQL (Railway).
+# Le dump est CHIFFRÉ (gpg) puis conservé comme artefact privé du dépôt.
+#
+# ⚙️ À activer une seule fois : GitHub → repo → Settings → Secrets and
+#    variables → Actions → New repository secret, ajouter :
+#      - DATABASE_URL       : l'URL PostgreSQL de Railway
+#      - BACKUP_PASSPHRASE  : un mot de passe secret pour chiffrer/déchiffrer
+#
+# ▶️ Test manuel : onglet Actions → « Sauvegarde base de données » → Run workflow.
+# ♻️ Restauration (voir docs/TECHNIQUE_PRODUCTION.md §6).
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # tous les jours à 03:00 UTC
+  workflow_dispatch: {} # + bouton « Run workflow » manuel
+
+jobs:
+  sauvegarde:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Installer le client PostgreSQL 16
+        run: |
+          sudo sh -c 'echo "deb http://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" > /etc/apt/sources.list.d/pgdg.list'
+          wget --quiet -O - https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo apt-key add -
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-16
+
+      - name: Exporter et chiffrer la base
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          if [ -z "${DATABASE_URL:-}" ] || [ -z "${BACKUP_PASSPHRASE:-}" ]; then
+            echo "❌ Secrets DATABASE_URL et/ou BACKUP_PASSPHRASE manquants." >&2
+            exit 1
+          fi
+          NOM="asm-$(date +%F).sql"
+          pg_dump "$DATABASE_URL" > "$NOM"
+          gpg --batch --yes --passphrase "$BACKUP_PASSPHRASE" --symmetric --cipher-algo AES256 "$NOM"
+          rm -f "$NOM"
+          echo "✅ Sauvegarde chiffrée : ${NOM}.gpg"
+
+      - name: Conserver la sauvegarde (artefact privé, 90 jours)
+        uses: actions/upload-artifact@v4
+        with:
+          name: sauvegarde-base-${{ github.run_id }}
+          path: "*.sql.gpg"
+          retention-days: 90
