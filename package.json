@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "prisma generate && node scripts/sync-base.js && next build",
     "start": "next start",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "lint": "next lint",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "sante": "node scripts/verifier-sante.mjs"
   },
   "dependencies": {
     "@prisma/client": "5.22.0",
@@ -16,6 +20,9 @@
     "react-dom": "18.3.1"
   },
   "devDependencies": {
-    "prisma": "5.22.0"
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.21",
+    "prisma": "5.22.0",
+    "vitest": "^2.1.9"
   }
 }
