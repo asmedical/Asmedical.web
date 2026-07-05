@@ -114,6 +114,21 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .champ-code{text-align:center;letter-spacing:.35em;font-size:24px;font-weight:800}
 .champ-code::placeholder{letter-spacing:.15em;font-size:18px}
 
+/* ============ CALENDRIER DE CRÉNEAUX ============ */
+.jours-scroll{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.jours-scroll::-webkit-scrollbar{display:none}
+.jour-chip{flex:0 0 auto;min-width:66px;padding:10px 8px;border:1px solid var(--ligne);border-radius:var(--r-s);background:var(--blanc);cursor:pointer;text-align:center;font-family:inherit;color:var(--encre);transition:border-color .15s,background .15s}
+.jour-chip strong{display:block;font-size:14px;font-weight:800;text-transform:capitalize}
+.jour-chip small{display:block;color:var(--gris);font-size:12.5px;margin-top:2px}
+.jour-chip.actif{border-color:var(--vert);background:var(--vert);color:#fff}
+.jour-chip.actif small{color:rgba(255,255,255,.85)}
+.creneaux-grille{display:grid;grid-template-columns:repeat(auto-fill,minmax(84px,1fr));gap:9px;margin-top:12px}
+.creneau-btn{padding:14px 8px;border:1px solid var(--ligne);border-radius:var(--r-s);background:var(--blanc);font-size:16px;font-weight:800;color:var(--vert-fonce);cursor:pointer;font-family:inherit;transition:border-color .15s,background .15s}
+.creneau-btn:hover:not(:disabled){border-color:var(--vert);background:var(--vert-pale)}
+.creneau-btn.actif{background:var(--vert);border-color:var(--vert);color:#fff}
+.creneau-btn.pris{opacity:.4;text-decoration:line-through;cursor:not-allowed;color:var(--gris)}
+.creneaux-info{color:var(--gris);font-size:14.5px;padding:14px 2px;text-align:center}
+
 /* ============ CHOIX DU RÔLE ============ */
 .grille-role{display:grid;gap:14px;margin-top:8px}
 .carte-role{display:flex;align-items:center;gap:16px;padding:22px;border:1px solid var(--ligne);border-radius:var(--r);background:var(--blanc);cursor:pointer;text-align:start;transition:border-color .15s,background .15s;text-decoration:none;color:var(--encre);width:100%;font-size:inherit}
@@ -327,3 +342,9 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .demande-admin .actions{display:flex;gap:10px;flex-wrap:wrap}
 .demande-admin .actions select{padding:10px 12px;font-size:14px;font-family:inherit;color:var(--encre);border:1px solid var(--ligne);border-radius:var(--r-s);background:var(--blanc)}
 @media(max-width:560px){.stats-ligne{grid-template-columns:1fr}}
+.reglages-bloc{border:1px solid var(--ligne);border-radius:var(--r-s);padding:14px 16px;margin-bottom:20px;background:var(--vert-pale)}
+.reglages-bloc summary{font-weight:800;color:var(--vert-fonce);cursor:pointer;font-size:15px}
+.reglages-grille{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:16px 0}
+.reglages-grille label{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:700;color:var(--gris)}
+.reglages-grille input{padding:10px;font-size:16px;font-family:inherit;color:var(--encre);border:1px solid var(--ligne);border-radius:var(--r-s);background:var(--blanc)}
+.reglage-msg{margin-top:10px;font-weight:700;color:var(--vert-fonce);font-size:14px}

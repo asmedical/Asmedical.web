@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE } from "@/lib/i18n";
 
@@ -10,21 +10,28 @@ const CLES_SERVICE = {
   medicaments: "rdv_service_medicaments",
 };
 
-// Prise de rendez-vous : la demande part dans la base et l'équipe
-// rappelle en moins de 30 minutes.
+function isoJour(d) {
+  return d.toISOString().slice(0, 10);
+}
+
+// Prise de rendez-vous avec calendrier intelligent de créneaux :
+// on ne propose que les créneaux réellement libres (capacité non atteinte).
 export default function PriseRdv() {
-  const { t, serviceEnCours, espaceChoisi } = useAsm();
+  const { t, langue, serviceEnCours, espaceChoisi } = useAsm();
   const service = serviceEnCours || "transport";
-  // Après confirmation, retour vers l'espace d'où l'on vient
-  const monEspace = espaceChoisi === "pro" ? "/pro" : "/tableau";
 
   const [typeTrajet, setTypeTrajet] = useState("simple");
   const [depart, setDepart] = useState("");
   const [destination, setDestination] = useState("");
-  const [date, setDate] = useState("");
   const [recurrence, setRecurrence] = useState("une");
   const [telephone, setTelephone] = useState("");
   const [notes, setNotes] = useState("");
+
+  const [jours, setJours] = useState([]);
+  const [jourChoisi, setJourChoisi] = useState("");
+  const [creneaux, setCreneaux] = useState(null);
+  const [slotChoisi, setSlotChoisi] = useState("");
+
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
   const [confirme, setConfirme] = useState(false);
@@ -36,8 +43,79 @@ export default function PriseRdv() {
     conseiller: t("rec_conseiller"),
   };
 
+  // Construit la liste des jours réservables (selon l'horizon réglé)
+  useEffect(() => {
+    let annule = false;
+    fetch("/api/creneaux")
+      .then((r) => r.json())
+      .then((d) => {
+        if (annule) return;
+        const horizon = d?.reglage?.joursHorizon || 14;
+        const liste = [];
+        const base = new Date();
+        base.setHours(0, 0, 0, 0);
+        for (let i = 0; i < horizon; i++) {
+          const j = new Date(base);
+          j.setDate(base.getDate() + i);
+          liste.push(isoJour(j));
+        }
+        setJours(liste);
+        setJourChoisi(liste[0]);
+      })
+      .catch(() => {
+        const liste = [];
+        const base = new Date();
+        for (let i = 0; i < 14; i++) {
+          const j = new Date(base);
+          j.setDate(base.getDate() + i);
+          liste.push(isoJour(j));
+        }
+        setJours(liste);
+        setJourChoisi(liste[0]);
+      });
+    return () => {
+      annule = true;
+    };
+  }, []);
+
+  // Charge les créneaux du jour choisi pour le service
+  useEffect(() => {
+    if (!jourChoisi) return;
+    let annule = false;
+    setCreneaux(null);
+    setSlotChoisi("");
+    fetch(`/api/creneaux?service=${service}&jour=${jourChoisi}`)
+      .then((r) => r.json())
+      .then((d) => {
+        if (!annule) setCreneaux(d.creneaux || []);
+      })
+      .catch(() => {
+        if (!annule) setCreneaux([]);
+      });
+    return () => {
+      annule = true;
+    };
+  }, [jourChoisi, service]);
+
+  function libelleJour(iso) {
+    const d = new Date(iso + "T12:00");
+    const auj = isoJour(new Date());
+    const dem = isoJour(new Date(Date.now() + 86400000));
+    if (iso === auj) return { haut: t("aujourdhui"), bas: "" };
+    if (iso === dem) return { haut: t("demain"), bas: "" };
+    const loc = langue === "ar" ? "ar" : "fr-FR";
+    return {
+      haut: d.toLocaleDateString(loc, { weekday: "short" }),
+      bas: d.toLocaleDateString(loc, { day: "numeric", month: "short" }),
+    };
+  }
+
   async function confirmer() {
     setErreur("");
+    if (!slotChoisi) {
+      setErreur(t("err_creneau"));
+      return;
+    }
     if (telephone.trim().length < 9) {
       setErreur(t("err_tel"));
       return;
@@ -52,19 +130,26 @@ export default function PriseRdv() {
           typeTrajet: service === "transport" ? typeTrajet : null,
           depart,
           destination,
-          date,
+          date: slotChoisi,
           recurrence: RECURRENCES[recurrence],
           telephone,
           notes,
           espace: espaceChoisi,
         }),
       });
+      if (r.status === 409) {
+        setErreur(t("err_creneau_pris"));
+        // rafraîchit les créneaux pour retirer celui qui vient d'être pris
+        const rc = await fetch(`/api/creneaux?service=${service}&jour=${jourChoisi}`);
+        const dc = await rc.json();
+        setCreneaux(dc.creneaux || []);
+        setSlotChoisi("");
+        return;
+      }
       if (!r.ok) throw new Error();
-      // Mémorise la demande sur l'appareil pour l'afficher dans « Mes rendez-vous »
-      // (en attendant les comptes réels, où l'historique viendra du serveur)
       try {
         const liste = JSON.parse(localStorage.getItem("asm_demandes") || "[]");
-        liste.unshift({ service, date, destination, recurrence: RECURRENCES[recurrence] });
+        liste.unshift({ service, date: slotChoisi, destination, recurrence: RECURRENCES[recurrence] });
         localStorage.setItem("asm_demandes", JSON.stringify(liste.slice(0, 10)));
       } catch {}
       setConfirme(true);
@@ -76,6 +161,7 @@ export default function PriseRdv() {
   }
 
   if (confirme) {
+    const monEspace = espaceChoisi === "pro" ? "/pro" : "/tableau";
     return (
       <div className="page">
         <div className="contenu-page" style={{ maxWidth: 460 }}>
@@ -116,26 +202,52 @@ export default function PriseRdv() {
         )}
         <div className="champ">
           <label>{t("depart_l")}</label>
-          <input
-            type="text"
-            placeholder={t("depart_ph")}
-            value={depart}
-            onChange={(e) => setDepart(e.target.value)}
-          />
+          <input type="text" placeholder={t("depart_ph")} value={depart} onChange={(e) => setDepart(e.target.value)} />
         </div>
         <div className="champ">
           <label>{t("dest_l")}</label>
-          <input
-            type="text"
-            placeholder={t("dest_ph")}
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-          />
+          <input type="text" placeholder={t("dest_ph")} value={destination} onChange={(e) => setDestination(e.target.value)} />
         </div>
+
+        {/* Calendrier de créneaux */}
         <div className="champ">
-          <label>{t("date_l")}</label>
-          <input type="datetime-local" value={date} onChange={(e) => setDate(e.target.value)} />
+          <label>{t("creneau_titre")}</label>
+          <div className="jours-scroll">
+            {jours.map((j) => {
+              const l = libelleJour(j);
+              return (
+                <button
+                  key={j}
+                  className={"jour-chip" + (j === jourChoisi ? " actif" : "")}
+                  onClick={() => setJourChoisi(j)}
+                >
+                  <strong>{l.haut}</strong>
+                  {l.bas && <small>{l.bas}</small>}
+                </button>
+              );
+            })}
+          </div>
+
+          {creneaux === null && <div className="creneaux-info">{t("creneau_charge")}</div>}
+          {creneaux !== null && creneaux.filter((c) => c.dispo).length === 0 && (
+            <div className="creneaux-info">{t("creneau_aucun")}</div>
+          )}
+          {creneaux !== null && creneaux.some((c) => c.dispo) && (
+            <div className="creneaux-grille">
+              {creneaux.map((c) => (
+                <button
+                  key={c.iso}
+                  disabled={!c.dispo}
+                  className={"creneau-btn" + (slotChoisi === c.iso ? " actif" : "") + (!c.dispo ? " pris" : "")}
+                  onClick={() => setSlotChoisi(c.iso)}
+                >
+                  {c.heure}
+                </button>
+              ))}
+            </div>
+          )}
         </div>
+
         {service === "transport" && (
           <div className="champ">
             <label>{t("rec_l")}</label>
@@ -150,22 +262,13 @@ export default function PriseRdv() {
         )}
         <div className="champ">
           <label>{t("tel_l")}</label>
-          <input
-            type="tel"
-            placeholder={t("tel_ph")}
-            value={telephone}
-            onChange={(e) => setTelephone(e.target.value)}
-          />
+          <input type="tel" placeholder={t("tel_ph")} value={telephone} onChange={(e) => setTelephone(e.target.value)} />
         </div>
         <div className="champ">
           <label>{t("notes_l")}</label>
-          <textarea
-            rows={3}
-            placeholder={t("notes_ph")}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+          <textarea rows={3} placeholder={t("notes_ph")} value={notes} onChange={(e) => setNotes(e.target.value)} />
         </div>
+
         <button className="btn-action" onClick={confirmer} disabled={envoi}>
           {envoi ? t("envoi") : t("rdv_b")}
         </button>

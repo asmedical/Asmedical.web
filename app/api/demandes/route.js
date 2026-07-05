@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notifierEquipe } from "@/lib/notifier";
+import { getReglage, capacitePour } from "@/lib/creneaux";
 
 // POST /api/demandes — un patient ou un établissement envoie une demande
 export async function POST(req) {
@@ -13,21 +14,47 @@ export async function POST(req) {
     }
 
     const texte = (v, max) => (v ? String(v).slice(0, max) : null);
+    const dateSlot = String(corps.date || "").slice(0, 16);
 
-    const demande = await prisma.demande.create({
-      data: {
-        service: String(service).slice(0, 30),
-        typeTrajet: texte(corps.typeTrajet, 30),
-        nom: texte(corps.nom, 80),
-        telephone: String(telephone).slice(0, 20),
-        depart: texte(corps.depart, 160),
-        destination: texte(corps.destination, 160),
-        date: String(corps.date || "").slice(0, 16),
-        recurrence: String(corps.recurrence || "Une seule fois").slice(0, 80),
-        notes: texte(corps.notes, 500),
-        espace: corps.espace === "pro" ? "pro" : "patient",
-      },
-    });
+    // Contrôle anti-double-réservation : si un créneau précis est choisi,
+    // on vérifie que la capacité n'est pas atteinte, dans une transaction.
+    const serviceNorm = String(service).slice(0, 30);
+    let demande;
+    try {
+      demande = await prisma.$transaction(async (tx) => {
+        if (dateSlot.includes("T")) {
+          const reglage = await getReglage();
+          const capacite = capacitePour(reglage, serviceNorm);
+          const pris = await tx.demande.count({
+            where: { service: serviceNorm, date: dateSlot, statut: { not: "ANNULEE" } },
+          });
+          if (pris >= capacite) {
+            const err = new Error("creneau_pris");
+            err.code = "CRENEAU_PRIS";
+            throw err;
+          }
+        }
+        return tx.demande.create({
+          data: {
+            service: serviceNorm,
+            typeTrajet: texte(corps.typeTrajet, 30),
+            nom: texte(corps.nom, 80),
+            telephone: String(telephone).slice(0, 20),
+            depart: texte(corps.depart, 160),
+            destination: texte(corps.destination, 160),
+            date: dateSlot,
+            recurrence: String(corps.recurrence || "Une seule fois").slice(0, 80),
+            notes: texte(corps.notes, 500),
+            espace: corps.espace === "pro" ? "pro" : "patient",
+          },
+        });
+      });
+    } catch (e) {
+      if (e.code === "CRENEAU_PRIS") {
+        return NextResponse.json({ erreur: "creneau_pris" }, { status: 409 });
+      }
+      throw e;
+    }
     await notifierEquipe(demande);
     return NextResponse.json({ ok: true, id: demande.id }, { status: 201 });
   } catch (e) {

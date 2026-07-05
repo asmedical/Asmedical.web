@@ -24,3 +24,16 @@ model Demande {
   chauffeur   String?  // affecté par l'équipe
   creeLe      DateTime @default(now())
 }
+
+// Réglages du calendrier de créneaux (ligne unique id=1), éditables
+// par l'équipe dans le back-office.
+model Reglage {
+  id                  Int @id @default(1)
+  heureDebut          Int @default(7)   // service à partir de 7h
+  heureFin            Int @default(19)  // jusqu'à 19h
+  dureeCreneauMin     Int @default(60)  // créneaux d'1 heure
+  joursHorizon        Int @default(14)  // réservable jusqu'à 14 jours
+  capaciteTransport   Int @default(3)   // 3 transports en parallèle
+  capaciteDomicile    Int @default(2)
+  capaciteMedicaments Int @default(3)
+}
