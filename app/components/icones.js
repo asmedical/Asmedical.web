@@ -123,3 +123,46 @@ export function IcoEnvoyer(props) {
     </svg>
   );
 }
+
+export function IcoDossier(props) {
+  return (
+    <svg {...base} strokeWidth="1.7" {...props}>
+      <path d="M4 5.5h5l2 2.5h9a1.5 1.5 0 0 1 1.5 1.5v8a1.5 1.5 0 0 1-1.5 1.5H4A1.5 1.5 0 0 1 2.5 17.5v-10A2 2 0 0 1 4.5 5.5z" />
+    </svg>
+  );
+}
+
+export function IcoPhoto(props) {
+  return (
+    <svg {...base} strokeWidth="1.7" {...props}>
+      <rect x="3" y="5" width="18" height="14" rx="2.5" />
+      <circle cx="8.5" cy="10" r="1.7" />
+      <path d="M21 16l-5-5-9 8" />
+    </svg>
+  );
+}
+
+export function IcoCamera(props) {
+  return (
+    <svg {...base} strokeWidth="1.7" {...props}>
+      <path d="M3 8.5A1.5 1.5 0 0 1 4.5 7h2l1.5-2h8L17.5 7h2A1.5 1.5 0 0 1 21 8.5v9A1.5 1.5 0 0 1 19.5 19h-15A1.5 1.5 0 0 1 3 17.5z" />
+      <circle cx="12" cy="12.5" r="3.4" />
+    </svg>
+  );
+}
+
+export function IcoCorbeille(props) {
+  return (
+    <svg {...base} strokeWidth="1.8" {...props}>
+      <path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" />
+    </svg>
+  );
+}
+
+export function IcoOuvrir(props) {
+  return (
+    <svg {...base} strokeWidth="1.8" {...props}>
+      <path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
+    </svg>
+  );
+}

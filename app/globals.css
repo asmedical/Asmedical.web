@@ -259,6 +259,41 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .carte-role-pro strong{color:#12507F}
 .carte-role-pro:hover{border-color:#1A6BAA;background:#E2EFFA}
 
+/* ============ MES DOCUMENTS ============ */
+.doc-carte{display:flex;align-items:center;gap:13px;background:var(--blanc);border:1px solid var(--ligne);border-radius:var(--r-s);padding:12px;margin-bottom:11px}
+.doc-vignette{width:48px;height:48px;border-radius:10px;flex-shrink:0;background:var(--vert-pale);display:flex;align-items:center;justify-content:center;overflow:hidden}
+.doc-vignette img{width:100%;height:100%;object-fit:cover}
+.doc-vignette svg{width:24px;height:24px;stroke:var(--vert);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round}
+.doc-infos{flex:1;min-width:0}
+.doc-infos strong{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.doc-infos small{color:var(--gris);font-size:13px}
+.doc-actions{display:flex;gap:6px;flex-shrink:0}
+.doc-actions button{width:40px;height:40px;border-radius:50%;border:none;background:var(--vert-pale);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.doc-actions button svg{width:19px;height:19px;stroke:var(--vert);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.doc-actions button:hover{background:var(--ligne)}
+.doc-actions .suppr svg{stroke:#A4432F}
+.doc-actions .suppr:hover{background:#F6E5E0}
+
+/* Feuille d'action (bottom sheet) + modale */
+.sheet-fond{position:fixed;inset:0;z-index:200;background:rgba(34,51,44,.42);display:flex;align-items:flex-end;justify-content:center;animation:voile .2s ease}
+@keyframes voile{from{opacity:0}to{opacity:1}}
+.sheet{width:100%;max-width:520px;background:var(--blanc);border-radius:20px 20px 0 0;padding:10px 14px calc(14px + env(safe-area-inset-bottom));box-shadow:0 -8px 30px rgba(34,51,44,.18);animation:glisse .24s ease}
+@keyframes glisse{from{transform:translateY(100%)}to{transform:none}}
+.sheet-titre{text-align:center;color:var(--gris);font-size:13.5px;font-weight:800;padding:10px 0 6px}
+.sheet-opt{display:flex;align-items:center;gap:15px;width:100%;padding:16px;background:var(--blanc);border:1px solid var(--ligne);border-radius:var(--r-s);font-size:16.5px;font-weight:700;color:var(--encre);cursor:pointer;margin-bottom:9px;font-family:inherit;transition:background .15s}
+[dir="rtl"] .sheet-opt{text-align:right}
+.sheet-opt:hover{background:var(--vert-pale)}
+.sheet-opt svg{width:24px;height:24px;stroke:var(--vert);fill:none;stroke-width:1.7;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+.sheet-annuler{width:100%;padding:16px;margin-top:5px;background:var(--vert-pale);border:none;border-radius:var(--r-s);font-size:16.5px;font-weight:800;color:var(--vert-fonce);cursor:pointer;font-family:inherit}
+.sheet-annuler:hover{background:var(--ligne)}
+.modale{width:100%;max-width:400px;margin:0 16px calc(16px + env(safe-area-inset-bottom));background:var(--blanc);border-radius:var(--r);padding:26px 22px;text-align:center;box-shadow:0 -8px 30px rgba(34,51,44,.18);animation:glisse .24s ease}
+.modale-ico{width:56px;height:56px;border-radius:50%;margin:0 auto 14px;background:#F6E5E0;display:flex;align-items:center;justify-content:center}
+.modale-ico svg{width:26px;height:26px;stroke:#A4432F;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.modale strong{font-size:18px;display:block;margin-bottom:6px}
+.modale p{color:var(--gris);font-size:14.5px;margin-bottom:18px}
+.btn-danger{width:100%;padding:15px;font-size:16px;font-weight:800;background:#A4432F;color:#fff;border:none;border-radius:var(--r-s);cursor:pointer;margin-bottom:10px}
+.btn-danger:hover{background:#8B3728}
+
 /* ============ HISTORIQUE (espace pro) — lien discret en haut à droite ============ */
 .barre-histo{display:flex;justify-content:flex-end;margin:20px 0 12px}
 .lien-histo{background:none;border:none;color:var(--vert);font-weight:800;font-size:13.5px;cursor:pointer;font-family:inherit;text-decoration:underline;text-underline-offset:3px;padding:2px 0;transition:color .15s}
