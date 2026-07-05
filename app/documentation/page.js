@@ -129,7 +129,7 @@ export default function Documentation() {
       const { error: eUp } = await supabase.storage
         .from("documents")
         .upload(chemin, fichier, { contentType: fichier.type, upsert: false });
-      if (eUp) throw eUp;
+      if (eUp) throw new Error("Stockage : " + (eUp.message || "erreur inconnue"));
       const { error: eMeta } = await supabase.from("document").insert({
         patient_id: user.id,
         nom: fichier.name.slice(0, 120),
@@ -137,10 +137,10 @@ export default function Documentation() {
         taille: fichier.size,
         chemin,
       });
-      if (eMeta) throw eMeta;
+      if (eMeta) throw new Error("Base : " + (eMeta.message || "erreur inconnue"));
       await charger();
-    } catch {
-      setErreur(t("err_upload"));
+    } catch (e) {
+      setErreur(e && e.message ? e.message : t("err_upload"));
     } finally {
       setEnvoi(false);
     }
