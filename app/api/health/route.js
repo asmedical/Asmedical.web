@@ -24,20 +24,29 @@ export async function GET() {
     checks.base = { ok: false, critique: true };
   }
 
-  // 3. Supabase (plateforme Auth) — appel de son point de santé public, sans clé
+  // 3. Supabase (comptes + documents) — réellement utilisé par le site.
+  //    L'appel exige l'en-tête « apikey » (clé publique anon) ; sans lui,
+  //    Supabase répond 401 et le contrôle donnerait un faux négatif.
+  //    Non critique : si Supabase est indisponible, la prise de rendez-vous
+  //    fonctionne encore → WARNING (pas ERROR).
   const url = (process.env.NEXT_PUBLIC_SUPABASE_URL || "").replace(/\/$/, "");
-  if (url) {
+  const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  if (url && anon) {
     try {
       const ctrl = new AbortController();
       const t = setTimeout(() => ctrl.abort(), 4000);
-      const r = await fetch(`${url}/auth/v1/health`, { signal: ctrl.signal });
+      const r = await fetch(`${url}/auth/v1/settings`, {
+        headers: { apikey: anon },
+        signal: ctrl.signal,
+      });
       clearTimeout(t);
       checks.supabase = { ok: r.ok, critique: false };
     } catch {
       checks.supabase = { ok: false, critique: false };
     }
   } else {
-    checks.supabase = { ok: false, critique: false };
+    // Clés Supabase absentes : c'est une vraie anomalie de config.
+    checks.supabase = { ok: false, critique: false, raison: "clés Supabase absentes" };
   }
 
   const statut = agregerStatut(checks);
