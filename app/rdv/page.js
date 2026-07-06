@@ -319,8 +319,8 @@ export default function PriseRdv() {
             <input type="text" placeholder={t("acces_ph")} value={acces} onChange={(e) => setAcces(e.target.value)} />
           </div>
           <div className="champ">
-            <label>{t("code_l")}</label>
-            <input type="text" placeholder={t("code_ph")} value={code} onChange={(e) => setCode(e.target.value)} />
+            <label>{t("codeporte_l")}</label>
+            <input type="text" placeholder={t("codeporte_ph")} value={code} onChange={(e) => setCode(e.target.value)} />
           </div>
 
           <label className="mini-label" style={{ marginTop: 6 }}>{t("prevenir_t")}</label>
