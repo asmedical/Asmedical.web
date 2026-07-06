@@ -57,10 +57,16 @@ export default function InscriptionPatient() {
         await definirEmailMotDePasse(email.trim(), motDePasse);
       } catch (e) {
         const m = (e?.message || "").toLowerCase();
+        const detail = JSON.stringify({
+          name: e?.name,
+          status: e?.status,
+          code: e?.code,
+          message: e?.message,
+        });
         setErreur(
           m.includes("already") || m.includes("registered") || e?.code === "email_exists"
             ? t("err_email_pris")
-            : t("err_profil") + " · [email] " + (e?.message || e?.code || "?")
+            : t("err_profil") + " · [email] " + detail
         );
         return;
       }
