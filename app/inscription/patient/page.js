@@ -60,7 +60,7 @@ export default function InscriptionPatient() {
         setErreur(
           m.includes("already") || m.includes("registered") || e?.code === "email_exists"
             ? t("err_email_pris")
-            : t("err_profil")
+            : t("err_profil") + " · [email] " + (e?.message || e?.code || "?")
         );
         return;
       }
@@ -75,7 +75,11 @@ export default function InscriptionPatient() {
           nom_utilisateur: nomUtilisateur.trim() || null,
         });
       } catch (e) {
-        setErreur(e?.code === "23505" ? t("err_user_pris") : t("err_profil"));
+        setErreur(
+          e?.code === "23505"
+            ? t("err_user_pris")
+            : t("err_profil") + " · [profil] " + (e?.message || e?.code || "?")
+        );
         return;
       }
       seConnecter("patient");
