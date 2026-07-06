@@ -119,6 +119,43 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .champ-code::placeholder{letter-spacing:.15em;font-size:18px}
 .titre-nouveau{display:inline-block;font-size:20px;font-weight:800;color:var(--vert-fonce);background:var(--vert-pale);padding:8px 16px;border-radius:999px;margin-bottom:12px}
 
+/* ---- Bloc « Créer un compte » sur la page de connexion ---- */
+.creer-compte-bloc{margin-top:22px;padding:16px;background:var(--vert-pale);border-radius:var(--r-s);text-align:center}
+.creer-compte-bloc span{display:block;font-size:14.5px;color:var(--gris);margin-bottom:10px;font-weight:700}
+.btn-creer-compte{width:100%;padding:14px;font-size:15.5px;font-weight:800;background:var(--blanc);color:var(--vert-fonce);border:2px solid var(--vert);border-radius:var(--r-s);cursor:pointer;font-family:inherit;transition:background .15s}
+.btn-creer-compte:hover{background:var(--vert);color:#fff}
+
+/* ---- Menu utilisateur (roue de réglages, en-tête) ---- */
+.menu-user{position:relative}
+.btn-reglages{width:40px;height:40px;border-radius:50%;border:1px solid var(--ligne);background:var(--blanc);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.btn-reglages:hover{background:var(--vert-pale)}
+.btn-reglages svg{width:21px;height:21px;stroke:var(--vert-fonce)}
+.menu-user-liste{position:absolute;top:calc(100% + 8px);inset-inline-end:0;background:var(--blanc);border:1px solid var(--ligne);border-radius:var(--r-s);box-shadow:0 8px 28px rgba(14,60,40,.14);min-width:210px;padding:6px;z-index:60}
+.menu-user-liste button{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:none;font-family:inherit;font-size:15px;font-weight:700;color:var(--encre);border-radius:10px;cursor:pointer;text-align:start}
+.menu-user-liste button:hover{background:var(--vert-pale)}
+.menu-user-liste button svg{width:19px;height:19px;stroke:var(--vert);flex-shrink:0}
+.menu-user-liste .menu-deco{color:#A4432F;border-top:1px solid var(--ligne);border-radius:0 0 10px 10px;margin-top:4px}
+.menu-user-liste .menu-deco svg{stroke:#A4432F}
+
+/* ---- Page Mon compte ---- */
+.carte-compte{background:var(--blanc);border:1px solid var(--ligne);border-radius:var(--r);padding:18px;margin-bottom:16px}
+.carte-compte .titre-section{margin-top:0}
+.entete-compte{display:flex;align-items:center;gap:14px}
+.entete-compte>div{display:flex;flex-direction:column;gap:2px}
+.entete-compte strong{font-size:17px;color:var(--vert-fonce)}
+.entete-compte small{font-size:13px;color:var(--gris)}
+.avatar-compte{width:52px;height:52px;border-radius:50%;background:var(--vert-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.avatar-compte svg{width:26px;height:26px;stroke:var(--vert)}
+.compte-ligne{display:flex;justify-content:space-between;align-items:baseline;gap:12px;padding:9px 0;border-bottom:1px dashed var(--ligne);font-size:15px}
+.compte-ligne:last-of-type{border-bottom:none}
+.compte-ligne span{color:var(--gris);font-weight:700;font-size:13.5px}
+.compte-ligne strong{text-align:end;word-break:break-word}
+.msg-ok{color:var(--vert-fonce);background:var(--vert-pale);font-size:14.5px;margin-top:10px;text-align:center;font-weight:800;padding:10px;border-radius:10px}
+.lien-compte{text-decoration:none;color:inherit;cursor:pointer}
+.btn-deconnexion{display:flex;align-items:center;justify-content:center;gap:10px;width:100%;padding:15px;font-size:15.5px;font-weight:800;background:var(--blanc);color:#A4432F;border:1.5px solid #E3B7AC;border-radius:var(--r-s);cursor:pointer;font-family:inherit;transition:background .15s;margin-bottom:8px}
+.btn-deconnexion:hover{background:#FBF2EF}
+.btn-deconnexion svg{width:19px;height:19px;stroke:#A4432F}
+
 /* ============ CALENDRIER DE CRÉNEAUX ============ */
 .jours-scroll{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}
 .jours-scroll::-webkit-scrollbar{display:none}

@@ -68,6 +68,23 @@ export function AsmProvider({ children }) {
     } catch {}
   }, []);
 
+  // Déconnexion complète : état local + session Supabase.
+  const seDeconnecter = useCallback(async () => {
+    setConnecte(false);
+    setCompteType("patient");
+    setEspaceChoisi("patient");
+    setServiceEnCours(null);
+    try {
+      sessionStorage.removeItem("asm_connecte");
+      sessionStorage.removeItem("asm_espace");
+      sessionStorage.removeItem("asm_service");
+    } catch {}
+    try {
+      const { deconnexion } = await import("@/lib/supabase");
+      await deconnexion();
+    } catch {}
+  }, []);
+
   return (
     <AsmContexte.Provider
       value={{
@@ -81,6 +98,7 @@ export function AsmProvider({ children }) {
         serviceEnCours,
         choisirService,
         seConnecter,
+        seDeconnecter,
       }}
     >
       {children}

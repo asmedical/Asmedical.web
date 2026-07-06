@@ -20,6 +20,7 @@ function FormulaireConnexion() {
   const gate = params.get("gate") === "1";
 
   const [mode, setMode] = useState("sms"); // sms | identifiant
+  const [intention, setIntention] = useState("connexion"); // connexion | creer
   const [etape, setEtape] = useState("tel"); // tel | code | nouveau (mode sms)
   const [tel, setTel] = useState("");
   const [phoneE164, setPhoneE164] = useState("");
@@ -144,7 +145,8 @@ function FormulaireConnexion() {
         {/* ---- Connexion par SMS ---- */}
         {mode === "sms" && etape === "tel" && (
           <>
-            <p className="sous-page">{sousTitre}</p>
+            {intention === "creer" && <h3 className="titre-nouveau">{t("nouveau_t")}</h3>}
+            <p className="sous-page">{intention === "creer" ? t("creer_sous") : sousTitre}</p>
             <div className="champ">
               <label>{t("tel_l")}</label>
               <input
@@ -157,8 +159,35 @@ function FormulaireConnexion() {
               />
             </div>
             <button className="btn-action" onClick={demanderCode} disabled={occupe}>
-              {occupe ? t("otp_envoi") : t("otp_envoyer")}
+              {occupe ? t("otp_envoi") : intention === "creer" ? t("nouveau_b") : t("otp_envoyer")}
             </button>
+
+            {intention === "connexion" ? (
+              <div className="creer-compte-bloc">
+                <span>{t("creer_hint")}</span>
+                <button
+                  type="button"
+                  className="btn-creer-compte"
+                  onClick={() => {
+                    setIntention("creer");
+                    setErreur("");
+                  }}
+                >
+                  {t("creer_cta")}
+                </button>
+              </div>
+            ) : (
+              <p className="lien-bas">
+                <a
+                  onClick={() => {
+                    setIntention("connexion");
+                    setErreur("");
+                  }}
+                >
+                  {t("retour_connexion")}
+                </a>
+              </p>
+            )}
           </>
         )}
 

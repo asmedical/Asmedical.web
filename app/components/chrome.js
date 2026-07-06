@@ -1,6 +1,7 @@
 "use client";
 import Image from "next/image";
 import Link from "next/link";
+import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
@@ -11,6 +12,8 @@ import {
   IcoPlus,
   IcoDocumentLignes,
   IcoPersonne,
+  IcoReglages,
+  IcoSortie,
 } from "@/app/components/icones";
 
 export function BandeauAppel() {
@@ -24,8 +27,65 @@ export function BandeauAppel() {
   );
 }
 
+// Menu utilisateur (roue de réglages) — visible uniquement connecté.
+// Déroulant : Mon compte / Mes demandes / Déconnexion. Se ferme au clic
+// extérieur et après chaque action ; utilisable au doigt sur mobile.
+function MenuUtilisateur() {
+  const { t, compteType, seDeconnecter } = useAsm();
+  const routeur = useRouter();
+  const [ouvert, setOuvert] = useState(false);
+  const ref = useRef(null);
+
+  useEffect(() => {
+    if (!ouvert) return;
+    const fermer = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOuvert(false);
+    };
+    document.addEventListener("pointerdown", fermer);
+    return () => document.removeEventListener("pointerdown", fermer);
+  }, [ouvert]);
+
+  const aller = (chemin) => {
+    setOuvert(false);
+    routeur.push(chemin);
+  };
+
+  const deconnecter = async () => {
+    if (!window.confirm(t("deco_conf"))) return;
+    setOuvert(false);
+    await seDeconnecter();
+    routeur.push("/accueil");
+  };
+
+  return (
+    <div className="menu-user" ref={ref}>
+      <button
+        className="btn-reglages"
+        aria-label={t("menu_compte")}
+        aria-expanded={ouvert}
+        onClick={() => setOuvert((o) => !o)}
+      >
+        <IcoReglages />
+      </button>
+      {ouvert && (
+        <div className="menu-user-liste" role="menu">
+          <button role="menuitem" onClick={() => aller("/compte")}>
+            <IcoPersonne /> {t("menu_compte")}
+          </button>
+          <button role="menuitem" onClick={() => aller(compteType === "pro" ? "/pro" : "/tableau")}>
+            <IcoCalendrier /> {t("menu_demandes")}
+          </button>
+          <button role="menuitem" className="menu-deco" onClick={deconnecter}>
+            <IcoSortie /> {t("menu_deconnexion")}
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function EnTete() {
-  const { t, langue, setLangue, espaceChoisi } = useAsm();
+  const { t, langue, setLangue, espaceChoisi, connecte } = useAsm();
   return (
     <header className="principal">
       <div className="header-inner">
@@ -64,6 +124,7 @@ export function EnTete() {
               ع
             </button>
           </div>
+          {connecte && <MenuUtilisateur />}
         </div>
       </div>
     </header>
@@ -76,7 +137,7 @@ export function BarreNav() {
   const routeur = useRouter();
 
   const allerCompte = () => {
-    if (connecte) routeur.push(compteType === "pro" ? "/pro" : "/tableau");
+    if (connecte) routeur.push("/compte");
     else routeur.push("/connexion");
   };
 
@@ -119,7 +180,7 @@ export function BarreNav() {
         <IcoDocumentLignes strokeWidth="1.9" />
       </button>
       <button
-        className={actif(["/connexion", "/role", "/inscription"]) ? "actif" : ""}
+        className={actif(["/connexion", "/role", "/inscription", "/compte"]) ? "actif" : ""}
         onClick={allerCompte}
         aria-label={t("nav_compte")}
         title={t("nav_compte")}
