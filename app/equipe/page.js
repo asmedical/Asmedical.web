@@ -23,6 +23,38 @@ const STATUTS = {
 };
 const CHAUFFEURS = ["Karim B. — V1 Berline", "Mounir S. — V2 Minibus", "Sofiane A. — V3 Break"];
 
+// Affiche les précisions structurées d'une demande (besoins, accès, proche à prévenir).
+function DetailsDemande({ brut }) {
+  if (!brut) return null;
+  let d;
+  try {
+    d = JSON.parse(brut);
+  } catch {
+    return null;
+  }
+  const lignes = [];
+  if (d.acces) lignes.push(`Accès : ${d.acces}`);
+  if (d.code) lignes.push(`Code/interphone : ${d.code}`);
+  if (d.prevenirNom || d.prevenirTel)
+    lignes.push(`Proche à prévenir : ${[d.prevenirNom, d.prevenirTel].filter(Boolean).join(" · ")}`);
+  return (
+    <>
+      {Array.isArray(d.besoins) && d.besoins.length > 0 && (
+        <span className="besoins-tags">
+          {d.besoins.map((b) => (
+            <span className="besoin-tag" key={b}>
+              {b}
+            </span>
+          ))}
+        </span>
+      )}
+      {lignes.map((l) => (
+        <small key={l}>{l}</small>
+      ))}
+    </>
+  );
+}
+
 export default function BackOfficeEquipe() {
   const [autorise, setAutorise] = useState(false);
   const [code, setCode] = useState("");
@@ -206,6 +238,7 @@ export default function BackOfficeEquipe() {
                   {d.recurrence} · Reçu le {new Date(d.creeLe).toLocaleString("fr-FR")}
                 </small>
                 {d.notes && <small>Notes : {d.notes}</small>}
+                <DetailsDemande brut={d.details} />
               </span>
               <span className={"pastille" + (d.statut !== "A_RAPPELER" ? " verte" : "")}>
                 {STATUTS[d.statut] || d.statut}

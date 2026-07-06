@@ -14,8 +14,15 @@ function isoJour(d) {
   return d.toISOString().slice(0, 10);
 }
 
-// Prise de rendez-vous avec calendrier intelligent de créneaux :
-// on ne propose que les créneaux réellement libres (capacité non atteinte).
+// Besoins particuliers proposés en « chips » (multi-sélection).
+const BESOINS = [
+  "b_fauteuil", "b_oxygene", "b_marche", "b_alite", "b_accompagnateur",
+  "b_infirmier", "b_age", "b_dialyse", "b_chimio", "b_postop", "b_enfant",
+];
+
+// Prise de rendez-vous avec calendrier intelligent de créneaux (on ne propose
+// que les créneaux réellement libres) et précisions structurées facultatives.
+// L'équipe rappelle en moins de 30 minutes.
 export default function PriseRdv() {
   const { t, langue, serviceEnCours, espaceChoisi } = useAsm();
   const service = serviceEnCours || "transport";
@@ -31,6 +38,13 @@ export default function PriseRdv() {
   const [jourChoisi, setJourChoisi] = useState("");
   const [creneaux, setCreneaux] = useState(null);
   const [slotChoisi, setSlotChoisi] = useState("");
+
+  // Précisions structurées
+  const [besoins, setBesoins] = useState([]);
+  const [acces, setAcces] = useState("");
+  const [code, setCode] = useState("");
+  const [prevenirNom, setPrevenirNom] = useState("");
+  const [prevenirTel, setPrevenirTel] = useState("");
 
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
@@ -110,6 +124,9 @@ export default function PriseRdv() {
     };
   }
 
+  const basculerBesoin = (cle) =>
+    setBesoins((b) => (b.includes(cle) ? b.filter((x) => x !== cle) : [...b, cle]));
+
   async function confirmer() {
     setErreur("");
     if (!slotChoisi) {
@@ -122,6 +139,17 @@ export default function PriseRdv() {
     }
     setEnvoi(true);
     try {
+      // Précisions structurées sérialisées (libellés FR pour lisibilité back-office)
+      const details = {
+        besoins: besoins.map((cle) => t(cle)),
+        acces: acces.trim() || undefined,
+        code: code.trim() || undefined,
+        prevenirNom: prevenirNom.trim() || undefined,
+        prevenirTel: prevenirTel.trim() || undefined,
+      };
+      const aDesDetails =
+        details.besoins.length || details.acces || details.code || details.prevenirNom || details.prevenirTel;
+
       const r = await fetch("/api/demandes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -134,6 +162,7 @@ export default function PriseRdv() {
           recurrence: RECURRENCES[recurrence],
           telephone,
           notes,
+          details: aDesDetails ? JSON.stringify(details) : null,
           espace: espaceChoisi,
         }),
       });
@@ -264,10 +293,52 @@ export default function PriseRdv() {
           <label>{t("tel_l")}</label>
           <input type="tel" placeholder={t("tel_ph")} value={telephone} onChange={(e) => setTelephone(e.target.value)} />
         </div>
-        <div className="champ">
-          <label>{t("notes_l")}</label>
-          <textarea rows={3} placeholder={t("notes_ph")} value={notes} onChange={(e) => setNotes(e.target.value)} />
+
+        {/* ---- Précisions structurées (facultatives) ---- */}
+        <div className="bloc-precisions">
+          <div className="titre-section">{t("precisions_t")}</div>
+          <p className="precisions-aide">{t("precisions_s")}</p>
+
+          <label className="mini-label">{t("besoins_t")}</label>
+          <div className="chips">
+            {BESOINS.map((cle) => (
+              <button
+                type="button"
+                key={cle}
+                className={"chip" + (besoins.includes(cle) ? " actif" : "")}
+                aria-pressed={besoins.includes(cle)}
+                onClick={() => basculerBesoin(cle)}
+              >
+                {t(cle)}
+              </button>
+            ))}
+          </div>
+
+          <div className="champ" style={{ marginTop: 14 }}>
+            <label>{t("acces_l")}</label>
+            <input type="text" placeholder={t("acces_ph")} value={acces} onChange={(e) => setAcces(e.target.value)} />
+          </div>
+          <div className="champ">
+            <label>{t("code_l")}</label>
+            <input type="text" placeholder={t("code_ph")} value={code} onChange={(e) => setCode(e.target.value)} />
+          </div>
+
+          <label className="mini-label" style={{ marginTop: 6 }}>{t("prevenir_t")}</label>
+          <div className="champ">
+            <input type="text" placeholder={t("prevenir_nom_ph")} value={prevenirNom} onChange={(e) => setPrevenirNom(e.target.value)} aria-label={t("prevenir_nom_l")} />
+          </div>
+          <div className="champ">
+            <input type="tel" placeholder={t("prevenir_tel_ph")} value={prevenirTel} onChange={(e) => setPrevenirTel(e.target.value)} aria-label={t("prevenir_tel_l")} />
+          </div>
+
+          <div className="champ">
+            <label>{t("notes_l")}</label>
+            <textarea rows={2} placeholder={t("notes_ph")} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
         </div>
+
+        {/* Message urgence vitale (rassurant, non anxiogène) */}
+        <p className="note-urgence">{t("urgence_vitale")}</p>
 
         <button className="btn-action" onClick={confirmer} disabled={envoi}>
           {envoi ? t("envoi") : t("rdv_b")}

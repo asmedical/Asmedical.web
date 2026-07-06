@@ -49,8 +49,8 @@ export function Assistant() {
           type: "bot",
           txt:
             langue === "ar"
-              ? "تعتمد الأسعار على المسافة والخدمة. يعطيك المستشار السعر الدقيق عند معاودة الاتصال المجانية. بعض الرحلات تغطيها CNAS."
-              : "Les tarifs dépendent du trajet et du service. Un conseiller vous donne le prix exact lors du rappel gratuit. Certains transports sont remboursés par la CNAS.",
+              ? "تعتمد الأسعار على المسافة والخدمة. يعطيك المستشار السعر الدقيق عند معاودة الاتصال المجانية. بعض الرحلات يمكن أن تغطيها CNAS حسب ملفك."
+              : "Les tarifs dépendent du trajet et du service. Un conseiller vous donne le prix exact lors du rappel gratuit. Certains transports peuvent être pris en charge par la CNAS selon votre dossier.",
         }),
     },
     {

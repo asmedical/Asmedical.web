@@ -2,10 +2,18 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notifierEquipe } from "@/lib/notifier";
 import { getReglage, capacitePour } from "@/lib/creneaux";
+import { logErreur } from "@/lib/log";
+import { autorise } from "@/lib/ratelimit";
 
 // POST /api/demandes — un patient ou un établissement envoie une demande
 export async function POST(req) {
   try {
+    // Limitation anti-abus légère (par IP) — voir lib/ratelimit.js
+    const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "inconnu";
+    if (!autorise(`demande:${ip}`, 10, 60000)) {
+      return NextResponse.json({ erreur: "Trop de demandes, réessayez dans une minute." }, { status: 429 });
+    }
+
     const corps = await req.json();
     const { service, telephone } = corps;
 
@@ -45,6 +53,7 @@ export async function POST(req) {
             date: dateSlot,
             recurrence: String(corps.recurrence || "Une seule fois").slice(0, 80),
             notes: texte(corps.notes, 500),
+            details: texte(corps.details, 1500),
             espace: corps.espace === "pro" ? "pro" : "patient",
           },
         });
@@ -58,6 +67,7 @@ export async function POST(req) {
     await notifierEquipe(demande);
     return NextResponse.json({ ok: true, id: demande.id }, { status: 201 });
   } catch (e) {
+    logErreur("demandes.POST", e);
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
   }
 }
@@ -71,6 +81,7 @@ export async function GET() {
     });
     return NextResponse.json(demandes);
   } catch (e) {
+    logErreur("demandes.GET", e);
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
   }
 }
@@ -86,6 +97,7 @@ export async function PATCH(req) {
     const maj = await prisma.demande.update({ where: { id: Number(id) }, data });
     return NextResponse.json({ ok: true, demande: maj });
   } catch (e) {
+    logErreur("demandes.PATCH", e);
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
   }
 }
