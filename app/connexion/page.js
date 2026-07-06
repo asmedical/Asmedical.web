@@ -1,4 +1,5 @@
 "use client";
+import Link from "next/link";
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
@@ -19,7 +20,7 @@ function FormulaireConnexion() {
   const params = useSearchParams();
   const gate = params.get("gate") === "1";
 
-  const [mode, setMode] = useState("sms"); // sms | identifiant
+  const [mode, setMode] = useState(params.get("mode") === "identifiant" ? "identifiant" : "sms"); // sms | identifiant
   const [intention, setIntention] = useState("connexion"); // connexion | creer
   const [etape, setEtape] = useState("tel"); // tel | code | nouveau (mode sms)
   const [tel, setTel] = useState("");
@@ -274,6 +275,12 @@ function FormulaireConnexion() {
 
         {erreur && <p className="erreur">{erreur}</p>}
         {!supabaseConfigured && <p className="erreur">{t("err_config")}</p>}
+
+        {etape !== "nouveau" && (
+          <p className="lien-probleme">
+            <Link href="/aide-connexion">{t("pb_lien")}</Link>
+          </p>
+        )}
 
         <div className="info-appel">
           <span>{t("urgence")}</span> <a href={TEL_LIEN}>{TEL_AFFICHE}</a>

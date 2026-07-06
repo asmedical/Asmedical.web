@@ -124,6 +124,21 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .creer-compte-ligne a{color:var(--gris);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .creer-compte-ligne a:hover{color:var(--vert)}
 
+/* ---- Lien « Problème de connexion ? » ---- */
+.lien-probleme{text-align:center;margin-top:16px}
+.lien-probleme a{color:var(--gris);font-size:14.5px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.lien-probleme a:hover{color:var(--vert)}
+
+/* ---- Page « Problème de connexion ? » ---- */
+.aide-option{display:flex;align-items:center;gap:14px;width:100%;text-align:start;background:var(--blanc);border:1px solid var(--ligne);border-radius:var(--r-s);padding:16px;margin-bottom:12px;cursor:pointer;color:var(--encre);font-family:inherit;text-decoration:none;transition:border-color .15s,background .15s}
+.aide-option:hover{border-color:var(--vert);background:var(--vert-pale)}
+.aide-option strong{display:block;font-size:16px;font-weight:800}
+.aide-option small{display:block;color:var(--gris);font-size:13.5px;margin-top:2px}
+.aide-ico{width:44px;height:44px;border-radius:50%;flex-shrink:0;background:var(--vert-pale);display:flex;align-items:center;justify-content:center}
+.aide-ico svg{width:22px;height:22px;stroke:var(--vert)}
+.aide-astuces{margin:0 0 22px;padding-inline-start:20px;color:var(--encre);font-size:15px}
+.aide-astuces li{margin-bottom:10px}
+
 /* ---- Menu utilisateur (roue de réglages, en-tête) ---- */
 .menu-user{position:relative}
 .btn-reglages{width:40px;height:40px;border-radius:50%;border:1px solid var(--ligne);background:var(--blanc);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
