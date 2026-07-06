@@ -53,20 +53,33 @@ export default function InscriptionPatient() {
     setOccupe(true);
     try {
       // Ajoute email + mot de passe au compte (créé par SMS)
-      await definirEmailMotDePasse(email.trim(), motDePasse);
-      await enregistrerProfil({
-        role: "patient",
-        prenom: prenom.trim(),
-        nom: nom.trim(),
-        commune: commune.trim(),
-        telephone: tel.trim(),
-        email: email.trim(),
-        nom_utilisateur: nomUtilisateur.trim() || null,
-      });
+      try {
+        await definirEmailMotDePasse(email.trim(), motDePasse);
+      } catch (e) {
+        const m = (e?.message || "").toLowerCase();
+        setErreur(
+          m.includes("already") || m.includes("registered") || e?.code === "email_exists"
+            ? t("err_email_pris")
+            : t("err_profil")
+        );
+        return;
+      }
+      try {
+        await enregistrerProfil({
+          role: "patient",
+          prenom: prenom.trim(),
+          nom: nom.trim(),
+          commune: commune.trim(),
+          telephone: tel.trim(),
+          email: email.trim(),
+          nom_utilisateur: nomUtilisateur.trim() || null,
+        });
+      } catch (e) {
+        setErreur(e?.code === "23505" ? t("err_user_pris") : t("err_profil"));
+        return;
+      }
       seConnecter("patient");
       routeur.push(serviceEnCours ? "/rdv" : "/tableau");
-    } catch {
-      setErreur(t("err_profil"));
     } finally {
       setOccupe(false);
     }

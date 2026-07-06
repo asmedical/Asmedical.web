@@ -52,20 +52,33 @@ export default function InscriptionPro() {
     }
     setOccupe(true);
     try {
-      await definirEmailMotDePasse(email.trim(), motDePasse);
-      await enregistrerProfil({
-        role: "pro",
-        etablissement: etablissement.trim(),
-        type_etab: type,
-        contact: contact.trim(),
-        telephone: tel.trim(),
-        email: email.trim(),
-        nom_utilisateur: nomUtilisateur.trim() || null,
-      });
+      try {
+        await definirEmailMotDePasse(email.trim(), motDePasse);
+      } catch (e) {
+        const m = (e?.message || "").toLowerCase();
+        setErreur(
+          m.includes("already") || m.includes("registered") || e?.code === "email_exists"
+            ? t("err_email_pris")
+            : t("err_profil")
+        );
+        return;
+      }
+      try {
+        await enregistrerProfil({
+          role: "pro",
+          etablissement: etablissement.trim(),
+          type_etab: type,
+          contact: contact.trim(),
+          telephone: tel.trim(),
+          email: email.trim(),
+          nom_utilisateur: nomUtilisateur.trim() || null,
+        });
+      } catch (e) {
+        setErreur(e?.code === "23505" ? t("err_user_pris") : t("err_profil"));
+        return;
+      }
       seConnecter("pro");
       routeur.push("/pro");
-    } catch {
-      setErreur(t("err_profil"));
     } finally {
       setOccupe(false);
     }
