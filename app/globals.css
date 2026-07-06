@@ -117,6 +117,7 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 [dir="rtl"] .onglets-connexion button{font-family:'Tajawal',sans-serif}
 .champ-code{text-align:center;letter-spacing:.35em;font-size:24px;font-weight:800}
 .champ-code::placeholder{letter-spacing:.15em;font-size:18px}
+.titre-nouveau{display:inline-block;font-size:20px;font-weight:800;color:var(--vert-fonce);background:var(--vert-pale);padding:8px 16px;border-radius:999px;margin-bottom:12px}
 
 /* ============ CALENDRIER DE CRÉNEAUX ============ */
 .jours-scroll{display:flex;gap:8px;overflow-x:auto;padding:2px 2px 8px;-webkit-overflow-scrolling:touch;scrollbar-width:none}

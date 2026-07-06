@@ -9,6 +9,7 @@ import {
   normaliserTel,
   chargerProfil,
   connexionIdentifiant,
+  deconnexion,
   supabaseConfigured,
 } from "@/lib/supabase";
 
@@ -19,7 +20,7 @@ function FormulaireConnexion() {
   const gate = params.get("gate") === "1";
 
   const [mode, setMode] = useState("sms"); // sms | identifiant
-  const [etape, setEtape] = useState("tel"); // tel | code (mode sms)
+  const [etape, setEtape] = useState("tel"); // tel | code | nouveau (mode sms)
   const [tel, setTel] = useState("");
   const [phoneE164, setPhoneE164] = useState("");
   const [code, setCode] = useState("");
@@ -28,18 +29,35 @@ function FormulaireConnexion() {
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
 
-  // Après connexion : nouveau compte → inscription ; sinon → app.
+  // Après connexion : nouveau compte → écran de confirmation (pour éviter la
+  // création accidentelle sur un numéro mal saisi) ; sinon → app.
   async function apresConnexion(user) {
     const type = espaceChoisi === "pro" ? "pro" : "patient";
     const profil = await chargerProfil(user?.id);
     if (!profil) {
-      routeur.push(type === "pro" ? "/inscription/pro" : "/inscription/patient");
+      setEtape("nouveau");
       return;
     }
     seConnecter(type);
     if (type === "pro") routeur.push("/pro");
     else if (serviceEnCours) routeur.push("/rdv");
     else routeur.push("/tableau");
+  }
+
+  // Confirme la création de compte pour le numéro vérifié.
+  function creerMonCompte() {
+    routeur.push(espaceChoisi === "pro" ? "/inscription/pro" : "/inscription/patient");
+  }
+
+  // « Ce n'est pas mon numéro » : on ferme la session et on recommence.
+  async function annulerNouveau() {
+    try {
+      await deconnexion();
+    } catch {}
+    setEtape("tel");
+    setCode("");
+    setPhoneE164("");
+    setErreur("");
   }
 
   async function demanderCode() {
@@ -178,6 +196,23 @@ function FormulaireConnexion() {
               </a>
               {" · "}
               <a onClick={demanderCode}>{t("otp_renvoyer")}</a>
+            </p>
+          </>
+        )}
+
+        {/* ---- Nouveau numéro : confirmation avant création de compte ---- */}
+        {mode === "sms" && etape === "nouveau" && (
+          <>
+            <h3 className="titre-nouveau">{t("nouveau_t")}</h3>
+            <p className="sous-page">
+              <strong dir="ltr">{phoneE164}</strong> {t("nouveau_p")}
+            </p>
+            <p className="sous-page">{t("nouveau_q")}</p>
+            <button className="btn-action" onClick={creerMonCompte}>
+              {t("nouveau_b")}
+            </button>
+            <p className="lien-bas">
+              <a onClick={annulerNouveau}>{t("nouveau_pasmoi")}</a>
             </p>
           </>
         )}
