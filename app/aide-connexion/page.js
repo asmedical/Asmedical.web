@@ -39,8 +39,11 @@ export default function AideConnexion() {
     try {
       await envoyerCodeEmail(email.trim());
       setEtape("code");
-    } catch {
-      setErreur(t("err_email_introuvable"));
+    } catch (e) {
+      const m = (e?.message || "").toLowerCase();
+      // Échec d'envoi (SMTP) vs compte réellement introuvable.
+      const echecEnvoi = e?.status >= 500 || m.includes("send") || m.includes("mail") || m.includes("smtp");
+      setErreur(echecEnvoi ? t("err_envoi_email") : t("err_email_introuvable"));
     } finally {
       setOccupe(false);
     }
