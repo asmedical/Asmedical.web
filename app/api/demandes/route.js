@@ -33,6 +33,7 @@ export async function POST(req) {
         date: String(corps.date || "").slice(0, 16),
         recurrence: String(corps.recurrence || "Une seule fois").slice(0, 80),
         notes: texte(corps.notes, 500),
+        details: texte(corps.details, 1500),
         espace: corps.espace === "pro" ? "pro" : "patient",
       },
     });

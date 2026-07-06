@@ -111,6 +111,23 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .lien-bas a{color:var(--vert);font-weight:800;text-decoration:none;cursor:pointer}
 .erreur{color:#A4432F;font-size:14.5px;margin-top:12px;text-align:center;font-weight:700}
 
+/* ============ PRÉCISIONS STRUCTURÉES (RDV) ============ */
+.bloc-precisions{border:1px solid var(--ligne);border-radius:var(--r);padding:16px;margin:20px 0}
+.precisions-aide{color:var(--gris);font-size:13.5px;margin:-6px 0 14px}
+.mini-label{display:block;font-weight:800;font-size:13.5px;color:var(--gris);margin-bottom:9px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{padding:9px 13px;border:1px solid var(--ligne);border-radius:999px;background:var(--blanc);
+  font-size:14px;font-weight:700;color:var(--encre);cursor:pointer;font-family:inherit;transition:all .15s}
+.chip:hover{border-color:var(--vert)}
+.chip.actif{background:var(--vert);border-color:var(--vert);color:#fff}
+[dir="rtl"] .chip{font-family:'Tajawal',sans-serif}
+.note-urgence{font-size:13px;color:var(--gris);background:var(--vert-pale);border-radius:var(--r-s);
+  padding:11px 14px;margin:4px 0 16px;line-height:1.5}
+/* Back-office : besoins en petites étiquettes */
+.besoins-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:5px}
+.besoin-tag{background:var(--vert-pale);color:var(--vert-fonce);font-size:11.5px;font-weight:800;
+  border-radius:6px;padding:2px 7px}
+
 /* ============ CHOIX DU RÔLE ============ */
 .grille-role{display:grid;gap:14px;margin-top:8px}
 .carte-role{display:flex;align-items:center;gap:16px;padding:22px;border:1px solid var(--ligne);border-radius:var(--r);background:var(--blanc);cursor:pointer;text-align:start;transition:border-color .15s,background .15s;text-decoration:none;color:var(--encre);width:100%;font-size:inherit}

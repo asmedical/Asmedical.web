@@ -10,6 +10,12 @@ const CLES_SERVICE = {
   medicaments: "rdv_service_medicaments",
 };
 
+// Besoins particuliers proposés en « chips » (multi-sélection).
+const BESOINS = [
+  "b_fauteuil", "b_oxygene", "b_marche", "b_alite", "b_accompagnateur",
+  "b_infirmier", "b_age", "b_dialyse", "b_chimio", "b_postop", "b_enfant",
+];
+
 // Prise de rendez-vous : la demande part dans la base et l'équipe
 // rappelle en moins de 30 minutes.
 export default function PriseRdv() {
@@ -25,6 +31,14 @@ export default function PriseRdv() {
   const [recurrence, setRecurrence] = useState("une");
   const [telephone, setTelephone] = useState("");
   const [notes, setNotes] = useState("");
+
+  // Précisions structurées
+  const [besoins, setBesoins] = useState([]);
+  const [acces, setAcces] = useState("");
+  const [code, setCode] = useState("");
+  const [prevenirNom, setPrevenirNom] = useState("");
+  const [prevenirTel, setPrevenirTel] = useState("");
+
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
   const [confirme, setConfirme] = useState(false);
@@ -36,6 +50,9 @@ export default function PriseRdv() {
     conseiller: t("rec_conseiller"),
   };
 
+  const basculerBesoin = (cle) =>
+    setBesoins((b) => (b.includes(cle) ? b.filter((x) => x !== cle) : [...b, cle]));
+
   async function confirmer() {
     setErreur("");
     if (telephone.trim().length < 9) {
@@ -44,6 +61,17 @@ export default function PriseRdv() {
     }
     setEnvoi(true);
     try {
+      // Précisions structurées sérialisées (libellés FR pour lisibilité back-office)
+      const details = {
+        besoins: besoins.map((cle) => t(cle)),
+        acces: acces.trim() || undefined,
+        code: code.trim() || undefined,
+        prevenirNom: prevenirNom.trim() || undefined,
+        prevenirTel: prevenirTel.trim() || undefined,
+      };
+      const aDesDetails =
+        details.besoins.length || details.acces || details.code || details.prevenirNom || details.prevenirTel;
+
       const r = await fetch("/api/demandes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -56,12 +84,11 @@ export default function PriseRdv() {
           recurrence: RECURRENCES[recurrence],
           telephone,
           notes,
+          details: aDesDetails ? JSON.stringify(details) : null,
           espace: espaceChoisi,
         }),
       });
       if (!r.ok) throw new Error();
-      // Mémorise la demande sur l'appareil pour l'afficher dans « Mes rendez-vous »
-      // (en attendant les comptes réels, où l'historique viendra du serveur)
       try {
         const liste = JSON.parse(localStorage.getItem("asm_demandes") || "[]");
         liste.unshift({ service, date, destination, recurrence: RECURRENCES[recurrence] });
@@ -116,21 +143,11 @@ export default function PriseRdv() {
         )}
         <div className="champ">
           <label>{t("depart_l")}</label>
-          <input
-            type="text"
-            placeholder={t("depart_ph")}
-            value={depart}
-            onChange={(e) => setDepart(e.target.value)}
-          />
+          <input type="text" placeholder={t("depart_ph")} value={depart} onChange={(e) => setDepart(e.target.value)} />
         </div>
         <div className="champ">
           <label>{t("dest_l")}</label>
-          <input
-            type="text"
-            placeholder={t("dest_ph")}
-            value={destination}
-            onChange={(e) => setDestination(e.target.value)}
-          />
+          <input type="text" placeholder={t("dest_ph")} value={destination} onChange={(e) => setDestination(e.target.value)} />
         </div>
         <div className="champ">
           <label>{t("date_l")}</label>
@@ -150,22 +167,55 @@ export default function PriseRdv() {
         )}
         <div className="champ">
           <label>{t("tel_l")}</label>
-          <input
-            type="tel"
-            placeholder={t("tel_ph")}
-            value={telephone}
-            onChange={(e) => setTelephone(e.target.value)}
-          />
+          <input type="tel" placeholder={t("tel_ph")} value={telephone} onChange={(e) => setTelephone(e.target.value)} />
         </div>
-        <div className="champ">
-          <label>{t("notes_l")}</label>
-          <textarea
-            rows={3}
-            placeholder={t("notes_ph")}
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-          />
+
+        {/* ---- Précisions structurées (facultatives) ---- */}
+        <div className="bloc-precisions">
+          <div className="titre-section">{t("precisions_t")}</div>
+          <p className="precisions-aide">{t("precisions_s")}</p>
+
+          <label className="mini-label">{t("besoins_t")}</label>
+          <div className="chips">
+            {BESOINS.map((cle) => (
+              <button
+                type="button"
+                key={cle}
+                className={"chip" + (besoins.includes(cle) ? " actif" : "")}
+                aria-pressed={besoins.includes(cle)}
+                onClick={() => basculerBesoin(cle)}
+              >
+                {t(cle)}
+              </button>
+            ))}
+          </div>
+
+          <div className="champ" style={{ marginTop: 14 }}>
+            <label>{t("acces_l")}</label>
+            <input type="text" placeholder={t("acces_ph")} value={acces} onChange={(e) => setAcces(e.target.value)} />
+          </div>
+          <div className="champ">
+            <label>{t("code_l")}</label>
+            <input type="text" placeholder={t("code_ph")} value={code} onChange={(e) => setCode(e.target.value)} />
+          </div>
+
+          <label className="mini-label" style={{ marginTop: 6 }}>{t("prevenir_t")}</label>
+          <div className="champ">
+            <input type="text" placeholder={t("prevenir_nom_ph")} value={prevenirNom} onChange={(e) => setPrevenirNom(e.target.value)} aria-label={t("prevenir_nom_l")} />
+          </div>
+          <div className="champ">
+            <input type="tel" placeholder={t("prevenir_tel_ph")} value={prevenirTel} onChange={(e) => setPrevenirTel(e.target.value)} aria-label={t("prevenir_tel_l")} />
+          </div>
+
+          <div className="champ">
+            <label>{t("notes_l")}</label>
+            <textarea rows={2} placeholder={t("notes_ph")} value={notes} onChange={(e) => setNotes(e.target.value)} />
+          </div>
         </div>
+
+        {/* Message urgence vitale (rassurant, non anxiogène) */}
+        <p className="note-urgence">{t("urgence_vitale")}</p>
+
         <button className="btn-action" onClick={confirmer} disabled={envoi}>
           {envoi ? t("envoi") : t("rdv_b")}
         </button>
