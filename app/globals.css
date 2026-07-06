@@ -119,11 +119,10 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .champ-code::placeholder{letter-spacing:.15em;font-size:18px}
 .titre-nouveau{display:inline-block;font-size:20px;font-weight:800;color:var(--vert-fonce);background:var(--vert-pale);padding:8px 16px;border-radius:999px;margin-bottom:12px}
 
-/* ---- Bloc « Créer un compte » sur la page de connexion ---- */
-.creer-compte-bloc{margin-top:22px;padding:16px;background:var(--vert-pale);border-radius:var(--r-s);text-align:center}
-.creer-compte-bloc span{display:block;font-size:14.5px;color:var(--gris);margin-bottom:10px;font-weight:700}
-.btn-creer-compte{width:100%;padding:14px;font-size:15.5px;font-weight:800;background:var(--blanc);color:var(--vert-fonce);border:2px solid var(--vert);border-radius:var(--r-s);cursor:pointer;font-family:inherit;transition:background .15s}
-.btn-creer-compte:hover{background:var(--vert);color:#fff}
+/* ---- Lien discret « Créer un compte » sur la page de connexion ---- */
+.creer-compte-ligne{margin-top:18px;text-align:center;font-size:15px;color:var(--gris)}
+.creer-compte-ligne a{color:var(--gris);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.creer-compte-ligne a:hover{color:var(--vert)}
 
 /* ---- Menu utilisateur (roue de réglages, en-tête) ---- */
 .menu-user{position:relative}

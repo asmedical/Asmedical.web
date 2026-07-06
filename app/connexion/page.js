@@ -163,19 +163,17 @@ function FormulaireConnexion() {
             </button>
 
             {intention === "connexion" ? (
-              <div className="creer-compte-bloc">
-                <span>{t("creer_hint")}</span>
-                <button
-                  type="button"
-                  className="btn-creer-compte"
+              <p className="creer-compte-ligne">
+                {t("creer_hint")}{" "}
+                <a
                   onClick={() => {
                     setIntention("creer");
                     setErreur("");
                   }}
                 >
                   {t("creer_cta")}
-                </button>
-              </div>
+                </a>
+              </p>
             ) : (
               <p className="lien-bas">
                 <a
