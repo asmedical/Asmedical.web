@@ -98,6 +98,21 @@ model TypeActe {
   actif         Boolean @default(true)
 }
 
+// Messagerie patient/établissement ↔ équipe ASM. Un fil par compte
+// (userId = uuid Supabase). deEquipe distingue l'expéditeur.
+model Message {
+  id           Int      @id @default(autoincrement())
+  userId       String
+  deEquipe     Boolean  @default(false)
+  auteur       String?  // nom de l'agent quand deEquipe = true
+  texte        String
+  luParPatient Boolean  @default(false) // messages équipe lus par le patient
+  luParEquipe  Boolean  @default(false) // messages patient lus par l'équipe
+  creeLe       DateTime @default(now())
+
+  @@index([userId, creeLe])
+}
+
 // Note interne (jamais visible côté patient)
 model NoteInterne {
   id       Int      @id @default(autoincrement())

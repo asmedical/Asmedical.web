@@ -20,6 +20,7 @@ export default function TableauDeBordAdmin() {
     { libelle: "À rappeler", valeur: stats.aRappeler, href: "/admin/demandes?statut=A_RAPPELER", alerte: stats.aRappeler > 0 },
     { libelle: "RDV aujourd'hui", valeur: stats.duJour, href: "/admin/demandes?jour=auj" },
     { libelle: "Urgents / prioritaires", valeur: stats.prioritaires, href: "/admin/demandes", alerte: stats.prioritaires > 0 },
+    { libelle: "Messages non lus", valeur: stats.messagesNonLus ?? 0, href: "/admin/messages", alerte: (stats.messagesNonLus ?? 0) > 0 },
     { libelle: "Clients inscrits", valeur: stats.clients ?? "—", href: "/admin/clients" },
     { libelle: "Soignants à valider", valeur: stats.soignantsAttente, href: "/admin/soignants", alerte: stats.soignantsAttente > 0 },
     { libelle: "Transporteurs à valider", valeur: stats.transporteursAttente, href: "/admin/transporteurs", alerte: stats.transporteursAttente > 0 },

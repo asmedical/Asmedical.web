@@ -11,7 +11,7 @@ export async function GET(req) {
   try {
     const aujourdhui = new Date().toISOString().slice(0, 10);
 
-    const [aRappeler, duJour, prioritaires, soignantsAttente, transporteursAttente, abonnementsActifs, dernieres] =
+    const [aRappeler, duJour, prioritaires, soignantsAttente, transporteursAttente, abonnementsActifs, messagesNonLus, dernieres] =
       await Promise.all([
         prisma.demande.count({ where: { statut: "A_RAPPELER" } }),
         prisma.demande.count({ where: { date: { startsWith: aujourdhui }, statut: { not: "ANNULEE" } } }),
@@ -19,6 +19,7 @@ export async function GET(req) {
         prisma.soignant.count({ where: { statut: "EN_ATTENTE" } }),
         prisma.transporteur.count({ where: { statut: "EN_ATTENTE" } }),
         prisma.abonnement.count({ where: { statut: "ACTIF" } }),
+        prisma.message.count({ where: { deEquipe: false, luParEquipe: false } }),
         prisma.demande.findMany({ orderBy: { creeLe: "desc" }, take: 5 }),
       ]);
 
@@ -38,6 +39,7 @@ export async function GET(req) {
       soignantsAttente,
       transporteursAttente,
       abonnementsActifs,
+      messagesNonLus,
       clients,
       dernieres,
     });
