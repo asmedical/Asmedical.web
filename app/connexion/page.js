@@ -14,6 +14,21 @@ import {
   supabaseConfigured,
 } from "@/lib/supabase";
 
+// Indicatifs proposés (Algérie par défaut ; diaspora + Maghreb + Europe).
+const INDICATIFS = [
+  { code: "+213", drapeau: "🇩🇿" }, // Algérie
+  { code: "+33", drapeau: "🇫🇷" }, // France
+  { code: "+216", drapeau: "🇹🇳" }, // Tunisie
+  { code: "+212", drapeau: "🇲🇦" }, // Maroc
+  { code: "+32", drapeau: "🇧🇪" }, // Belgique
+  { code: "+41", drapeau: "🇨🇭" }, // Suisse
+  { code: "+49", drapeau: "🇩🇪" }, // Allemagne
+  { code: "+44", drapeau: "🇬🇧" }, // Royaume-Uni
+  { code: "+1", drapeau: "🇨🇦" }, // Canada / USA
+  { code: "+34", drapeau: "🇪🇸" }, // Espagne
+  { code: "+39", drapeau: "🇮🇹" }, // Italie
+];
+
 function FormulaireConnexion() {
   const { t, espaceChoisi, serviceEnCours, seConnecter } = useAsm();
   const routeur = useRouter();
@@ -23,6 +38,7 @@ function FormulaireConnexion() {
   const [mode, setMode] = useState(params.get("mode") === "identifiant" ? "identifiant" : "sms"); // sms | identifiant
   const [intention, setIntention] = useState("connexion"); // connexion | creer
   const [etape, setEtape] = useState("tel"); // tel | code | nouveau (mode sms)
+  const [indicatif, setIndicatif] = useState("+213");
   const [tel, setTel] = useState("");
   const [phoneE164, setPhoneE164] = useState("");
   const [code, setCode] = useState("");
@@ -64,8 +80,8 @@ function FormulaireConnexion() {
 
   async function demanderCode() {
     setErreur("");
-    const p = normaliserTel(tel);
-    if (p.replace(/\D/g, "").length < 11) {
+    const p = normaliserTel(tel, indicatif);
+    if (p.replace(/\D/g, "").length < 10) {
       setErreur(t("err_tel_format"));
       return;
     }
@@ -150,14 +166,28 @@ function FormulaireConnexion() {
             <p className="sous-page">{intention === "creer" ? t("creer_sous") : sousTitre}</p>
             <div className="champ">
               <label>{t("tel_l")}</label>
-              <input
-                type="tel"
-                inputMode="tel"
-                placeholder={t("tel_ph")}
-                value={tel}
-                onChange={(e) => setTel(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && demanderCode()}
-              />
+              <div className="tel-ligne">
+                <select
+                  className="tel-indicatif"
+                  value={indicatif}
+                  onChange={(e) => setIndicatif(e.target.value)}
+                  aria-label={t("indicatif_l")}
+                >
+                  {INDICATIFS.map((i) => (
+                    <option value={i.code} key={i.code}>
+                      {i.drapeau} {i.code}
+                    </option>
+                  ))}
+                </select>
+                <input
+                  type="tel"
+                  inputMode="tel"
+                  placeholder={t("tel_ph")}
+                  value={tel}
+                  onChange={(e) => setTel(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && demanderCode()}
+                />
+              </div>
             </div>
             <button className="btn-action" onClick={demanderCode} disabled={occupe}>
               {occupe ? t("otp_envoi") : intention === "creer" ? t("nouveau_b") : t("otp_envoyer")}
