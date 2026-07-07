@@ -9,21 +9,114 @@ datasource db {
 
 // Une demande faite par un patient ou un établissement depuis le site
 model Demande {
-  id          Int      @id @default(autoincrement())
-  service     String   // transport | domicile | medicaments
-  typeTrajet  String?  // simple | accompagne | medicalise
-  nom         String?
-  telephone   String
-  depart      String?
-  destination String?
-  date        String   // date/heure souhaitée (AAAA-MM-JJTHH:MM)
-  recurrence  String   @default("Une seule fois")
-  notes       String?
-  details     String?  // précisions structurées (JSON : besoins, accès, proche à prévenir)
-  espace      String   @default("patient") // patient | pro
-  statut      String   @default("A_RAPPELER") // A_RAPPELER | CONFIRMEE | AFFECTEE | ANNULEE
-  chauffeur   String?  // affecté par l'équipe
-  creeLe      DateTime @default(now())
+  id             Int      @id @default(autoincrement())
+  service        String   // transport | domicile | medicaments
+  typeTrajet     String?  // simple | accompagne | medicalise
+  nom            String?
+  telephone      String
+  depart         String?
+  destination    String?
+  date           String   // date/heure souhaitée (AAAA-MM-JJTHH:MM)
+  recurrence     String   @default("Une seule fois")
+  notes          String?
+  details        String?  // précisions structurées (JSON : besoins, accès, proche à prévenir)
+  espace         String   @default("patient") // patient | pro
+  statut         String   @default("A_RAPPELER") // A_RAPPELER | CONFIRMEE | AFFECTEE | EN_COURS | TERMINEE | ABSENT | ANNULEE
+  chauffeur      String?  // affecté par l'équipe (texte libre historique)
+  prioritaire    Boolean  @default(false)
+  sousMode       String?  // transport : abonnement | ponctuel | urgent — medicaments : fenetre | urgent
+  fenetre        String?  // fenêtre souhaitée (livraison) ex. "14h-17h" ou "au plus tôt"
+  pharmacie      String?  // adresse / nom de la pharmacie (livraison)
+  soignantId     Int?
+  soignant       Soignant?     @relation(fields: [soignantId], references: [id])
+  transporteurId Int?
+  transporteur   Transporteur? @relation(fields: [transporteurId], references: [id])
+  abonnementId   Int?
+  abonnement     Abonnement?   @relation(fields: [abonnementId], references: [id])
+  creeLe         DateTime @default(now())
+}
+
+// Aide-soignant / infirmier géré par l'admin (planning Mode A)
+model Soignant {
+  id            Int      @id @default(autoincrement())
+  prenom        String
+  nom           String
+  telephone     String?
+  email         String?
+  photoUrl      String?
+  qualification String   @default("aide_soignant") // aide_soignant | infirmier
+  communes      String   @default("")              // communes couvertes, séparées par des virgules
+  heureDebut    Int      @default(7)               // horaires propres (défaut 7h-19h)
+  heureFin      Int      @default(19)
+  joursOff      String   @default("")              // jours de repos hebdo "5,6" (0=lun … 6=dim)
+  conges        String   @default("")              // dates AAAA-MM-JJ séparées par des virgules
+  statut        String   @default("EN_ATTENTE")    // EN_ATTENTE | VALIDE | SUSPENDU | INACTIF | REFUSE
+  demandes      Demande[]
+  creeLe        DateTime @default(now())
+}
+
+// Transporteur / chauffeur (Mode B)
+model Transporteur {
+  id            Int      @id @default(autoincrement())
+  nom           String   // nom ou société
+  responsable   String?
+  telephone     String?
+  email         String?
+  photoUrl      String?
+  typeTransport String   @default("simple") // simple | accompagne | medicalise
+  vehicule      String?
+  zone          String   @default("")       // communes couvertes
+  statut        String   @default("EN_ATTENTE") // EN_ATTENTE | VALIDE | SUSPENDU | INACTIF | REFUSE
+  demandes      Demande[]
+  creeLe        DateTime @default(now())
+}
+
+// Série récurrente de transports (dialyse, chimio…)
+model Abonnement {
+  id        Int       @id @default(autoincrement())
+  nom       String?
+  telephone String
+  jours     String    // jours de la semaine "0,2,4" (0=lun … 6=dim)
+  heure     String    // heure de départ "08:00"
+  centre    String    // destination (centre de dialyse…)
+  domicile  String    // adresse de départ
+  retour    Boolean   @default(true) // rappel en fin de séance pour le retour
+  debut     String    // AAAA-MM-JJ
+  fin       String    // AAAA-MM-JJ
+  statut    String    @default("ACTIF") // ACTIF | SUSPENDU | TERMINE
+  demandes  Demande[]
+  creeLe    DateTime  @default(now())
+}
+
+// Type d'acte à domicile (Mode A) : durée propre, qualification requise
+model TypeActe {
+  id            Int     @id @default(autoincrement())
+  libelle       String
+  libelleAr     String  @default("")
+  dureeMin      Int     @default(60)
+  qualification String  @default("aide_soignant") // aide_soignant | infirmier
+  actif         Boolean @default(true)
+}
+
+// Note interne (jamais visible côté patient)
+model NoteInterne {
+  id       Int      @id @default(autoincrement())
+  entite   String   // demande | client | soignant | transporteur
+  entiteId String   // id de l'entité (texte : couvre uuid profil et id numérique)
+  auteur   String
+  texte    String
+  creeLe   DateTime @default(now())
+}
+
+// Journal des actions admin (qui a fait quoi, quand, sur quoi)
+model Journal {
+  id       Int      @id @default(autoincrement())
+  auteur   String
+  action   String   // ex. "demande.statut", "soignant.valide"
+  entite   String
+  entiteId String
+  detail   String?
+  creeLe   DateTime @default(now())
 }
 
 // Réglages du calendrier de créneaux (ligne unique id=1), éditables

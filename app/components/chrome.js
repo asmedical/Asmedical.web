@@ -206,6 +206,8 @@ export function PiedDePage() {
 export function Habillage({ children, assistant }) {
   const chemin = usePathname();
   const { espaceChoisi } = useAsm();
+  // L'espace admin a son propre habillage complet.
+  if (chemin.startsWith("/admin")) return children;
   const nu = chemin === "/" || chemin.startsWith("/equipe");
   const modePro = espaceChoisi === "pro" && chemin !== "/";
   return (
