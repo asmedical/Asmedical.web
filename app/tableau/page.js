@@ -2,29 +2,31 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAsm } from "@/app/providers";
+import { chargerMesDemandes } from "@/lib/supabase";
 import { IcoVehicule, IcoMaison, IcoMedicaments } from "@/app/components/icones";
 
-const ICONES = {
-  transport: IcoVehicule,
-  domicile: IcoMaison,
-  medicaments: IcoMedicaments,
-};
-const CLES_SERVICE = {
-  transport: "s_transport",
-  domicile: "s_domicile",
-  medicaments: "s_medic",
-};
+const ICONES = { transport: IcoVehicule, domicile: IcoMaison, medicaments: IcoMedicaments };
+const CLES_SERVICE = { transport: "s_transport", domicile: "s_domicile", medicaments: "s_medic" };
 
-// Tableau de bord patient : demandes envoyées depuis cet appareil,
-// puis exemples de la maquette tant qu'il n'y en a aucune.
+// Étiquette de statut lisible pour le patient (à partir du statut réel).
+function badge(statut, t) {
+  if (statut === "TERMINEE") return { txt: t("st_terminee"), cls: "" };
+  if (statut === "ANNULEE") return { txt: t("st_annulee"), cls: "" };
+  if (statut === "CONFIRMEE") return { txt: t("st_confirmee"), cls: "verte" };
+  if (statut === "AFFECTEE") return { txt: t("st_affectee"), cls: "verte" };
+  if (statut === "EN_COURS") return { txt: t("st_encours"), cls: "verte" };
+  return { txt: t("st_a_rappeler"), cls: "" };
+}
+
+// Tableau de bord patient : ses VRAIES demandes (depuis la base), rien d'autre.
 export default function Tableau() {
   const { t } = useAsm();
-  const [demandes, setDemandes] = useState([]);
+  const [demandes, setDemandes] = useState(null);
 
   useEffect(() => {
-    try {
-      setDemandes(JSON.parse(localStorage.getItem("asm_demandes") || "[]"));
-    } catch {}
+    chargerMesDemandes()
+      .then(setDemandes)
+      .catch(() => setDemandes([]));
   }, []);
 
   return (
@@ -35,58 +37,39 @@ export default function Tableau() {
           <p>{t("bienvenue_p")}</p>
         </div>
 
-        {demandes.map((d, i) => {
-          const Icone = ICONES[d.service] || IcoVehicule;
-          return (
-            <Link
-              className="item-liste"
-              href="/suivi"
-              key={i}
-              style={{ cursor: "pointer", textDecoration: "none", color: "inherit" }}
-            >
-              <span className="ico-service">
-                <Icone />
-              </span>
-              <span>
-                <strong>{t(CLES_SERVICE[d.service] || "s_transport")}</strong>
-                <small>
-                  {d.date ? d.date.replace("T", " · ") : "—"}
-                  {d.destination ? ` · ${d.destination}` : ""}
-                </small>
-              </span>
-              <span className="pastille">{t("attente")}</span>
-            </Link>
-          );
-        })}
+        {demandes === null && <p className="sous-page">{t("compte_charge")}</p>}
 
-        {demandes.length === 0 && (
-          <>
-            <Link
-              className="item-liste carte-suivi-lien"
-              href="/suivi"
-              style={{ cursor: "pointer", textDecoration: "none", color: "inherit" }}
-            >
-              <span className="ico-service">
-                <IcoVehicule />
-              </span>
-              <span>
-                <strong>{t("rdv_dialyse")}</strong>
-                <small>{t("rdv_dialyse_d")}</small>
-              </span>
-              <span className="pastille verte">{t("suivre_court")}</span>
-            </Link>
-            <div className="item-liste">
-              <span className="ico-service">
-                <IcoMaison />
-              </span>
-              <span>
-                <strong>{t("s_domicile")}</strong>
-                <small>{t("rdv_dom_d")}</small>
-              </span>
-              <span className="pastille">{t("attente")}</span>
-            </div>
-          </>
+        {demandes && demandes.length === 0 && (
+          <div className="etat-vide">
+            <p>{t("tableau_vide")}</p>
+          </div>
         )}
+
+        {demandes &&
+          demandes.map((d) => {
+            const Icone = ICONES[d.service] || IcoVehicule;
+            const b = badge(d.statut, t);
+            return (
+              <Link
+                className="item-liste"
+                href={`/suivi?id=${d.id}`}
+                key={d.id}
+                style={{ cursor: "pointer", textDecoration: "none", color: "inherit" }}
+              >
+                <span className="ico-service">
+                  <Icone />
+                </span>
+                <span>
+                  <strong>{t(CLES_SERVICE[d.service] || "s_transport")}</strong>
+                  <small>
+                    {d.date ? d.date.replace("T", " · ") : "—"}
+                    {d.destination ? ` · ${d.destination}` : ""}
+                  </small>
+                </span>
+                <span className={"pastille" + (b.cls ? " " + b.cls : "")}>{b.txt}</span>
+              </Link>
+            );
+          })}
 
         <Link className="btn-action" style={{ marginTop: 8 }} href="/accueil">
           {t("nouvelle")}

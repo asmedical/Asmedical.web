@@ -1,62 +1,40 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
-import { TEL_LIEN } from "@/lib/i18n";
+import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
+import { chargerMesDemandes } from "@/lib/supabase";
 import { IcoPersonne, IcoTelephone } from "@/app/components/icones";
 
-// Suivi en temps réel (démonstration animée — la position GPS réelle
-// arrivera avec l'app chauffeur, via un canal Realtime).
-export default function Suivi() {
-  const { t, langue, connecte, compteType } = useAsm();
-  // Retour vers l'espace d'où l'on vient : établissement ou patient
+// Étapes réelles du suivi (mappées sur le statut de la demande).
+const ETAPES = [
+  { statut: "A_RAPPELER", cle: "suivi_recue" },
+  { statut: "CONFIRMEE", cle: "suivi_confirmee" },
+  { statut: "AFFECTEE", cle: "suivi_affectee" },
+  { statut: "EN_COURS", cle: "suivi_encours" },
+  { statut: "TERMINEE", cle: "suivi_terminee" },
+];
+const INDEX = { A_RAPPELER: 0, CONFIRMEE: 1, AFFECTEE: 2, EN_COURS: 3, TERMINEE: 4 };
+
+function SuiviContenu() {
+  const { t, connecte, compteType } = useAsm();
+  const params = useSearchParams();
+  const idVoulu = params.get("id");
   const retourVers = connecte && compteType === "pro" ? "/pro" : "/tableau";
-  const routeRef = useRef(null);
-  const routeFaiteRef = useRef(null);
-  const vehiculeRef = useRef(null);
-  const [eta, setEta] = useState("8 min");
-  const [etapeActive, setEtapeActive] = useState(1); // index dans les 5 étapes
+
+  const [demande, setDemande] = useState(undefined); // undefined = chargement
 
   useEffect(() => {
-    const routeEl = routeRef.current;
-    const faiteEl = routeFaiteRef.current;
-    const vehEl = vehiculeRef.current;
-    if (!routeEl) return;
-    const L = routeEl.getTotalLength();
-    faiteEl.style.strokeDasharray = L;
-    let tPos = 0.18;
-    let etaMin = 8;
-    const place = () => {
-      const p = routeEl.getPointAtLength(L * tPos);
-      vehEl.setAttribute("transform", `translate(${p.x},${p.y})`);
-      faiteEl.style.strokeDashoffset = L * (1 - tPos);
-      const m = Math.max(1, Math.round(etaMin));
-      setEta(langue === "ar" ? `${m} د` : `${m} min`);
-    };
-    place();
-    const timer = setInterval(() => {
-      tPos += 0.015;
-      etaMin -= (8 * 0.015) / 0.82;
-      if (tPos >= 1) {
-        tPos = 1;
-        place();
-        clearInterval(timer);
-        setEta(langue === "ar" ? "وصل" : "Arrivé");
-        setEtapeActive(2);
-        return;
-      }
-      place();
-    }, 700);
-    return () => clearInterval(timer);
-  }, [langue]);
-
-  const etapes = [
-    t("etape_confirme"),
-    t("etape_route"),
-    t("etape_arrive"),
-    t("etape_trajet"),
-    t("etape_termine"),
-  ];
+    chargerMesDemandes()
+      .then((liste) => {
+        if (!liste.length) return setDemande(null);
+        const trouve = idVoulu ? liste.find((d) => String(d.id) === String(idVoulu)) : null;
+        const active = liste.find((d) => !["TERMINEE", "ANNULEE"].includes(d.statut));
+        setDemande(trouve || active || liste[0]);
+      })
+      .catch(() => setDemande(null));
+  }, [idVoulu]);
 
   return (
     <div className="page">
@@ -67,56 +45,90 @@ export default function Suivi() {
         <h2 className="titre-page">{t("suivi_t")}</h2>
         <p className="sous-page">{t("suivi_s")}</p>
 
-        <div className="suivi-carte">
-          <div className="carte-plan">
-            <div className="eta-bulle">
-              <span>{t("arrivee")}</span> <span>{eta}</span>
-            </div>
-            <svg viewBox="0 0 360 230" preserveAspectRatio="xMidYMid slice">
-              <path
-                ref={routeRef}
-                className="route-fond"
-                d="M40 190 C 90 120, 140 200, 190 120 S 300 60, 320 40"
-              />
-              <path
-                ref={routeFaiteRef}
-                className="route-faite"
-                d="M40 190 C 90 120, 140 200, 190 120 S 300 60, 320 40"
-              />
-              <circle className="point-arrivee" cx="320" cy="40" r="7" />
-              <circle className="point-depart" cx="40" cy="190" r="7" />
-              <g ref={vehiculeRef} className="vehicule">
-                <circle className="halo" cx="0" cy="0" r="14" />
-                <circle cx="0" cy="0" r="9" />
-              </g>
-            </svg>
+        {demande === undefined && <p className="sous-page">{t("compte_charge")}</p>}
+
+        {demande === null && (
+          <div className="etat-vide">
+            <p>{t("suivi_aucune")}</p>
+            <Link className="btn-action" style={{ marginTop: 14 }} href="/accueil">
+              {t("nouvelle")}
+            </Link>
           </div>
-          <div className="suivi-chauffeur">
-            <span className="avatar-ch">
-              <IcoPersonne />
-            </span>
-            <span>
-              <strong>Karim B.</strong>
-              <small>
-                <span>{t("chauffeur")}</span> · Jetour X70 · <span dir="ltr">01234-116-16</span>
-              </small>
-            </span>
-            <a className="btn-appel-rond" href={TEL_LIEN} aria-label="Appeler le chauffeur">
-              <IcoTelephone />
-            </a>
-          </div>
-          <ul className="etapes-suivi">
-            {etapes.map((e, i) => (
-              <li
-                key={e}
-                className={i < etapeActive ? "faite" : i === etapeActive ? "active" : ""}
-              >
-                {e}
-              </li>
-            ))}
-          </ul>
-        </div>
+        )}
+
+        {demande && <FicheSuivi demande={demande} t={t} />}
       </div>
     </div>
+  );
+}
+
+function FicheSuivi({ demande, t }) {
+  const annulee = demande.statut === "ANNULEE";
+  const etapeActive = INDEX[demande.statut] ?? 0;
+  const intervenant = demande.soignant
+    ? { nom: `${demande.soignant.prenom} ${demande.soignant.nom}`, tel: demande.soignant.telephone }
+    : demande.transporteur
+    ? { nom: demande.transporteur.nom, tel: demande.transporteur.telephone }
+    : demande.chauffeur
+    ? { nom: demande.chauffeur, tel: null }
+    : null;
+
+  const cleService = "s_" + (demande.service === "medicaments" ? "medic" : demande.service);
+
+  return (
+    <div className="suivi-carte">
+      <div className="suivi-entete">
+        <strong>
+          n°{demande.id} · {t(cleService)}
+        </strong>
+        <small>
+          {demande.date ? demande.date.replace("T", " · ") : "—"}
+          {demande.destination ? ` · ${demande.destination}` : ""}
+        </small>
+      </div>
+
+      {annulee ? (
+        <p className="suivi-annulee">{t("st_annulee")}</p>
+      ) : (
+        <ul className="etapes-suivi">
+          {ETAPES.map((e, i) => (
+            <li key={e.cle} className={i < etapeActive ? "faite" : i === etapeActive ? "active" : ""}>
+              {t(e.cle)}
+            </li>
+          ))}
+        </ul>
+      )}
+
+      {intervenant ? (
+        <div className="suivi-chauffeur">
+          <span className="avatar-ch">
+            <IcoPersonne />
+          </span>
+          <span>
+            <strong>{intervenant.nom}</strong>
+            <small>{t("suivi_intervenant")}</small>
+          </span>
+          {intervenant.tel && (
+            <a className="btn-appel-rond" href={`tel:${intervenant.tel}`} aria-label={t("suivi_intervenant")}>
+              <IcoTelephone />
+            </a>
+          )}
+        </div>
+      ) : (
+        !annulee && <p className="suivi-info">{t("suivi_pas_affecte")}</p>
+      )}
+
+      <div className="info-appel" style={{ marginTop: 16 }}>
+        <span>{t("suivi_besoin")}</span> <a href={TEL_LIEN}>{TEL_AFFICHE}</a>
+      </div>
+    </div>
+  );
+}
+
+export default function Suivi() {
+  return (
+    <Suspense>
+      <SuiviContenu />
+    </Suspense>
   );
 }
