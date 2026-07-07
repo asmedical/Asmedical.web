@@ -428,7 +428,12 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .reglage-msg{margin-top:10px;font-weight:700;color:var(--vert-fonce);font-size:14px}
 
 /* ============ ESPACE ADMIN (interne) ============ */
-.adm-page{min-height:100vh;background:#F7FAF8}
+/* Espace admin = identité BLEU CIEL MÉDICAL (redéfinit le vert localement,
+   le reste du site garde son vert). */
+.adm-page{
+  --vert:#1B77B3; --vert-fonce:#12557F; --vert-pale:#EAF4FB;
+  min-height:100vh;background:#F5F9FC;
+}
 .adm-entete{display:flex;align-items:center;gap:12px;background:var(--vert-fonce);color:#fff;padding:13px 18px;position:sticky;top:0;z-index:70}
 .adm-entete strong{font-size:16px;flex:1}
 .adm-role{font-size:12.5px;background:rgba(255,255,255,.16);padding:4px 12px;border-radius:999px;font-weight:800}
@@ -468,7 +473,7 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .adm-ligne strong{display:block;font-size:15px}
 .adm-ligne small{display:block;color:var(--gris);font-size:13px;margin-top:2px;word-break:break-word}
 .adm-pastille{flex-shrink:0;font-size:12.5px;font-weight:800;background:var(--vert-pale);color:var(--vert-fonce);padding:5px 11px;border-radius:999px;white-space:nowrap}
-.adm-pastille.ok{background:#E1F2E8;color:#0A5230}
+.adm-pastille.ok{background:#E1EEF8;color:#12557F}
 .adm-pastille.ko{background:#F9E8E3;color:#A4432F}
 .adm-filtres{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
 .adm-filtres input,.adm-filtres select{padding:11px 13px;font-size:14.5px;font-family:inherit;border:1px solid var(--ligne);border-radius:10px;background:var(--blanc);color:var(--encre)}

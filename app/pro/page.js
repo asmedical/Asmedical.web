@@ -179,7 +179,7 @@ export default function EspacePro() {
           ))}
 
         <p className="lien-bas">
-          <Link href="/equipe">Accès équipe ASM →</Link>
+          <Link href="/admin">Accès équipe ASM →</Link>
         </p>
       </div>
     </div>
