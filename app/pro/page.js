@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useAsm } from "@/app/providers";
+import { chargerMesDemandes } from "@/lib/supabase";
 import { IcoVehicule, IcoMaison, IcoMedicaments } from "@/app/components/icones";
 
 const ICONES = { transport: IcoVehicule, domicile: IcoMaison, medicaments: IcoMedicaments };
@@ -45,12 +46,11 @@ export default function EspacePro() {
 
   useEffect(() => {
     let annule = false;
-    fetch("/api/demandes")
-      .then((r) => (r.ok ? r.json() : []))
+    // Isolement réel : uniquement les demandes DE CET établissement
+    // (identifié par sa session, apparié par son téléphone).
+    chargerMesDemandes()
       .then((liste) => {
-        // On ne garde que les demandes de l'espace établissement.
-        // (L'isolement par établissement viendra avec la vraie connexion.)
-        if (!annule) setDemandes(Array.isArray(liste) ? liste.filter((d) => d.espace === "pro") : []);
+        if (!annule) setDemandes(liste);
       })
       .catch(() => {
         if (!annule) setDemandes([]);

@@ -13,8 +13,11 @@ export async function GET() {
   }
 }
 
-// PATCH : l'équipe ajuste horaires / horizon / capacités.
+// PATCH : l'équipe ajuste horaires / horizon / capacités (rôle interne requis).
 export async function PATCH(req) {
+  const { verifierAdmin } = await import("@/lib/adminAuth");
+  const acces = await verifierAdmin(req);
+  if (!acces) return NextResponse.json({ erreur: "Accès refusé" }, { status: 403 });
   try {
     await getReglage(); // garantit la ligne id=1
     const c = await req.json();

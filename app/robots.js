@@ -6,7 +6,7 @@ export default function robots() {
       userAgent: "*",
       allow: "/",
       // Espaces privés : inutiles pour Google, on ne les indexe pas
-      disallow: ["/equipe", "/tableau", "/suivi", "/messagerie", "/documentation", "/api/"],
+      disallow: ["/admin", "/equipe", "/tableau", "/suivi", "/messagerie", "/documentation", "/compte", "/api/"],
     },
     sitemap: `${BASE}/sitemap.xml`,
   };

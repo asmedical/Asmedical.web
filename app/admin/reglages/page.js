@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
+import { fetchAdmin } from "../ui";
 
 // Réglages du moteur de créneaux — réutilise l'API /api/reglages existante.
 const CHAMPS = [
@@ -27,12 +28,10 @@ export default function PageReglages() {
     setOccupe(true);
     setMsg("");
     try {
-      const r = await fetch("/api/reglages", {
+      await fetchAdmin("/api/reglages", {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify(reglage),
       });
-      if (!r.ok) throw new Error();
       setMsg("Réglages enregistrés ✓");
     } catch {
       setMsg("Erreur : enregistrement impossible.");

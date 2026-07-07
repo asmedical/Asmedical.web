@@ -72,8 +72,14 @@ export async function POST(req) {
   }
 }
 
-// GET /api/demandes — l'équipe consulte les demandes (back-office)
-export async function GET() {
+// GET /api/demandes — lecture réservée à l'équipe (données personnelles !).
+// Les patients passent par /api/mes-demandes (leurs demandes uniquement) ;
+// l'admin passe par /api/admin/demandes. Cette route reste pour
+// compatibilité mais exige désormais un jeton interne.
+export async function GET(req) {
+  const { verifierAdmin } = await import("@/lib/adminAuth");
+  const acces = await verifierAdmin(req);
+  if (!acces) return NextResponse.json({ erreur: "Accès refusé" }, { status: 403 });
   try {
     const demandes = await prisma.demande.findMany({
       orderBy: { creeLe: "desc" },
@@ -86,18 +92,5 @@ export async function GET() {
   }
 }
 
-// PATCH /api/demandes — mise à jour statut/chauffeur par l'équipe
-export async function PATCH(req) {
-  try {
-    const { id, statut, chauffeur } = await req.json();
-    if (!id) return NextResponse.json({ erreur: "id manquant" }, { status: 400 });
-    const data = {};
-    if (statut) data.statut = String(statut).slice(0, 20);
-    if (chauffeur !== undefined) data.chauffeur = chauffeur ? String(chauffeur).slice(0, 60) : null;
-    const maj = await prisma.demande.update({ where: { id: Number(id) }, data });
-    return NextResponse.json({ ok: true, demande: maj });
-  } catch (e) {
-    logErreur("demandes.PATCH", e);
-    return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
-  }
-}
+// (L'ancien PATCH public a été supprimé : les mises à jour de statut passent
+// exclusivement par /api/admin/demandes, protégé par rôle.)
