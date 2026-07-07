@@ -1,26 +1,33 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useGardeAdmin, LIBELLE_ROLE } from "./ui";
+import {
+  IcoDocumentLignes,
+  IcoCalendrier,
+  IcoPersonne,
+  IcoMaison,
+  IcoVehicule,
+  IcoEtablissement,
+  IcoReglages,
+  IcoSortie,
+} from "@/app/components/icones";
 
-// Enveloppe de l'espace admin : garde d'accès (rôles internes uniquement)
-// + navigation latérale (bandeau déroulant sur mobile).
-const SECTIONS = [
-  { href: "/admin", libelle: "Tableau de bord" },
-  { href: "/admin/demandes", libelle: "Demandes & RDV" },
-  { href: "/admin/clients", libelle: "Clients" },
-  { href: "/admin/soignants", libelle: "Soignants" },
-  { href: "/admin/transporteurs", libelle: "Transporteurs" },
-  { href: "/admin/equipe", libelle: "Équipe & journal" },
-  { href: "/admin/reglages", libelle: "Réglages" },
+// Onglets de l'espace admin — barre du bas tactile (comme le site),
+// défilable horizontalement sur mobile. Chaque onglet = une section.
+const ONGLETS = [
+  { href: "/admin", libelle: "Bord", Ico: IcoDocumentLignes },
+  { href: "/admin/demandes", libelle: "Demandes", Ico: IcoCalendrier },
+  { href: "/admin/clients", libelle: "Clients", Ico: IcoPersonne },
+  { href: "/admin/soignants", libelle: "Soignants", Ico: IcoMaison },
+  { href: "/admin/transporteurs", libelle: "Transport", Ico: IcoVehicule },
+  { href: "/admin/equipe", libelle: "Équipe", Ico: IcoEtablissement },
+  { href: "/admin/reglages", libelle: "Réglages", Ico: IcoReglages },
 ];
 
 export default function AdminLayout({ children }) {
   const { pret, autorise, role } = useGardeAdmin();
   const chemin = usePathname();
-  const routeur = useRouter();
-  const [menuOuvert, setMenuOuvert] = useState(false);
 
   if (!pret) {
     return (
@@ -31,39 +38,52 @@ export default function AdminLayout({ children }) {
       </div>
     );
   }
+
+  // Accès refusé : message clair (plutôt qu'une redirection silencieuse),
+  // pour qu'un membre sache que l'espace existe et comment y accéder.
   if (!autorise) {
-    // Pas un compte interne → retour connexion, sans fuite d'information.
-    if (typeof window !== "undefined") routeur.replace("/connexion");
-    return null;
+    return (
+      <div className="adm-page">
+        <div className="adm-refus">
+          <h1>Espace réservé à l&apos;équipe ASM</h1>
+          <p>
+            Cette zone est réservée aux administrateurs et modérateurs. Si vous êtes membre de
+            l&apos;équipe, demandez à l&apos;administrateur de vous donner accès.
+          </p>
+          <Link className="adm-btn" href="/connexion">
+            Se connecter
+          </Link>
+          <Link className="adm-btn secondaire" href="/accueil" style={{ marginTop: 10 }}>
+            Retour au site
+          </Link>
+        </div>
+      </div>
+    );
   }
 
+  const actif = (href) => chemin === href;
+
   return (
-    <div className="adm-page">
+    <div className="adm-page avec-tabbar">
       <header className="adm-entete">
-        <button className="adm-burger" onClick={() => setMenuOuvert((o) => !o)} aria-label="Menu">
-          ☰
-        </button>
         <strong>ASM — Administration</strong>
         <span className="adm-role">{LIBELLE_ROLE[role] || role}</span>
       </header>
-      <div className="adm-corps">
-        <nav className={"adm-nav" + (menuOuvert ? " ouvert" : "")}>
-          {SECTIONS.map((s) => (
-            <Link
-              key={s.href}
-              href={s.href}
-              className={chemin === s.href ? "actif" : ""}
-              onClick={() => setMenuOuvert(false)}
-            >
-              {s.libelle}
-            </Link>
-          ))}
-          <Link href="/accueil" className="adm-retour-site">
-            ← Retour au site
+
+      <main className="adm-contenu">{children}</main>
+
+      <nav className="adm-tabbar" aria-label="Sections d'administration">
+        {ONGLETS.map(({ href, libelle, Ico }) => (
+          <Link key={href} href={href} className={actif(href) ? "actif" : ""}>
+            <Ico />
+            <span>{libelle}</span>
           </Link>
-        </nav>
-        <main className="adm-contenu">{children}</main>
-      </div>
+        ))}
+        <Link href="/accueil" className="adm-tab-retour">
+          <IcoSortie />
+          <span>Site</span>
+        </Link>
+      </nav>
     </div>
   );
 }

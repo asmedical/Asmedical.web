@@ -1,6 +1,10 @@
 "use client";
 import { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { T } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase";
+
+// Rôles internes autorisés à accéder à l'espace administration.
+const ROLES_INTERNES = ["superadmin", "admin", "moderateur", "standardiste"];
 
 // État global côté client : langue FR/AR, espace choisi (patient/pro),
 // connexion simulée (MVP — sera remplacée par une vraie auth OTP),
@@ -13,6 +17,26 @@ export function AsmProvider({ children }) {
   const [compteType, setCompteType] = useState("patient"); // patient | pro
   const [espaceChoisi, setEspaceChoisi] = useState("patient");
   const [serviceEnCours, setServiceEnCours] = useState(null);
+  const [roleInterne, setRoleInterne] = useState(""); // "" si client normal
+
+  // Récupère le rôle réel (Supabase) pour révéler l'accès admin aux internes.
+  useEffect(() => {
+    let annule = false;
+    (async () => {
+      try {
+        if (!supabase) return;
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user || annule) return;
+        const { data } = await supabase.from("profil").select("role").eq("id", user.id).maybeSingle();
+        if (!annule) setRoleInterne(ROLES_INTERNES.includes(data?.role) ? data.role : "");
+      } catch {}
+    })();
+    return () => {
+      annule = true;
+    };
+  }, [connecte]);
 
   // Restauration après rechargement
   useEffect(() => {
@@ -74,6 +98,7 @@ export function AsmProvider({ children }) {
     setCompteType("patient");
     setEspaceChoisi("patient");
     setServiceEnCours(null);
+    setRoleInterne("");
     try {
       sessionStorage.removeItem("asm_connecte");
       sessionStorage.removeItem("asm_espace");
@@ -99,6 +124,8 @@ export function AsmProvider({ children }) {
         choisirService,
         seConnecter,
         seDeconnecter,
+        roleInterne,
+        estInterne: Boolean(roleInterne),
       }}
     >
       {children}

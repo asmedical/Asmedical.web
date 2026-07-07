@@ -31,7 +31,7 @@ export function BandeauAppel() {
 // Déroulant : Mon compte / Mes demandes / Déconnexion. Se ferme au clic
 // extérieur et après chaque action ; utilisable au doigt sur mobile.
 function MenuUtilisateur() {
-  const { t, compteType, seDeconnecter } = useAsm();
+  const { t, compteType, seDeconnecter, estInterne } = useAsm();
   const routeur = useRouter();
   const [ouvert, setOuvert] = useState(false);
   const ref = useRef(null);
@@ -75,6 +75,11 @@ function MenuUtilisateur() {
           <button role="menuitem" onClick={() => aller(compteType === "pro" ? "/pro" : "/tableau")}>
             <IcoCalendrier /> {t("menu_demandes")}
           </button>
+          {estInterne && (
+            <button role="menuitem" className="menu-admin" onClick={() => aller("/admin")}>
+              <IcoReglages /> {t("menu_admin")}
+            </button>
+          )}
           <button role="menuitem" className="menu-deco" onClick={deconnecter}>
             <IcoSortie /> {t("menu_deconnexion")}
           </button>

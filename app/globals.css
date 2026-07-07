@@ -151,6 +151,8 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .menu-user-liste button{display:flex;align-items:center;gap:10px;width:100%;padding:13px 14px;border:none;background:none;font-family:inherit;font-size:15px;font-weight:700;color:var(--encre);border-radius:10px;cursor:pointer;text-align:start}
 .menu-user-liste button:hover{background:var(--vert-pale)}
 .menu-user-liste button svg{width:19px;height:19px;stroke:var(--vert);flex-shrink:0}
+.menu-user-liste .menu-admin{color:var(--vert-fonce)}
+.menu-user-liste .menu-admin svg{stroke:var(--vert-fonce)}
 .menu-user-liste .menu-deco{color:#A4432F;border-top:1px solid var(--ligne);border-radius:0 0 10px 10px;margin-top:4px}
 .menu-user-liste .menu-deco svg{stroke:#A4432F}
 
@@ -430,14 +432,25 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .adm-entete{display:flex;align-items:center;gap:12px;background:var(--vert-fonce);color:#fff;padding:13px 18px;position:sticky;top:0;z-index:70}
 .adm-entete strong{font-size:16px;flex:1}
 .adm-role{font-size:12.5px;background:rgba(255,255,255,.16);padding:4px 12px;border-radius:999px;font-weight:800}
-.adm-burger{display:none;background:none;border:none;color:#fff;font-size:22px;cursor:pointer;padding:2px 6px}
-.adm-corps{display:flex;max-width:1180px;margin:0 auto;align-items:flex-start}
-.adm-nav{width:220px;flex-shrink:0;padding:18px 12px;display:flex;flex-direction:column;gap:4px;position:sticky;top:64px}
-.adm-nav a{padding:11px 14px;border-radius:10px;text-decoration:none;color:var(--encre);font-weight:700;font-size:14.5px}
-.adm-nav a:hover{background:var(--vert-pale)}
-.adm-nav a.actif{background:var(--vert);color:#fff}
-.adm-retour-site{margin-top:14px;color:var(--gris)!important;font-size:13.5px!important}
-.adm-contenu{flex:1;padding:22px 18px 60px;min-width:0}
+.adm-page.avec-tabbar{padding-bottom:74px}
+.adm-contenu{max-width:1000px;margin:0 auto;padding:22px 18px 40px;min-width:0}
+.adm-refus{max-width:460px;margin:60px auto;padding:0 20px;text-align:center}
+.adm-refus h1{font-size:22px;color:var(--vert-fonce);margin-bottom:12px}
+.adm-refus p{color:var(--gris);margin-bottom:22px}
+.adm-refus .adm-btn{display:block;text-decoration:none;text-align:center}
+/* Barre du bas à onglets (comme le site) */
+.adm-tabbar{position:fixed;bottom:0;left:0;right:0;z-index:70;background:var(--blanc);border-top:1px solid var(--ligne);display:flex;gap:2px;padding:6px 4px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.adm-tabbar::-webkit-scrollbar{display:none}
+.adm-tabbar a{flex:0 0 auto;min-width:66px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 8px;border-radius:12px;text-decoration:none;color:var(--gris);font-size:11.5px;font-weight:800}
+.adm-tabbar a svg{width:22px;height:22px;stroke:var(--gris);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.adm-tabbar a.actif{color:var(--vert-fonce)}
+.adm-tabbar a.actif svg{stroke:var(--vert)}
+.adm-tabbar a.actif{background:var(--vert-pale)}
+.adm-tab-retour{border-inline-start:1px solid var(--ligne)}
+@media(min-width:900px){
+  .adm-tabbar{justify-content:center;gap:6px}
+  .adm-tabbar a{min-width:88px}
+}
 .adm-titre{font-size:22px;color:var(--vert-fonce);margin-bottom:14px}
 .adm-sous-titre{font-size:15px;color:var(--gris);text-transform:uppercase;letter-spacing:.05em;margin:26px 0 10px}
 .adm-barre-titre{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
