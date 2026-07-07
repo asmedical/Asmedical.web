@@ -14,6 +14,7 @@ import {
   IcoPersonne,
   IcoReglages,
   IcoSortie,
+  IcoCloche,
 } from "@/app/components/icones";
 
 export function BandeauAppel() {
@@ -89,6 +90,20 @@ function MenuUtilisateur() {
   );
 }
 
+// Cloche de notifications (en-tête) : badge = notifications + chat non lus,
+// clic → la messagerie (centre de messages). Vraies données uniquement.
+function Cloche() {
+  const { t, nonLus } = useAsm();
+  const routeur = useRouter();
+  const total = (nonLus?.notifs || 0) + (nonLus?.chat || 0);
+  return (
+    <button className="btn-cloche" aria-label={t("cloche_l")} onClick={() => routeur.push("/messagerie")}>
+      <IcoCloche />
+      {total > 0 && <span className="badge-nonlu">{total > 99 ? "99+" : total}</span>}
+    </button>
+  );
+}
+
 export function EnTete() {
   const { t, langue, setLangue, espaceChoisi, connecte } = useAsm();
   return (
@@ -129,6 +144,7 @@ export function EnTete() {
               ع
             </button>
           </div>
+          {connecte && <Cloche />}
           {connecte && <MenuUtilisateur />}
         </div>
       </div>
@@ -137,9 +153,10 @@ export function EnTete() {
 }
 
 export function BarreNav() {
-  const { t, connecte, compteType } = useAsm();
+  const { t, connecte, compteType, nonLus } = useAsm();
   const chemin = usePathname();
   const routeur = useRouter();
+  const totalNonLus = (nonLus?.notifs || 0) + (nonLus?.chat || 0);
 
   const allerCompte = () => {
     if (connecte) routeur.push("/compte");
@@ -163,8 +180,10 @@ export function BarreNav() {
         onClick={() => routeur.push("/messagerie")}
         aria-label={t("nav_msg")}
         title={t("nav_msg")}
+        style={{ position: "relative" }}
       >
         <IcoBulle strokeWidth="1.9" />
+        {totalNonLus > 0 && <span className="badge-nonlu badge-nav">{totalNonLus > 99 ? "99+" : totalNonLus}</span>}
       </button>
       <button
         className={"btn-accueil" + (actif(["/accueil", "/rdv"]) ? " actif" : "")}

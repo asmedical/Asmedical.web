@@ -113,6 +113,24 @@ model Message {
   @@index([userId, creeLe])
 }
 
+// Message officiel / notification envoyé par l'équipe à un compte :
+// info, demande de document, mise à jour de rendez-vous, rappel…
+// Distinct du chat (Message) : consultable durablement, avec statut.
+model Notification {
+  id      Int       @id @default(autoincrement())
+  userId  String
+  type    String    @default("message") // message | document | rdv | rappel
+  titre   String
+  corps   String?
+  docType String?   // pour type=document : piece_identite | ordonnance | justificatif | medical | autre
+  auteur  String?   // agent qui l'a envoyée
+  statut  String    @default("NON_LU") // NON_LU | LU | TRAITEE
+  luLe    DateTime?
+  creeLe  DateTime  @default(now())
+
+  @@index([userId, creeLe])
+}
+
 // Note interne (jamais visible côté patient)
 model NoteInterne {
   id       Int      @id @default(autoincrement())

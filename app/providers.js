@@ -18,6 +18,38 @@ export function AsmProvider({ children }) {
   const [espaceChoisi, setEspaceChoisi] = useState("patient");
   const [serviceEnCours, setServiceEnCours] = useState(null);
   const [roleInterne, setRoleInterne] = useState(""); // "" si client normal
+  const [nonLus, setNonLus] = useState({ notifs: 0, chat: 0 }); // cloche + badges
+
+  // Compteurs non lus (notifications + chat) — vraies données uniquement.
+  const rafraichirNonLus = useCallback(async () => {
+    try {
+      if (!supabase) return;
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (!session?.access_token) {
+        setNonLus({ notifs: 0, chat: 0 });
+        return;
+      }
+      const r = await fetch("/api/notifications?compteur=1", {
+        headers: { Authorization: `Bearer ${session.access_token}` },
+      });
+      if (r.ok) {
+        const d = await r.json();
+        setNonLus({ notifs: d.notifs || 0, chat: d.chat || 0 });
+      }
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    if (!connecte) {
+      setNonLus({ notifs: 0, chat: 0 });
+      return;
+    }
+    rafraichirNonLus();
+    const minuteur = setInterval(rafraichirNonLus, 30000);
+    return () => clearInterval(minuteur);
+  }, [connecte, rafraichirNonLus]);
 
   // Récupère le rôle réel (Supabase) pour révéler l'accès admin aux internes.
   useEffect(() => {
@@ -126,6 +158,8 @@ export function AsmProvider({ children }) {
         seDeconnecter,
         roleInterne,
         estInterne: Boolean(roleInterne),
+        nonLus,
+        rafraichirNonLus,
       }}
     >
       {children}
