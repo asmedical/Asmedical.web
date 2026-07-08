@@ -5,6 +5,27 @@ import { verifierAdmin, journaliser, refus } from "@/lib/adminAuth";
 export const dynamic = "force-dynamic";
 
 const STATUTS = ["A_RAPPELER", "CONFIRMEE", "AFFECTEE", "EN_COURS", "TERMINEE", "ABSENT", "ANNULEE"];
+const LIB_SERVICE = { transport: "Transport", domicile: "Aide à domicile", medicaments: "Livraison de médicaments" };
+
+// Résumé lisible d'une intervention, pour le corps de la notification.
+function detailIntervention(d) {
+  const quand = d.date ? d.date.replace("T", " à ") : "à planifier";
+  const lieu = d.destination || d.depart || "";
+  const patient = d.nom ? ` · patient : ${d.nom}` : "";
+  const fen = d.fenetre ? ` · ${d.fenetre}` : "";
+  return `${quand} · ${LIB_SERVICE[d.service] || d.service}${lieu ? ` · ${lieu}` : ""}${fen}${patient}`;
+}
+
+// Crée une notification dans l'espace de l'intervenant, s'il possède un
+// compte de connexion (userId rattaché à sa fiche).
+async function notifierIntervenant(entite, intervenantId, titre, corps, auteur) {
+  const modele = entite === "soignant" ? prisma.soignant : prisma.transporteur;
+  const iv = await modele.findUnique({ where: { id: Number(intervenantId) }, select: { userId: true } });
+  if (!iv?.userId) return;
+  await prisma.notification.create({
+    data: { userId: iv.userId, type: "rdv", titre, corps, auteur: auteur || "Coordination ASM", statut: "NON_LU" },
+  });
+}
 
 // GET /api/admin/demandes?statut=&service=&jour=&q=&page=
 export async function GET(req) {
@@ -83,8 +104,29 @@ export async function PATCH(req) {
       actions.push(`reprogrammée ${data.date}`);
     }
 
+    // État précédent (pour ne notifier qu'un changement réel d'affectation).
+    const avant = await prisma.demande.findUnique({
+      where: { id },
+      select: { soignantId: true, transporteurId: true },
+    });
+
     const maj = await prisma.demande.update({ where: { id }, data });
     await journaliser(acces.nomAffiche, "demande.maj", "demande", id, actions.join(", "));
+
+    // Notifications automatiques dans l'espace de l'intervenant.
+    try {
+      if (data.soignantId && data.soignantId !== avant?.soignantId) {
+        await notifierIntervenant("soignant", data.soignantId, "Nouvelle intervention", detailIntervention(maj), acces.nomAffiche);
+      }
+      if (data.transporteurId && data.transporteurId !== avant?.transporteurId) {
+        await notifierIntervenant("transporteur", data.transporteurId, "Nouvelle course / tournée", detailIntervention(maj), acces.nomAffiche);
+      }
+      if (data.statut === "ANNULEE") {
+        if (maj.soignantId) await notifierIntervenant("soignant", maj.soignantId, "Intervention annulée", detailIntervention(maj), acces.nomAffiche);
+        if (maj.transporteurId) await notifierIntervenant("transporteur", maj.transporteurId, "Course annulée", detailIntervention(maj), acces.nomAffiche);
+      }
+    } catch {}
+
     return NextResponse.json({ ok: true, demande: maj });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
