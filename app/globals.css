@@ -756,3 +756,20 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .doc-badge{flex-shrink:0;font-size:12px;font-weight:800;background:var(--vert-pale);color:var(--vert-fonce);padding:5px 11px;border-radius:999px;white-space:nowrap}
 .doc-badge.ok{background:#E7F6EC;color:#1E7A45}
 .doc-badge.ko{background:#FBEBE8;color:#B3261E}
+
+/* ============ Espace chauffeur : véhicule + tournée ordonnée ============ */
+.emp-vehicule{display:flex;align-items:center;gap:14px;background:var(--blanc);border:1px solid var(--ligne);border-radius:14px;padding:14px 16px;margin-top:14px}
+.emp-veh-ico{font-size:28px;flex-shrink:0}
+.emp-vehicule strong{display:block;font-size:15.5px}
+.emp-vehicule small{display:block;color:var(--gris);font-size:13px;margin-top:2px;overflow-wrap:anywhere}
+.emp-course{display:flex;align-items:center;gap:12px;background:var(--blanc);border:1px solid var(--ligne);border-radius:14px;padding:13px 14px;margin-bottom:10px;text-decoration:none;color:inherit}
+.emp-course.cliquable:hover{border-color:var(--vert)}
+.emp-course.cliquable:active{transform:scale(.995)}
+.emp-course.urgente{border-color:#E3B7AC;background:#FDF7F5}
+.emp-course-num{flex-shrink:0;width:30px;height:30px;border-radius:50%;background:var(--vert);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:15px}
+.emp-course-corps{flex:1;min-width:0}
+.emp-course-corps strong{display:block;font-size:14.5px}
+.emp-course-corps small{display:block;color:var(--gris);font-size:12.5px;margin-top:2px;overflow-wrap:anywhere}
+.emp-trajet{display:flex;align-items:center;gap:7px;margin-top:3px;flex-wrap:wrap}
+.emp-trajet-lieu{font-size:13.5px;font-weight:700;color:var(--encre);overflow-wrap:anywhere}
+.emp-trajet-fleche{color:var(--vert);font-weight:800;flex-shrink:0}

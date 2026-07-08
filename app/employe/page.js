@@ -50,14 +50,34 @@ export default function TableauEmploye() {
         <Link href="/employe/profil" className="emp-tuile"><span>👤</span>Mon profil</Link>
       </div>
 
-      <h2 className="emp-section">Aujourd&apos;hui — {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</h2>
+      {/* Info véhicule (chauffeur) */}
+      {estChauffeur && intervenant && (
+        <div className="emp-vehicule">
+          <span className="emp-veh-ico" aria-hidden="true">🚐</span>
+          <div>
+            <strong>{intervenant.vehicule || "Véhicule non renseigné"}</strong>
+            <small>
+              {({ simple: "Transport simple", accompagne: "Accompagné (fauteuil)", medicalise: "Médicalisé" }[intervenant.typeTransport]) || "Transport"}
+              {intervenant.communes ? ` · zone : ${intervenant.communes}` : ""}
+            </small>
+          </div>
+        </div>
+      )}
+
+      <h2 className="emp-section">
+        {estChauffeur ? "Ma tournée du jour" : "Aujourd'hui"} — {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}
+      </h2>
       {duJour.length === 0 && <p className="adm-vide">Aucune {estChauffeur ? "course" : "intervention"} prévue aujourd&apos;hui.</p>}
-      {duJour.map((i) => <CarteIntervention key={i.id} i={i} estChauffeur={estChauffeur} />)}
+      {estChauffeur
+        ? duJour.map((i, n) => <CarteCourse key={i.id} i={i} n={n + 1} />)
+        : duJour.map((i) => <CarteIntervention key={i.id} i={i} estChauffeur={estChauffeur} />)}
 
       {aVenir.length > 0 && (
         <>
           <h2 className="emp-section">À venir</h2>
-          {aVenir.map((i) => <CarteIntervention key={i.id} i={i} estChauffeur={estChauffeur} />)}
+          {estChauffeur
+            ? aVenir.map((i) => <CarteCourse key={i.id} i={i} />)
+            : aVenir.map((i) => <CarteIntervention key={i.id} i={i} estChauffeur={estChauffeur} />)}
         </>
       )}
 
@@ -76,6 +96,29 @@ export default function TableauEmploye() {
         </>
       )}
     </>
+  );
+}
+
+// Carte « course » du chauffeur : arrêt numéroté, trajet départ → destination.
+function CarteCourse({ i, n }) {
+  const heure = i.date ? new Date(i.date.replace(" ", "T")).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "—";
+  return (
+    <Link className={"emp-course cliquable" + (i.prioritaire ? " urgente" : "")} href={`/employe/interventions/${i.id}`}>
+      <span className="emp-course-num" aria-hidden="true">{n || "•"}</span>
+      <span className="emp-course-corps">
+        <strong>{i.prioritaire ? "🔴 " : ""}{heure}{i.fenetre ? ` · ${i.fenetre}` : ""}</strong>
+        <span className="emp-trajet">
+          <span className="emp-trajet-lieu">{i.depart || "Prise en charge"}</span>
+          <span className="emp-trajet-fleche" aria-hidden="true">→</span>
+          <span className="emp-trajet-lieu">{i.destination || "Destination"}</span>
+        </span>
+        {i.nom && <small>Patient : {i.nom}</small>}
+      </span>
+      <span className="emp-i-droite">
+        <span className="emp-i-statut">{STATUT_LIB[i.statut] || i.statut}</span>
+        <span className="emp-chevron" aria-hidden="true">›</span>
+      </span>
+    </Link>
   );
 }
 
