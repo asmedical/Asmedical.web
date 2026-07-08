@@ -84,8 +84,16 @@ export default function AideConnexion() {
         seConnecter(profil?.role === "pro" ? "pro" : "patient");
       } catch {}
       setEtape("ok");
-    } catch {
-      setErreur(t("err_mdp_maj"));
+    } catch (e) {
+      // Message précis selon la vraie cause renvoyée par Supabase.
+      const m = (e?.message || "").toLowerCase();
+      let msg;
+      if (m.includes("different")) msg = "Choisissez un mot de passe différent de l'ancien.";
+      else if (m.includes("at least") || m.includes("weak") || m.includes("characters") || m.includes("length")) msg = "Mot de passe trop faible : 8 caractères minimum, avec lettres et chiffres.";
+      else if (m.includes("session") || m.includes("token") || m.includes("expired") || m.includes("jwt")) msg = "Le lien a expiré. Redemandez un code et recommencez.";
+      else if (m.includes("reauth") || m.includes("nonce")) msg = "Sécurité : reconnectez-vous puis changez le mot de passe depuis « Mon compte ».";
+      else msg = e?.message ? `Erreur : ${e.message}` : t("err_mdp_maj");
+      setErreur(msg);
     } finally {
       setOccupe(false);
     }
