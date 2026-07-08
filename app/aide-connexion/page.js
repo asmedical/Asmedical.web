@@ -215,11 +215,11 @@ export default function AideConnexion() {
                   <input
                     type="tel"
                     inputMode="numeric"
-                    maxLength={6}
+                    maxLength={8}
                     className="champ-code"
                     placeholder={t("code_ph")}
                     value={code}
-                    onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+                    onChange={(e) => setCode(e.target.value.replace(/\D/g, "").slice(0, 8))}
                     onKeyDown={(e) => e.key === "Enter" && verifier()}
                     autoFocus
                   />
