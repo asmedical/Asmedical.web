@@ -193,6 +193,8 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 /* ============ PRÉCISIONS STRUCTURÉES (RDV) ============ */
 .bloc-precisions{border:1px solid var(--ligne);border-radius:var(--r);padding:16px;margin:20px 0}
 .precisions-aide{color:var(--gris);font-size:13.5px;margin:-6px 0 14px}
+.case-ligne{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;margin:0 0 16px;cursor:pointer}
+.case-ligne input{width:20px;height:20px;accent-color:var(--vert);flex-shrink:0}
 .mini-label{display:block;font-weight:800;font-size:13.5px;color:var(--gris);margin-bottom:9px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{padding:9px 13px;border:1px solid var(--ligne);border-radius:999px;background:var(--blanc);

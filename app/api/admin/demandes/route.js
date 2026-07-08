@@ -36,6 +36,7 @@ export async function GET(req) {
         include: {
           soignant: { select: { prenom: true, nom: true } },
           transporteur: { select: { nom: true } },
+          abonnement: true,
         },
       }),
     ]);

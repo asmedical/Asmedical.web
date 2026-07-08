@@ -20,20 +20,57 @@ const BESOINS = [
   "b_infirmier", "b_age", "b_dialyse", "b_chimio", "b_postop", "b_enfant",
 ];
 
-// Prise de rendez-vous avec calendrier intelligent de créneaux (on ne propose
-// que les créneaux réellement libres) et précisions structurées facultatives.
-// L'équipe rappelle en moins de 30 minutes.
+// Types d'actes proposés par défaut (Mode A) si le back-office n'en a pas
+// encore configuré dans la table TypeActe.
+const ACTES_DEFAUT = [
+  { id: "toilette", cle: "acte_toilette", dureeMin: 60 },
+  { id: "pansement", cle: "acte_pansement", dureeMin: 30 },
+  { id: "injection", cle: "acte_injection", dureeMin: 20 },
+  { id: "perfusion", cle: "acte_perfusion", dureeMin: 60 },
+  { id: "prise_sang", cle: "acte_prise_sang", dureeMin: 20 },
+  { id: "garde", cle: "acte_garde", dureeMin: 180 },
+  { id: "autre", cle: "acte_autre", dureeMin: 60 },
+];
+
+// Fenêtres de livraison (Mode C). `fr` = valeur stockée, lisible en back-office.
+const FENETRES = [
+  { id: "asap", cle: "f_asap", fr: "au plus tôt" },
+  { id: "matin", cle: "f_matin", fr: "matin (8h–12h)" },
+  { id: "midi", cle: "f_midi", fr: "midi (12h–15h)" },
+  { id: "soir", cle: "f_soir", fr: "après-midi (15h–19h)" },
+];
+
+const JOURS_SEMAINE = ["j_lun", "j_mar", "j_mer", "j_jeu", "j_ven", "j_sam", "j_dim"];
+
+// Moteur de réservation unifié :
+//  Mode B (transport)   : ponctuel (créneaux) | régulier (abonnement) | urgent
+//  Mode A (domicile)    : type d'acte + créneaux
+//  Mode C (médicaments) : jour + fenêtre de livraison + pharmacie
 export default function PriseRdv() {
   const { t, langue, serviceEnCours, espaceChoisi } = useAsm();
   const service = serviceEnCours || "transport";
 
+  // --- Transport (Mode B) ---
+  const [sousMode, setSousMode] = useState("ponctuel"); // ponctuel | abonnement | urgent
   const [typeTrajet, setTypeTrajet] = useState("simple");
   const [depart, setDepart] = useState("");
   const [destination, setDestination] = useState("");
-  const [recurrence, setRecurrence] = useState("une");
+  const [aboJours, setAboJours] = useState([]);
+  const [aboHeure, setAboHeure] = useState("08:00");
+  const [aboRetour, setAboRetour] = useState(true);
+  const [aboDebut, setAboDebut] = useState(isoJour(new Date()));
+
+  // --- Domicile (Mode A) ---
+  const [actes, setActes] = useState(null);
+  const [acteChoisi, setActeChoisi] = useState(0);
+
+  // --- Médicaments (Mode C) ---
+  const [pharmacie, setPharmacie] = useState("");
+  const [fenetre, setFenetre] = useState("asap");
+
+  // --- Commun ---
   const [telephone, setTelephone] = useState("");
   const [notes, setNotes] = useState("");
-
   const [jours, setJours] = useState([]);
   const [jourChoisi, setJourChoisi] = useState("");
   const [creneaux, setCreneaux] = useState(null);
@@ -48,68 +85,66 @@ export default function PriseRdv() {
 
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
-  const [confirme, setConfirme] = useState(false);
+  const [confirme, setConfirme] = useState(""); // "" | standard | urgent | abonnement | livraison
 
-  const RECURRENCES = {
-    une: t("rec_une"),
-    dialyse: t("rec_dialyse"),
-    choix: t("rec_choix"),
-    conseiller: t("rec_conseiller"),
-  };
+  const besoinCreneau =
+    (service === "transport" && sousMode === "ponctuel") || service === "domicile";
 
-  // Construit la liste des jours réservables (selon l'horizon réglé)
+  // Liste des jours réservables (selon l'horizon réglé) — sert au calendrier
+  // de créneaux ET au choix du jour de livraison.
   useEffect(() => {
     let annule = false;
+    const construire = (horizon) => {
+      const liste = [];
+      const base = new Date();
+      base.setHours(0, 0, 0, 0);
+      for (let i = 0; i < horizon; i++) {
+        const j = new Date(base);
+        j.setDate(base.getDate() + i);
+        liste.push(isoJour(j));
+      }
+      setJours(liste);
+      setJourChoisi(liste[0]);
+    };
     fetch("/api/creneaux")
       .then((r) => r.json())
-      .then((d) => {
-        if (annule) return;
-        const horizon = d?.reglage?.joursHorizon || 14;
-        const liste = [];
-        const base = new Date();
-        base.setHours(0, 0, 0, 0);
-        for (let i = 0; i < horizon; i++) {
-          const j = new Date(base);
-          j.setDate(base.getDate() + i);
-          liste.push(isoJour(j));
-        }
-        setJours(liste);
-        setJourChoisi(liste[0]);
-      })
-      .catch(() => {
-        const liste = [];
-        const base = new Date();
-        for (let i = 0; i < 14; i++) {
-          const j = new Date(base);
-          j.setDate(base.getDate() + i);
-          liste.push(isoJour(j));
-        }
-        setJours(liste);
-        setJourChoisi(liste[0]);
-      });
+      .then((d) => !annule && construire(d?.reglage?.joursHorizon || 14))
+      .catch(() => !annule && construire(14));
     return () => {
       annule = true;
     };
   }, []);
 
-  // Charge les créneaux du jour choisi pour le service
+  // Créneaux du jour choisi (uniquement pour les modes à créneaux)
   useEffect(() => {
-    if (!jourChoisi) return;
+    if (!jourChoisi || !besoinCreneau) return;
     let annule = false;
     setCreneaux(null);
     setSlotChoisi("");
     fetch(`/api/creneaux?service=${service}&jour=${jourChoisi}`)
       .then((r) => r.json())
-      .then((d) => {
-        if (!annule) setCreneaux(d.creneaux || []);
-      })
-      .catch(() => {
-        if (!annule) setCreneaux([]);
-      });
+      .then((d) => !annule && setCreneaux(d.creneaux || []))
+      .catch(() => !annule && setCreneaux([]));
     return () => {
       annule = true;
     };
-  }, [jourChoisi, service]);
+  }, [jourChoisi, service, besoinCreneau]);
+
+  // Types d'actes (Mode A) : ceux du back-office, sinon la liste par défaut.
+  useEffect(() => {
+    if (service !== "domicile") return;
+    let annule = false;
+    fetch("/api/actes")
+      .then((r) => r.json())
+      .then((d) => !annule && setActes(d.actes?.length ? d.actes : null))
+      .catch(() => {});
+    return () => {
+      annule = true;
+    };
+  }, [service]);
+
+  const listeActes = actes || ACTES_DEFAUT.map((a) => ({ ...a, libelle: t(a.cle) }));
+  const libelleActe = (a) => (langue === "ar" && a.libelleAr ? a.libelleAr : a.libelle);
 
   function libelleJour(iso) {
     const d = new Date(iso + "T12:00");
@@ -126,30 +161,68 @@ export default function PriseRdv() {
 
   const basculerBesoin = (cle) =>
     setBesoins((b) => (b.includes(cle) ? b.filter((x) => x !== cle) : [...b, cle]));
+  const basculerJourAbo = (i) =>
+    setAboJours((l) => (l.includes(i) ? l.filter((x) => x !== i) : [...l, i].sort()));
+
+  function detailsStructures(extra = {}) {
+    const d = {
+      ...extra,
+      besoins: besoins.map((cle) => t(cle)),
+      acces: acces.trim() || undefined,
+      code: code.trim() || undefined,
+      prevenirNom: prevenirNom.trim() || undefined,
+      prevenirTel: prevenirTel.trim() || undefined,
+    };
+    const rempli =
+      d.besoins.length || d.acces || d.code || d.prevenirNom || d.prevenirTel || Object.keys(extra).length;
+    return rempli ? JSON.stringify(d) : null;
+  }
 
   async function confirmer() {
     setErreur("");
-    if (!slotChoisi) {
-      setErreur(t("err_creneau"));
-      return;
-    }
     if (telephone.trim().length < 9) {
       setErreur(t("err_tel"));
       return;
     }
+
+    // --- Abonnement (transport régulier) ---
+    if (service === "transport" && sousMode === "abonnement") {
+      if (aboJours.length === 0) return setErreur(t("err_jours"));
+      if (!destination.trim()) return setErreur(t("err_centre"));
+      setEnvoi(true);
+      try {
+        const r = await fetch("/api/abonnements", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            telephone, typeTrajet, jours: aboJours, heure: aboHeure,
+            centre: destination, domicile: depart, retour: aboRetour,
+            debut: aboDebut, notes, espace: espaceChoisi,
+          }),
+        });
+        if (!r.ok) throw new Error();
+        setConfirme("abonnement");
+      } catch {
+        setErreur(`${t("err_serveur")} ${TEL_AFFICHE}.`);
+      } finally {
+        setEnvoi(false);
+      }
+      return;
+    }
+
+    // --- Demande simple (ponctuel / urgent / domicile / livraison) ---
+    const urgent = service === "transport" && sousMode === "urgent";
+    const livraison = service === "medicaments";
+
+    let date = slotChoisi;
+    if (urgent) date = "au plus tôt";
+    if (livraison) date = jourChoisi;
+    if (besoinCreneau && !slotChoisi) return setErreur(t("err_creneau"));
+
+    const acte = service === "domicile" ? listeActes[acteChoisi] : null;
+
     setEnvoi(true);
     try {
-      // Précisions structurées sérialisées (libellés FR pour lisibilité back-office)
-      const details = {
-        besoins: besoins.map((cle) => t(cle)),
-        acces: acces.trim() || undefined,
-        code: code.trim() || undefined,
-        prevenirNom: prevenirNom.trim() || undefined,
-        prevenirTel: prevenirTel.trim() || undefined,
-      };
-      const aDesDetails =
-        details.besoins.length || details.acces || details.code || details.prevenirNom || details.prevenirTel;
-
       const r = await fetch("/api/demandes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -158,17 +231,20 @@ export default function PriseRdv() {
           typeTrajet: service === "transport" ? typeTrajet : null,
           depart,
           destination,
-          date: slotChoisi,
-          recurrence: RECURRENCES[recurrence],
+          date,
           telephone,
           notes,
-          details: aDesDetails ? JSON.stringify(details) : null,
+          details: detailsStructures(
+            acte ? { acte: `${acte.libelle || t(acte.cle)} (≈ ${acte.dureeMin} min)` } : {}
+          ),
           espace: espaceChoisi,
+          sousMode: urgent ? "urgent" : livraison ? "fenetre" : "ponctuel",
+          fenetre: livraison ? FENETRES.find((f) => f.id === fenetre)?.fr : undefined,
+          pharmacie: livraison ? pharmacie.trim() || undefined : undefined,
         }),
       });
       if (r.status === 409) {
         setErreur(t("err_creneau_pris"));
-        // rafraîchit les créneaux pour retirer celui qui vient d'être pris
         const rc = await fetch(`/api/creneaux?service=${service}&jour=${jourChoisi}`);
         const dc = await rc.json();
         setCreneaux(dc.creneaux || []);
@@ -176,12 +252,7 @@ export default function PriseRdv() {
         return;
       }
       if (!r.ok) throw new Error();
-      try {
-        const liste = JSON.parse(localStorage.getItem("asm_demandes") || "[]");
-        liste.unshift({ service, date: slotChoisi, destination, recurrence: RECURRENCES[recurrence] });
-        localStorage.setItem("asm_demandes", JSON.stringify(liste.slice(0, 10)));
-      } catch {}
-      setConfirme(true);
+      setConfirme(urgent ? "urgent" : livraison ? "livraison" : "standard");
     } catch {
       setErreur(`${t("err_serveur")} ${TEL_AFFICHE}.`);
     } finally {
@@ -191,14 +262,29 @@ export default function PriseRdv() {
 
   if (confirme) {
     const monEspace = espaceChoisi === "pro" ? "/pro" : "/tableau";
+    const message = {
+      standard: t("rdv_ok_p"),
+      urgent: t("rdv_ok_urgent"),
+      abonnement: t("rdv_ok_abo"),
+      livraison: t("rdv_ok_liv"),
+    }[confirme];
     return (
       <div className="page">
         <div className="contenu-page" style={{ maxWidth: 460 }}>
           <div className="confirmation">
             <div className="rond-ok">✓</div>
             <h2 style={{ fontSize: 21, marginBottom: 6 }}>{t("rdv_ok_t")}</h2>
-            <p style={{ color: "var(--gris)" }}>{t("rdv_ok_p")}</p>
-            <Link className="btn-action" style={{ marginTop: 18 }} href="/suivi">
+            <p style={{ color: "var(--gris)" }}>{message}</p>
+            {confirme === "livraison" && (
+              <Link className="btn-action" style={{ marginTop: 18 }} href="/documentation">
+                {t("rdv_ok_doc")}
+              </Link>
+            )}
+            <Link
+              className={confirme === "livraison" ? "btn-secondaire" : "btn-action"}
+              style={{ marginTop: confirme === "livraison" ? 10 : 18 }}
+              href="/suivi"
+            >
               {t("rdv_ok_suivre")}
             </Link>
             <Link className="btn-secondaire" style={{ marginTop: 10 }} href={monEspace}>
@@ -219,6 +305,32 @@ export default function PriseRdv() {
         <h2 className="titre-page">{t("rdv_t")}</h2>
         <p className="sous-page">{t(CLES_SERVICE[service])}</p>
 
+        {/* ---- Mode B : choix du type de demande de transport ---- */}
+        {service === "transport" && (
+          <div className="champ">
+            <label>{t("mode_l")}</label>
+            <div className="chips">
+              {[
+                ["ponctuel", "mode_ponctuel"],
+                ["abonnement", "mode_abo"],
+                ["urgent", "mode_urgent"],
+              ].map(([id, cle]) => (
+                <button
+                  type="button"
+                  key={id}
+                  className={"chip" + (sousMode === id ? " actif" : "")}
+                  aria-pressed={sousMode === id}
+                  onClick={() => setSousMode(id)}
+                >
+                  {t(cle)}
+                </button>
+              ))}
+            </div>
+            {sousMode === "urgent" && <p className="precisions-aide" style={{ marginTop: 8 }}>{t("urgent_info")}</p>}
+            {sousMode === "abonnement" && <p className="precisions-aide" style={{ marginTop: 8 }}>{t("abo_info")}</p>}
+          </div>
+        )}
+
         {service === "transport" && (
           <div className="champ">
             <label>{t("type_trajet_l")}</label>
@@ -229,66 +341,161 @@ export default function PriseRdv() {
             </select>
           </div>
         )}
-        <div className="champ">
-          <label>{t("depart_l")}</label>
-          <input type="text" placeholder={t("depart_ph")} value={depart} onChange={(e) => setDepart(e.target.value)} />
-        </div>
-        <div className="champ">
-          <label>{t("dest_l")}</label>
-          <input type="text" placeholder={t("dest_ph")} value={destination} onChange={(e) => setDestination(e.target.value)} />
-        </div>
 
-        {/* Calendrier de créneaux */}
-        <div className="champ">
-          <label>{t("creneau_titre")}</label>
-          <div className="jours-scroll">
-            {jours.map((j) => {
-              const l = libelleJour(j);
-              return (
-                <button
-                  key={j}
-                  className={"jour-chip" + (j === jourChoisi ? " actif" : "")}
-                  onClick={() => setJourChoisi(j)}
-                >
-                  <strong>{l.haut}</strong>
-                  {l.bas && <small>{l.bas}</small>}
-                </button>
-              );
-            })}
-          </div>
-
-          {creneaux === null && <div className="creneaux-info">{t("creneau_charge")}</div>}
-          {creneaux !== null && creneaux.filter((c) => c.dispo).length === 0 && (
-            <div className="creneaux-info">{t("creneau_aucun")}</div>
-          )}
-          {creneaux !== null && creneaux.some((c) => c.dispo) && (
-            <div className="creneaux-grille">
-              {creneaux.map((c) => (
-                <button
-                  key={c.iso}
-                  disabled={!c.dispo}
-                  className={"creneau-btn" + (slotChoisi === c.iso ? " actif" : "") + (!c.dispo ? " pris" : "")}
-                  onClick={() => setSlotChoisi(c.iso)}
-                >
-                  {c.heure}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {service === "transport" && (
+        {/* ---- Mode A : type de soin ---- */}
+        {service === "domicile" && (
           <div className="champ">
-            <label>{t("rec_l")}</label>
-            <select value={recurrence} onChange={(e) => setRecurrence(e.target.value)}>
-              {Object.entries(RECURRENCES).map(([k, v]) => (
-                <option key={k} value={k}>
-                  {v}
+            <label>{t("acte_l")}</label>
+            <select value={acteChoisi} onChange={(e) => setActeChoisi(Number(e.target.value))}>
+              {listeActes.map((a, i) => (
+                <option value={i} key={a.id}>
+                  {libelleActe(a)} — ≈ {a.dureeMin} {t("duree_min")}
                 </option>
               ))}
             </select>
           </div>
         )}
+
+        {/* ---- Adresses ---- */}
+        {service === "transport" ? (
+          <>
+            <div className="champ">
+              <label>{t("depart_l")}</label>
+              <input type="text" placeholder={t("depart_ph")} value={depart} onChange={(e) => setDepart(e.target.value)} />
+            </div>
+            <div className="champ">
+              <label>{sousMode === "abonnement" ? t("abo_centre_l") : t("dest_l")}</label>
+              <input type="text" placeholder={t("dest_ph")} value={destination} onChange={(e) => setDestination(e.target.value)} />
+            </div>
+          </>
+        ) : (
+          <div className="champ">
+            <label>{t("adresse_l")}</label>
+            <input type="text" placeholder={t("adresse_ph")} value={depart} onChange={(e) => setDepart(e.target.value)} />
+          </div>
+        )}
+
+        {/* ---- Mode C : pharmacie + jour + fenêtre ---- */}
+        {service === "medicaments" && (
+          <>
+            <div className="champ">
+              <label>{t("pharmacie_l")}</label>
+              <input type="text" placeholder={t("pharmacie_ph")} value={pharmacie} onChange={(e) => setPharmacie(e.target.value)} />
+            </div>
+            <div className="champ">
+              <label>{t("liv_jour_l")}</label>
+              <div className="jours-scroll">
+                {jours.map((j) => {
+                  const l = libelleJour(j);
+                  return (
+                    <button key={j} className={"jour-chip" + (j === jourChoisi ? " actif" : "")} onClick={() => setJourChoisi(j)}>
+                      <strong>{l.haut}</strong>
+                      {l.bas && <small>{l.bas}</small>}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+            <div className="champ">
+              <label>{t("liv_fenetre_l")}</label>
+              <div className="chips">
+                {FENETRES.map((f) => (
+                  <button
+                    type="button"
+                    key={f.id}
+                    className={"chip" + (fenetre === f.id ? " actif" : "")}
+                    aria-pressed={fenetre === f.id}
+                    onClick={() => setFenetre(f.id)}
+                  >
+                    {t(f.cle)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <p className="precisions-aide">{t("ordonnance_info")}</p>
+          </>
+        )}
+
+        {/* ---- Abonnement : jours + heure + retour + début ---- */}
+        {service === "transport" && sousMode === "abonnement" && (
+          <>
+            <div className="champ">
+              <label>{t("abo_jours_l")}</label>
+              <div className="chips">
+                {JOURS_SEMAINE.map((cle, i) => (
+                  <button
+                    type="button"
+                    key={cle}
+                    className={"chip" + (aboJours.includes(i) ? " actif" : "")}
+                    aria-pressed={aboJours.includes(i)}
+                    onClick={() => basculerJourAbo(i)}
+                  >
+                    {t(cle)}
+                  </button>
+                ))}
+              </div>
+            </div>
+            <div className="champ">
+              <label>{t("abo_heure_l")}</label>
+              <select value={aboHeure} onChange={(e) => setAboHeure(e.target.value)}>
+                {Array.from({ length: 12 }, (_, i) => 7 + i).map((h) => {
+                  const v = `${String(h).padStart(2, "0")}:00`;
+                  return (
+                    <option value={v} key={v}>
+                      {h}h00
+                    </option>
+                  );
+                })}
+              </select>
+            </div>
+            <div className="champ">
+              <label>{t("abo_debut_l")}</label>
+              <input type="date" min={isoJour(new Date())} value={aboDebut} onChange={(e) => setAboDebut(e.target.value)} />
+            </div>
+            <label className="case-ligne">
+              <input type="checkbox" checked={aboRetour} onChange={(e) => setAboRetour(e.target.checked)} />
+              {t("abo_retour_l")}
+            </label>
+          </>
+        )}
+
+        {/* ---- Calendrier de créneaux (ponctuel + domicile) ---- */}
+        {besoinCreneau && (
+          <div className="champ">
+            <label>{t("creneau_titre")}</label>
+            <div className="jours-scroll">
+              {jours.map((j) => {
+                const l = libelleJour(j);
+                return (
+                  <button key={j} className={"jour-chip" + (j === jourChoisi ? " actif" : "")} onClick={() => setJourChoisi(j)}>
+                    <strong>{l.haut}</strong>
+                    {l.bas && <small>{l.bas}</small>}
+                  </button>
+                );
+              })}
+            </div>
+
+            {creneaux === null && <div className="creneaux-info">{t("creneau_charge")}</div>}
+            {creneaux !== null && creneaux.filter((c) => c.dispo).length === 0 && (
+              <div className="creneaux-info">{t("creneau_aucun")}</div>
+            )}
+            {creneaux !== null && creneaux.some((c) => c.dispo) && (
+              <div className="creneaux-grille">
+                {creneaux.map((c) => (
+                  <button
+                    key={c.iso}
+                    disabled={!c.dispo}
+                    className={"creneau-btn" + (slotChoisi === c.iso ? " actif" : "") + (!c.dispo ? " pris" : "")}
+                    onClick={() => setSlotChoisi(c.iso)}
+                  >
+                    {c.heure}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
         <div className="champ">
           <label>{t("tel_l")}</label>
           <input type="tel" placeholder={t("tel_ph")} value={telephone} onChange={(e) => setTelephone(e.target.value)} />

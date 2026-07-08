@@ -24,6 +24,11 @@ export async function POST(req) {
     const texte = (v, max) => (v ? String(v).slice(0, max) : null);
     const dateSlot = String(corps.date || "").slice(0, 16);
 
+    // Sous-mode du moteur de réservation (Mode B transport / Mode C livraison).
+    // « urgent » passe automatiquement en tête de liste côté équipe.
+    const SOUS_MODES = ["ponctuel", "urgent", "abonnement", "fenetre"];
+    const sousMode = SOUS_MODES.includes(corps.sousMode) ? corps.sousMode : null;
+
     // Contrôle anti-double-réservation : si un créneau précis est choisi,
     // on vérifie que la capacité n'est pas atteinte, dans une transaction.
     const serviceNorm = String(service).slice(0, 30);
@@ -55,6 +60,10 @@ export async function POST(req) {
             notes: texte(corps.notes, 500),
             details: texte(corps.details, 1500),
             espace: corps.espace === "pro" ? "pro" : "patient",
+            sousMode,
+            prioritaire: sousMode === "urgent",
+            fenetre: texte(corps.fenetre, 60),
+            pharmacie: texte(corps.pharmacie, 200),
           },
         });
       });

@@ -154,10 +154,20 @@ function PageDemandes() {
           <strong>Demande n°{d.id} — {SERVICES[d.service] || d.service}</strong>
           <div className="adm-detail">
             <p><b>Client :</b> {d.nom || "—"} · <a href={`tel:${d.telephone}`}>{d.telephone}</a></p>
+            {d.sousMode && <p><b>Mode :</b> {LIB_SOUS_MODE[d.sousMode] || d.sousMode}{d.prioritaire ? " · 🔴 prioritaire" : ""}</p>}
             {(d.depart || d.destination) && <p><b>Trajet :</b> {d.depart || "?"} → {d.destination || "?"}</p>}
             <p><b>Date :</b> {d.date?.replace("T", " à ")} · <b>Récurrence :</b> {d.recurrence}</p>
+            {(d.fenetre || d.pharmacie) && (
+              <p><b>Livraison :</b> {d.fenetre || "—"}{d.pharmacie ? ` · Pharmacie : ${d.pharmacie}` : " · Pharmacie : au choix d'ASM"}</p>
+            )}
+            {d.abonnement && (
+              <p>
+                <b>Abonnement n°{d.abonnement.id} :</b> {joursAbo(d.abonnement.jours)} à {d.abonnement.heure} → {d.abonnement.centre}
+                {d.abonnement.retour ? " (aller-retour)" : " (aller simple)"} · du {d.abonnement.debut}{d.abonnement.fin ? ` au ${d.abonnement.fin}` : ""} · {d.abonnement.statut}
+              </p>
+            )}
             {d.notes && <p><b>Notes client :</b> {d.notes}</p>}
-            {d.details && <p><b>Précisions :</b> {d.details}</p>}
+            <Precisions json={d.details} />
           </div>
 
           <div className="adm-actions">
@@ -198,6 +208,48 @@ function PageDemandes() {
           <NotesInternes entite="demande" entiteId={d.id} />
         </div>
       )}
+    </>
+  );
+}
+
+const LIB_SOUS_MODE = {
+  ponctuel: "Ponctuel",
+  urgent: "Urgent — au plus tôt",
+  abonnement: "Abonnement (régulier)",
+  fenetre: "Livraison (fenêtre horaire)",
+};
+
+const JOURS_FR = ["lun", "mar", "mer", "jeu", "ven", "sam", "dim"];
+function joursAbo(csv) {
+  return String(csv || "")
+    .split(",")
+    .map((j) => JOURS_FR[Number(j)])
+    .filter(Boolean)
+    .join(" · ");
+}
+
+// Affiche joliment le JSON des précisions structurées du client.
+function Precisions({ json }) {
+  if (!json) return null;
+  let p;
+  try {
+    p = JSON.parse(json);
+  } catch {
+    return <p><b>Précisions :</b> {json}</p>;
+  }
+  const lignes = [
+    p.acte && ["Soin demandé", p.acte],
+    p.besoins?.length && ["Besoins", p.besoins.join(", ")],
+    p.acces && ["Accès", p.acces],
+    p.code && ["Code porte", p.code],
+    (p.prevenirNom || p.prevenirTel) && ["Proche à prévenir", `${p.prevenirNom || ""} ${p.prevenirTel || ""}`.trim()],
+  ].filter(Boolean);
+  if (!lignes.length) return null;
+  return (
+    <>
+      {lignes.map(([l, v]) => (
+        <p key={l}><b>{l} :</b> {v}</p>
+      ))}
     </>
   );
 }
