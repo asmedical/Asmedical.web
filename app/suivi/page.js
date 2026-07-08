@@ -17,6 +17,18 @@ const ETAPES = [
 ];
 const INDEX = { A_RAPPELER: 0, CONFIRMEE: 1, AFFECTEE: 2, EN_COURS: 3, TERMINEE: 4 };
 
+// État « en direct » déduit du terrain (horodatages posés par l'intervenant).
+// Retourne { cle, actif } — actif = étape en mouvement (halo pulsé).
+function etatLive(d) {
+  if (d.finLe || d.statut === "TERMINEE") return { cle: "live_terminee", actif: false };
+  if (d.debutLe || d.statut === "EN_COURS") return { cle: "live_encours", actif: true };
+  if (d.arriveeLe) return { cle: "live_arrive", actif: true };
+  if (d.enRouteLe) return { cle: "live_enroute", actif: true };
+  if (d.accepteeLe || d.statut === "CONFIRMEE") return { cle: "live_confirmee", actif: false };
+  if (d.soignant || d.transporteur || d.chauffeur || d.statut === "AFFECTEE") return { cle: "live_assignee", actif: false };
+  return { cle: "live_recue", actif: false };
+}
+
 function SuiviContenu() {
   const { t, connecte, compteType } = useAsm();
   const params = useSearchParams();
@@ -26,14 +38,24 @@ function SuiviContenu() {
   const [demande, setDemande] = useState(undefined); // undefined = chargement
 
   useEffect(() => {
-    chargerMesDemandes()
-      .then((liste) => {
-        if (!liste.length) return setDemande(null);
-        const trouve = idVoulu ? liste.find((d) => String(d.id) === String(idVoulu)) : null;
-        const active = liste.find((d) => !["TERMINEE", "ANNULEE"].includes(d.statut));
-        setDemande(trouve || active || liste[0]);
-      })
-      .catch(() => setDemande(null));
+    let annule = false;
+    const recharger = () =>
+      chargerMesDemandes()
+        .then((liste) => {
+          if (annule) return;
+          if (!liste.length) return setDemande(null);
+          const trouve = idVoulu ? liste.find((d) => String(d.id) === String(idVoulu)) : null;
+          const active = liste.find((d) => !["TERMINEE", "ANNULEE"].includes(d.statut));
+          setDemande(trouve || active || liste[0]);
+        })
+        .catch(() => !annule && setDemande(null));
+    recharger();
+    // Rafraîchissement automatique pour un suivi vraiment « en direct ».
+    const minuteur = setInterval(recharger, 30000);
+    return () => {
+      annule = true;
+      clearInterval(minuteur);
+    };
   }, [idVoulu]);
 
   return (
@@ -86,6 +108,16 @@ function FicheSuivi({ demande, t }) {
           {demande.destination ? ` · ${demande.destination}` : ""}
         </small>
       </div>
+
+      {!annulee && (() => {
+        const live = etatLive(demande);
+        return (
+          <div className={"suivi-live" + (live.actif ? " actif" : "")}>
+            <span className="suivi-live-pastille" aria-hidden="true" />
+            <span>{t(live.cle)}</span>
+          </div>
+        );
+      })()}
 
       {annulee ? (
         <p className="suivi-annulee">{t("st_annulee")}</p>
