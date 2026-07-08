@@ -3,6 +3,7 @@ import { createContext, useContext, useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { useAsm } from "@/app/providers";
+import { IcoCalendrier, IcoBulle, IcoPlus, IcoDocumentLignes, IcoPersonne } from "@/app/components/icones";
 
 const EmployeCtx = createContext(null);
 export const useEmploye = () => useContext(EmployeCtx);
@@ -17,13 +18,15 @@ const LIB_ROLE = {
 };
 
 // Espace employé : chrome dédié (vert médical), garde d'accès par rôle,
-// et redirection obligatoire vers le changement de mot de passe temporaire.
+// redirection obligatoire vers le changement de mot de passe temporaire,
+// et barre de navigation inférieure (comme l'app patient, avec le + central).
 export default function LayoutEmploye({ children }) {
   const routeur = useRouter();
   const chemin = usePathname();
   const { seDeconnecter } = useAsm();
   const [etat, setEtat] = useState("charge"); // charge | refuse | ok
   const [moi, setMoi] = useState(null);
+  const [sheet, setSheet] = useState(false);
 
   async function charger() {
     if (!supabase) return setEtat("refuse");
@@ -37,7 +40,14 @@ export default function LayoutEmploye({ children }) {
       if (!r.ok) return setEtat("refuse");
       const d = await r.json();
       setMoi(d);
-      if (d.mustChangePassword && chemin !== "/employe/mot-de-passe") {
+      // Filet anti double-demande : si le mot de passe vient d'être changé,
+      // on ne renvoie pas vers la page de changement (latence métadonnées).
+      let grace = false;
+      try {
+        grace = sessionStorage.getItem("asm_mdp_ok") === "1";
+        if (grace) sessionStorage.removeItem("asm_mdp_ok");
+      } catch {}
+      if (d.mustChangePassword && !grace && chemin !== "/employe/mot-de-passe") {
         routeur.replace("/employe/mot-de-passe");
         return;
       }
@@ -57,6 +67,19 @@ export default function LayoutEmploye({ children }) {
     routeur.replace("/connexion?mode=identifiant");
   };
 
+  async function definirDispo(dispo) {
+    setSheet(false);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      await fetch("/api/employe/moi", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ dispo }),
+      });
+      await charger();
+    } catch {}
+  }
+
   if (etat === "charge") {
     return <div className="emp-page"><div className="emp-contenu"><p className="adm-vide">Chargement de votre espace…</p></div></div>;
   }
@@ -72,15 +95,65 @@ export default function LayoutEmploye({ children }) {
     );
   }
 
+  const surMdp = chemin === "/employe/mot-de-passe";
+
   return (
     <EmployeCtx.Provider value={{ moi, rafraichir: charger }}>
-      <div className={"emp-page" + (chemin !== "/employe/mot-de-passe" ? " avec-barre-emp" : "")}>
+      <div className={"emp-page" + (!surMdp ? " avec-barre-emp" : "")}>
         <header className="emp-entete">
           <strong>ASM · Espace {LIB_ROLE[moi?.role] || "employé"}</strong>
           <button className="emp-deco" onClick={deconnexion} aria-label="Se déconnecter">Déconnexion</button>
         </header>
         <div className="emp-contenu">{children}</div>
+
+        {!surMdp && <BarreEmploye chemin={chemin} routeur={routeur} onPlus={() => setSheet(true)} />}
+
+        {sheet && (
+          <div className="sheet-fond" onClick={() => setSheet(false)}>
+            <div className="sheet" onClick={(e) => e.stopPropagation()}>
+              <div className="sheet-titre">Actions rapides</div>
+              <div className="emp-dispo-choix">
+                <button className="emp-dispo-btn d-DISPONIBLE" onClick={() => definirDispo("DISPONIBLE")}>Disponible</button>
+                <button className="emp-dispo-btn d-OCCUPE" onClick={() => definirDispo("OCCUPE")}>Occupé</button>
+                <button className="emp-dispo-btn d-ABSENT" onClick={() => definirDispo("ABSENT")}>Absent</button>
+              </div>
+              <button className="sheet-opt" onClick={() => { setSheet(false); routeur.push("/messagerie?chat=1"); }}>
+                <IcoBulle /> <span>Message à l&apos;équipe ASM</span>
+              </button>
+              <button className="sheet-opt" onClick={() => { setSheet(false); routeur.push("/employe/planning"); }}>
+                <IcoCalendrier /> <span>Voir mon planning</span>
+              </button>
+              <button className="sheet-annuler" onClick={() => setSheet(false)}>Annuler</button>
+            </div>
+          </div>
+        )}
       </div>
     </EmployeCtx.Provider>
+  );
+}
+
+function BarreEmploye({ chemin, routeur, onPlus }) {
+  const { nonLus } = useAsm();
+  const total = (nonLus?.notifs || 0) + (nonLus?.chat || 0);
+  const actif = (r) => chemin === r;
+  return (
+    <nav className="barre" aria-label="Navigation employé">
+      <button className={actif("/employe") ? "actif" : ""} onClick={() => routeur.push("/employe")} aria-label="Accueil" title="Accueil">
+        <IcoCalendrier />
+      </button>
+      <button className={actif("/employe/planning") ? "actif" : ""} onClick={() => routeur.push("/employe/planning")} aria-label="Planning" title="Planning">
+        <IcoDocumentLignes strokeWidth="1.9" />
+      </button>
+      <button className="btn-accueil" onClick={onPlus} aria-label="Actions rapides" title="Actions rapides">
+        <span className="croix" aria-hidden="true"><IcoPlus /></span>
+      </button>
+      <button onClick={() => routeur.push("/messagerie")} aria-label="Messagerie" title="Messagerie" style={{ position: "relative" }}>
+        <IcoBulle strokeWidth="1.9" />
+        {total > 0 && <span className="badge-nonlu badge-nav">{total > 99 ? "99+" : total}</span>}
+      </button>
+      <button className={actif("/employe/profil") ? "actif" : ""} onClick={() => routeur.push("/employe/profil")} aria-label="Mon profil" title="Mon profil">
+        <IcoPersonne strokeWidth="1.9" />
+      </button>
+    </nav>
   );
 }

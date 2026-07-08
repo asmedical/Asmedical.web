@@ -30,7 +30,9 @@ export default function MotDePasseObligatoire() {
     setOccupe(true);
     try {
       await definirMotDePasseDefinitif(mdp);
-      await employe?.rafraichir?.();
+      // Filet de sécurité contre la latence de propagation des métadonnées :
+      // la garde du layout ne redemandera pas le changement juste après.
+      try { sessionStorage.setItem("asm_mdp_ok", "1"); } catch {}
       routeur.replace("/employe");
     } catch {
       setErr("Impossible d'enregistrer le mot de passe. Réessayez.");

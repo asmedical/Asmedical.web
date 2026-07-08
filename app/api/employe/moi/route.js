@@ -7,6 +7,41 @@ export const dynamic = "force-dynamic";
 
 // Identité de l'employé connecté (jeton uniquement). Renvoie son rôle, sa
 // fiche intervenant liée et ses interventions/tournées réelles.
+// Client service_role + identité employé à partir du jeton. Renvoie
+// { admin, user, profil, role, estChauffeur } ou une réponse d'erreur.
+async function contexte(req) {
+  const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+  if (!token) return { err: NextResponse.json({ erreur: "non connecté" }, { status: 401 }) };
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return { err: NextResponse.json({ erreur: "config" }, { status: 500 }) };
+  const admin = createClient(url, key, { auth: { persistSession: false } });
+  const { data: { user } } = await admin.auth.getUser(token);
+  if (!user) return { err: NextResponse.json({ erreur: "non connecté" }, { status: 401 }) };
+  const { data: profil } = await admin.from("profil").select("role, prenom, nom, telephone, email").eq("id", user.id).maybeSingle();
+  const role = profil?.role || user.user_metadata?.role || "";
+  if (!ROLES_EMPLOYE.includes(role)) return { err: NextResponse.json({ erreur: "pas un employé", role }, { status: 403 }) };
+  return { admin, user, profil, role, estChauffeur: role === "chauffeur" || role === "transporteur" };
+}
+
+// PATCH /api/employe/moi { dispo } — l'employé met à jour sa propre
+// disponibilité (DISPONIBLE | OCCUPE | ABSENT).
+export async function PATCH(req) {
+  try {
+    const ctx = await contexte(req);
+    if (ctx.err) return ctx.err;
+    const { dispo } = await req.json();
+    if (!["DISPONIBLE", "OCCUPE", "ABSENT"].includes(dispo)) return NextResponse.json({ erreur: "invalide" }, { status: 400 });
+    const modele = ctx.estChauffeur ? prisma.transporteur : prisma.soignant;
+    const iv = await modele.findUnique({ where: { userId: ctx.user.id } });
+    if (!iv) return NextResponse.json({ erreur: "aucune fiche liée" }, { status: 403 });
+    await modele.update({ where: { id: iv.id }, data: { dispo } });
+    return NextResponse.json({ ok: true, dispo });
+  } catch {
+    return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
+  }
+}
+
 export async function GET(req) {
   try {
     const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");

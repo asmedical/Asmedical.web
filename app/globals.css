@@ -698,6 +698,13 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .emp-regles{list-style:none;margin:14px 0;padding:0;display:flex;flex-direction:column;gap:6px}
 .emp-regles li{font-size:13px;color:var(--gris)}
 .emp-regles li.ok{color:var(--vert-fonce);font-weight:700}
+.avec-barre-emp .emp-contenu{padding-bottom:96px}
+.emp-dispo-choix{display:flex;gap:8px;margin-bottom:8px}
+.emp-dispo-btn{flex:1;border:1px solid var(--ligne);background:var(--blanc);border-radius:12px;padding:12px 6px;font-family:inherit;font-size:13.5px;font-weight:800;cursor:pointer}
+.emp-dispo-btn.d-DISPONIBLE{color:#1E7A45}
+.emp-dispo-btn.d-OCCUPE{color:#9A6212}
+.emp-dispo-btn.d-ABSENT{color:#6B7280}
+.emp-dispo-btn:active{transform:scale(.97)}
 @media(max-width:460px){
   .emp-acces{grid-template-columns:repeat(2,1fr)}
 }
