@@ -518,7 +518,13 @@ function OngletCompte({ data, emploi, nomComplet, estSoignant, superadmin, onCha
         method: "POST",
         body: JSON.stringify({ ...form, prenom: data.prenom || "", nom: data.nom || data.responsable || "", entite: emploi, entiteId: data.id }),
       });
-      setMsg("Compte créé ✓ — communiquez l'email et le mot de passe temporaire à l'employé.");
+      setMsg(
+        d.emailEnvoye
+          ? `Compte créé ✓ — email d'invitation envoyé à ${form.email}.`
+          : d.emailConfigure === false
+          ? "Compte créé ✓ — envoi d'email non configuré : communiquez l'identifiant et le mot de passe temporaire à l'employé."
+          : "Compte créé ✓ — l'email n'a pas pu être envoyé, communiquez les identifiants manuellement."
+      );
       onChange?.({ ...data, userId: d.userId });
     } catch (e) {
       setErr(e?.status === 409 ? "Un compte existe déjà avec cet email." : "Création impossible.");

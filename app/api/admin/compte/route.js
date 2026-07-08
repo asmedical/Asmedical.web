@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifierAdmin, journaliser, refus, ROLES_GESTION_EQUIPE, ROLES_EMPLOYE } from "@/lib/adminAuth";
+import { envoyerEmail, emailConfigure, emailInvitation } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
 
@@ -98,7 +99,21 @@ export async function POST(req) {
       await journaliser(acces.nomAffiche, `${c.entite}.compte`, c.entite, id, `compte créé (${email})`);
     }
     await journaliser(acces.nomAffiche, "compte.cree", "compte", userId, `${role} · ${email}`);
-    return NextResponse.json({ ok: true, userId });
+
+    // Email d'invitation (best-effort : n'empêche jamais la création).
+    let emailEnvoye = false;
+    if (emailConfigure()) {
+      const proto = req.headers.get("x-forwarded-proto") || "https";
+      const host = req.headers.get("host");
+      const base = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || "https://asm-sante.com");
+      const res = await envoyerEmail({
+        to: email,
+        subject: "Bienvenue chez ASM — votre accès",
+        html: emailInvitation({ prenom, email, motDePasse, role, lien: `${base}/connexion?mode=identifiant` }),
+      });
+      emailEnvoye = res.ok;
+    }
+    return NextResponse.json({ ok: true, userId, emailConfigure: emailConfigure(), emailEnvoye });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
   }
