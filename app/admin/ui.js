@@ -57,6 +57,74 @@ export async function fetchAdmin(chemin, options = {}) {
   return r.json();
 }
 
+// Envoi d'une photo (soignant / transporteur) en multipart. On n'utilise
+// PAS fetchAdmin ici : il force Content-Type: application/json, ce qui
+// casserait l'upload de fichier. On ne pose que l'en-tête Authorization.
+export async function envoyerPhoto(entite, id, fichier) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const form = new FormData();
+  form.append("fichier", fichier);
+  form.append("entite", entite);
+  form.append("id", String(id));
+  const r = await fetch("/api/admin/upload-photo", {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+    body: form,
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(d.erreur || "Envoi impossible.");
+  return d.url;
+}
+
+// Avatar + bouton d'envoi de photo réutilisable (soignant / transporteur).
+// Affiche la photo actuelle (ou les initiales) et permet d'en choisir une.
+export function ChampPhoto({ entite, id, url, nom, onPhoto }) {
+  const [apercu, setApercu] = useState(url || "");
+  const [occupe, setOccupe] = useState(false);
+  const [err, setErr] = useState("");
+  const initiales = String(nom || "?")
+    .split(/\s+/)
+    .map((m) => m[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
+  async function choisir(e) {
+    const fichier = e.target.files?.[0];
+    e.target.value = "";
+    if (!fichier) return;
+    setErr("");
+    setOccupe(true);
+    try {
+      const nouvelle = await envoyerPhoto(entite, id, fichier);
+      setApercu(nouvelle);
+      onPhoto?.(nouvelle);
+    } catch (ex) {
+      setErr(ex.message || "Envoi impossible.");
+    }
+    setOccupe(false);
+  }
+
+  return (
+    <div className="adm-photo">
+      {apercu ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={apercu} alt={nom || ""} className="adm-avatar" />
+      ) : (
+        <span className="adm-avatar vide">{initiales}</span>
+      )}
+      <label className="adm-btn secondaire adm-photo-btn">
+        {occupe ? "Envoi…" : apercu ? "Changer la photo" : "Ajouter une photo"}
+        <input type="file" accept="image/*" onChange={choisir} disabled={occupe} hidden />
+      </label>
+      {err && <small className="adm-photo-err">{err}</small>}
+    </div>
+  );
+}
+
 // Garde d'accès : vérifie la session + le rôle interne. Retourne
 // { pret, autorise, role }. Redirection gérée par l'appelant.
 export function useGardeAdmin() {

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchAdmin, Pastille, NotesInternes, LIBELLE_STATUT_INTERVENANT } from "../ui";
+import { fetchAdmin, Pastille, NotesInternes, ChampPhoto, LIBELLE_STATUT_INTERVENANT } from "../ui";
 
 const QUALIFS = { aide_soignant: "Aide-soignant(e)", infirmier: "Infirmier(ère)" };
 const VIDE = { prenom: "", nom: "", telephone: "", email: "", qualification: "aide_soignant", communes: "" };
@@ -113,6 +113,13 @@ export default function PageSoignants() {
       {s && (
         <div className="adm-fiche">
           <strong>{s.prenom} {s.nom} — {QUALIFS[s.qualification]}</strong>
+          <ChampPhoto
+            entite="soignant"
+            id={s.id}
+            url={s.photoUrl}
+            nom={`${s.prenom} ${s.nom}`}
+            onPhoto={charger}
+          />
           {edition !== s.id ? (
             <div className="adm-detail">
               <p><b>Téléphone :</b> {s.telephone ? <a href={`tel:${s.telephone}`}>{s.telephone}</a> : "—"} · <b>Email :</b> {s.email || "—"}</p>

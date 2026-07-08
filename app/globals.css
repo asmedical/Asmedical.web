@@ -315,6 +315,7 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .suivi-chauffeur{display:flex;align-items:center;gap:14px;padding:16px}
 .suivi-chauffeur .avatar-ch{width:50px;height:50px;border-radius:50%;background:var(--vert-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0}
 .suivi-chauffeur .avatar-ch svg{width:26px;height:26px;stroke:var(--vert);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.suivi-chauffeur .avatar-ch.photo{object-fit:cover}
 .suivi-chauffeur strong{display:block;font-size:16px}
 .suivi-chauffeur small{color:var(--gris);font-size:13.5px}
 .btn-appel-rond{margin-inline-start:auto;width:46px;height:46px;border-radius:50%;background:var(--vert);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;text-decoration:none}
@@ -552,6 +553,11 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .adm-msg{color:var(--vert-fonce);background:var(--vert-pale);font-weight:800;font-size:14px;padding:10px 14px;border-radius:10px;margin:10px 0}
 .adm-fiche{background:var(--blanc);border:1.5px solid var(--vert);border-radius:14px;padding:18px;margin-top:14px}
 .adm-fiche>strong{font-size:16px;color:var(--vert-fonce)}
+.adm-photo{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}
+.adm-photo .adm-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--vert-pale);border:1px solid var(--ligne)}
+.adm-photo .adm-avatar.vide{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:var(--vert)}
+.adm-photo-btn{cursor:pointer;margin:0}
+.adm-photo-err{color:#c0392b;font-size:12.5px;flex-basis:100%}
 .adm-detail{margin-top:10px;font-size:14.5px}
 .adm-detail p{margin-bottom:6px}
 .adm-detail a{color:var(--vert);font-weight:800}

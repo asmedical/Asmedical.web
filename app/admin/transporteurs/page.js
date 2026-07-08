@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchAdmin, Pastille, NotesInternes, LIBELLE_STATUT_INTERVENANT } from "../ui";
+import { fetchAdmin, Pastille, NotesInternes, ChampPhoto, LIBELLE_STATUT_INTERVENANT } from "../ui";
 
 const TYPES = { simple: "Simple (assis)", accompagne: "Accompagné (fauteuil)", medicalise: "Médicalisé" };
 const VIDE = { nom: "", responsable: "", telephone: "", email: "", typeTransport: "simple", vehicule: "", zone: "" };
@@ -114,6 +114,13 @@ export default function PageTransporteurs() {
       {t && (
         <div className="adm-fiche">
           <strong>{t.nom} — {TYPES[t.typeTransport]}</strong>
+          <ChampPhoto
+            entite="transporteur"
+            id={t.id}
+            url={t.photoUrl}
+            nom={t.nom}
+            onPhoto={charger}
+          />
           {edition !== t.id ? (
             <div className="adm-detail">
               <p><b>Responsable :</b> {t.responsable || "—"}</p>

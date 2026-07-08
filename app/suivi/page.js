@@ -66,11 +66,11 @@ function FicheSuivi({ demande, t }) {
   const annulee = demande.statut === "ANNULEE";
   const etapeActive = INDEX[demande.statut] ?? 0;
   const intervenant = demande.soignant
-    ? { nom: `${demande.soignant.prenom} ${demande.soignant.nom}`, tel: demande.soignant.telephone }
+    ? { nom: `${demande.soignant.prenom} ${demande.soignant.nom}`, tel: demande.soignant.telephone, photo: demande.soignant.photoUrl }
     : demande.transporteur
-    ? { nom: demande.transporteur.nom, tel: demande.transporteur.telephone }
+    ? { nom: demande.transporteur.nom, tel: demande.transporteur.telephone, photo: demande.transporteur.photoUrl }
     : demande.chauffeur
-    ? { nom: demande.chauffeur, tel: null }
+    ? { nom: demande.chauffeur, tel: null, photo: null }
     : null;
 
   const cleService = "s_" + (demande.service === "medicaments" ? "medic" : demande.service);
@@ -101,9 +101,14 @@ function FicheSuivi({ demande, t }) {
 
       {intervenant ? (
         <div className="suivi-chauffeur">
-          <span className="avatar-ch">
-            <IcoPersonne />
-          </span>
+          {intervenant.photo ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img className="avatar-ch photo" src={intervenant.photo} alt={intervenant.nom} />
+          ) : (
+            <span className="avatar-ch">
+              <IcoPersonne />
+            </span>
+          )}
           <span>
             <strong>{intervenant.nom}</strong>
             <small>{t("suivi_intervenant")}</small>

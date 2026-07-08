@@ -39,8 +39,8 @@ export async function GET(req) {
       orderBy: { creeLe: "desc" },
       take: 50,
       include: {
-        soignant: { select: { prenom: true, nom: true, telephone: true } },
-        transporteur: { select: { nom: true, telephone: true } },
+        soignant: { select: { prenom: true, nom: true, telephone: true, photoUrl: true } },
+        transporteur: { select: { nom: true, telephone: true, photoUrl: true } },
       },
     });
     return NextResponse.json({ demandes });
