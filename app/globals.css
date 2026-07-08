@@ -740,3 +740,19 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .adm-chip-sup{background:var(--blanc);border:1px solid var(--ligne);border-radius:999px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:800;color:var(--gris);cursor:pointer}
 .adm-chip-sup.actif{background:var(--vert-pale);border-color:var(--vert);color:var(--vert-fonce)}
 .adm-ligne.signale{border-color:#E3B7AC;background:#FDF7F5}
+
+/* ============ Documents employé (fiche admin + espace employé) ============ */
+.doc-emp{margin-bottom:10px}
+.doc-emp-tete{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.doc-emp-txt{min-width:0;flex:1;display:flex;flex-direction:column;gap:2px}
+.doc-emp-txt strong{font-size:15px}
+.doc-emp-txt small{color:var(--gris);font-size:12.5px;overflow-wrap:anywhere}
+.doc-emp-exp.expire{color:#B3261E;font-weight:800}
+.doc-emp-exp.bientot{color:#9A6212;font-weight:700}
+.doc-emp-remarque{color:#9B3222 !important}
+.doc-emp-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:flex-end;margin-top:12px}
+.doc-emp-actions .adm-btn{padding:9px 14px;font-size:13px;text-decoration:none}
+.doc-emp-exp-edit{font-size:11.5px}
+.doc-badge{flex-shrink:0;font-size:12px;font-weight:800;background:var(--vert-pale);color:var(--vert-fonce);padding:5px 11px;border-radius:999px;white-space:nowrap}
+.doc-badge.ok{background:#E7F6EC;color:#1E7A45}
+.doc-badge.ko{background:#FBEBE8;color:#B3261E}

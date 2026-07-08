@@ -149,6 +149,22 @@ export function ChampPhoto({ entite, id, url, nom, onPhoto }) {
   );
 }
 
+// POST multipart (fichier) avec le jeton admin — ne force pas le
+// Content-Type JSON (indispensable pour un envoi de fichier).
+export async function postFichierAdmin(chemin, formData) {
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  const r = await fetch(chemin, {
+    method: "POST",
+    headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+    body: formData,
+  });
+  const d = await r.json().catch(() => ({}));
+  if (!r.ok) throw Object.assign(new Error(d.erreur || "api"), { status: r.status });
+  return d;
+}
+
 // Garde d'accès : vérifie la session + le rôle interne. Retourne
 // { pret, autorise, role }. Redirection gérée par l'appelant.
 export function useGardeAdmin() {

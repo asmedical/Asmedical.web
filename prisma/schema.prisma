@@ -180,6 +180,26 @@ model Notification {
   @@index([userId, creeLe])
 }
 
+// Document RH d'un employé (pièce d'identité, diplôme, permis, contrat…).
+// Fichier stocké dans Supabase Storage (bucket privé), métadonnées ici.
+model DocumentEmploye {
+  id         Int      @id @default(autoincrement())
+  userId     String   // compte employé (uuid Supabase)
+  categorie  String   @default("autre") // piece_identite | diplome | certificat | permis | assurance | carte_grise | contrat | rib | autre
+  nom        String
+  chemin     String   // chemin dans le bucket Storage
+  taille     Int      @default(0)
+  typeMime   String   @default("")
+  statut     String   @default("EN_ATTENTE") // EN_ATTENTE | VALIDE | REFUSE
+  remarque   String?  // commentaire admin (visible par l'employé)
+  expiration String?  // date d'expiration AAAA-MM-JJ (permis, assurance…)
+  deposePar  String   @default("employe") // employe | admin
+  creeLe     DateTime @default(now())
+  majLe      DateTime @updatedAt @default(now())
+
+  @@index([userId])
+}
+
 // Note interne (jamais visible côté patient)
 model NoteInterne {
   id       Int      @id @default(autoincrement())

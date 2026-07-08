@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import {
   fetchAdmin,
+  postFichierAdmin,
   Pastille,
   NotesInternes,
   ChampPhoto,
@@ -10,6 +11,28 @@ import {
   LIBELLE_STATUT_DEMANDE,
   SERVICES,
 } from "./ui";
+
+export const CAT_DOC = {
+  piece_identite: "Pièce d'identité",
+  diplome: "Diplôme",
+  certificat: "Certificat",
+  permis: "Permis de conduire",
+  assurance: "Assurance",
+  carte_grise: "Carte grise",
+  contrat: "Contrat",
+  rib: "RIB",
+  autre: "Autre",
+};
+export const STATUT_DOC = { EN_ATTENTE: "En attente", VALIDE: "Validé", REFUSE: "Refusé" };
+
+// Alerte d'expiration : "expire" (passé) | "bientot" (< 30 j) | "".
+export function etatExpiration(dateStr) {
+  if (!dateStr) return "";
+  const j = Math.round((new Date(dateStr + "T12:00") - Date.now()) / 86400000);
+  if (j < 0) return "expire";
+  if (j <= 30) return "bientot";
+  return "";
+}
 
 const QUALIFS = { aide_soignant: "Aide-soignant(e)", infirmier: "Infirmier(ère)" };
 const TYPES_TR = { simple: "Simple (assis)", accompagne: "Accompagné (fauteuil)", medicalise: "Médicalisé" };
@@ -389,11 +412,14 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
 
         {/* ---------------- DOCUMENTS ---------------- */}
         {onglet === "documents" && (
-          <div className="adm-vide fe-etat-vide">
-            <p><strong>Documents de l’employé</strong></p>
-            <p>Pièce d’identité, diplôme, permis, assurance, contrat, RIB…</p>
-            <p className="fe-aide">Cet espace documentaire (ajout, validation, expiration) sera activé prochainement. La structure est déjà prête côté serveur.</p>
-          </div>
+          data.userId ? (
+            <OngletDocuments userId={data.userId} nom={nomComplet} gestion={["superadmin", "admin", "moderateur"].includes(role)} />
+          ) : (
+            <div className="adm-vide fe-etat-vide">
+              <p><strong>Documents de l’employé</strong></p>
+              <p>Créez d’abord un compte de connexion (onglet « Compte & accès ») pour gérer et recevoir ses documents.</p>
+            </div>
+          )
         )}
 
         {/* ---------------- NOTES ---------------- */}
@@ -577,6 +603,126 @@ function OngletCompte({ data, emploi, nomComplet, estSoignant, superadmin, onCha
           <button className="adm-btn secondaire" onClick={() => window.confirm("Suspendre l'accès de cet employé à son espace ?") && action("suspendre")}>Suspendre l&apos;accès</button>
         )}
       </div>
+    </div>
+  );
+}
+
+// Gestion des documents RH de l'employé (côté admin) : liste, validation,
+// dépôt, demande, expiration, suppression.
+function OngletDocuments({ userId, nom, gestion }) {
+  const [docs, setDocs] = useState(null);
+  const [cat, setCat] = useState("piece_identite");
+  const [exp, setExp] = useState("");
+  const [envoi, setEnvoi] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  async function charger() {
+    try {
+      const d = await fetchAdmin(`/api/admin/documents-employe?userId=${userId}`);
+      setDocs(d.documents);
+    } catch { setDocs([]); }
+  }
+  useEffect(() => { charger(); /* eslint-disable-next-line */ }, [userId]);
+
+  async function deposer(e) {
+    const fichier = e.target.files?.[0];
+    e.target.value = "";
+    if (!fichier) return;
+    setEnvoi(true); setErr(""); setMsg("");
+    try {
+      const fd = new FormData();
+      fd.append("fichier", fichier); fd.append("userId", userId); fd.append("categorie", cat); fd.append("expiration", exp);
+      await postFichierAdmin("/api/admin/documents-employe", fd);
+      setMsg("Document ajouté ✓"); setExp("");
+      await charger();
+    } catch (ex) { setErr(ex.message || "Envoi impossible."); }
+    setEnvoi(false);
+  }
+
+  async function maj(id, champs) {
+    try {
+      await fetchAdmin("/api/admin/documents-employe", { method: "PATCH", body: JSON.stringify({ id, ...champs }) });
+      await charger();
+    } catch { setErr("Action impossible."); }
+  }
+  async function supprimer(id) {
+    if (!window.confirm("Supprimer ce document ?")) return;
+    try {
+      await fetchAdmin(`/api/admin/documents-employe?id=${id}`, { method: "DELETE" });
+      await charger();
+    } catch { setErr("Suppression impossible."); }
+  }
+  async function demander() {
+    const c = window.prompt("Demander un document. Catégorie (ex. permis, diplôme, assurance) :", "permis");
+    if (!c) return;
+    try {
+      await fetchAdmin("/api/admin/diffusion", {
+        method: "POST",
+        body: JSON.stringify({ cible: "employe", userId, canal: "notification", titre: "Document demandé", texte: `Merci de déposer votre document : ${c}. Rendez-vous dans « Mes documents » de votre espace.` }),
+      });
+      setMsg("Demande envoyée à l'employé ✓");
+    } catch { setErr("Envoi impossible."); }
+  }
+
+  return (
+    <div>
+      {gestion && (
+        <div className="fe-carte" style={{ marginBottom: 14 }}>
+          <strong>Ajouter un document</strong>
+          <div className="adm-grille-form">
+            <label className="fe-champ"><span>Catégorie</span>
+              <select value={cat} onChange={(e) => setCat(e.target.value)}>
+                {Object.entries(CAT_DOC).map(([k, v]) => <option value={k} key={k}>{v}</option>)}
+              </select>
+            </label>
+            <label className="fe-champ"><span>Expiration (facultatif)</span>
+              <input type="date" value={exp} onChange={(e) => setExp(e.target.value)} />
+            </label>
+          </div>
+          <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+            <label className={"adm-btn" + (envoi ? " btn-charge" : "")} style={{ cursor: "pointer" }}>
+              {envoi ? "Envoi…" : "Choisir un fichier (PDF/JPG/PNG)"}
+              <input type="file" accept="application/pdf,image/*" hidden onChange={deposer} disabled={envoi} />
+            </label>
+            <button className="adm-btn secondaire" onClick={demander}>Demander un document</button>
+          </div>
+        </div>
+      )}
+
+      {msg && <p className="adm-msg">{msg}</p>}
+      {err && <p className="erreur">{err}</p>}
+
+      {docs === null && <p className="adm-vide">Chargement…</p>}
+      {docs?.length === 0 && <p className="adm-vide">Aucun document pour cet employé.</p>}
+
+      {docs?.map((d) => {
+        const ex = etatExpiration(d.expiration);
+        return (
+          <div className="fe-carte doc-emp" key={d.id}>
+            <div className="doc-emp-tete">
+              <span className="doc-emp-txt">
+                <strong>{CAT_DOC[d.categorie] || d.categorie}</strong>
+                <small>{d.nom} · déposé par {d.deposePar === "admin" ? "l'équipe" : "l'employé"}</small>
+                {d.expiration && <small className={"doc-emp-exp " + ex}>Expire le {d.expiration}{ex === "expire" ? " · EXPIRÉ" : ex === "bientot" ? " · bientôt" : ""}</small>}
+                {d.remarque && <small className="doc-emp-remarque">Remarque : {d.remarque}</small>}
+              </span>
+              <Pastille statut={d.statut} table={STATUT_DOC} />
+            </div>
+            <div className="doc-emp-actions">
+              {d.url && <a className="adm-btn secondaire" href={d.url} target="_blank" rel="noopener noreferrer">Ouvrir</a>}
+              {gestion && d.statut !== "VALIDE" && <button className="adm-btn" onClick={() => maj(d.id, { statut: "VALIDE" })}>Valider</button>}
+              {gestion && d.statut !== "REFUSE" && <button className="adm-btn secondaire" onClick={() => { const r = window.prompt("Motif du refus (visible par l'employé) :", d.remarque || ""); if (r !== null) maj(d.id, { statut: "REFUSE", remarque: r }); }}>Refuser</button>}
+              {gestion && (
+                <label className="fe-champ doc-emp-exp-edit"><span>Expiration</span>
+                  <input type="date" defaultValue={d.expiration || ""} onBlur={(e) => e.target.value !== (d.expiration || "") && maj(d.id, { expiration: e.target.value })} />
+                </label>
+              )}
+              {gestion && <button className="adm-btn secondaire doc-emp-suppr" onClick={() => supprimer(d.id)}>Supprimer</button>}
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
