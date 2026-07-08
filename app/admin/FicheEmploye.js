@@ -213,6 +213,8 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
             {data.statut !== "VALIDE" && (
               <p className="fe-alerte">⚠️ Ce profil n’est pas actif : il n’apparaît pas dans les affectations tant qu’il n’est pas validé.</p>
             )}
+
+            {data.userId && <EnvoiMessageEmploye userId={data.userId} nom={nomComplet} />}
           </>
         )}
 
@@ -574,6 +576,56 @@ function OngletCompte({ data, emploi, nomComplet, estSoignant, superadmin, onCha
         ) : (
           <button className="adm-btn secondaire" onClick={() => window.confirm("Suspendre l'accès de cet employé à son espace ?") && action("suspendre")}>Suspendre l&apos;accès</button>
         )}
+      </div>
+    </div>
+  );
+}
+
+// Envoi d'un message / notification à cet employé précis (depuis sa fiche).
+function EnvoiMessageEmploye({ userId, nom }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [texte, setTexte] = useState("");
+  const [canal, setCanal] = useState("les_deux");
+  const [occupe, setOccupe] = useState(false);
+  const [retour, setRetour] = useState("");
+
+  async function envoyer() {
+    if (!texte.trim()) return;
+    setOccupe(true);
+    setRetour("");
+    try {
+      await fetchAdmin("/api/admin/diffusion", {
+        method: "POST",
+        body: JSON.stringify({ cible: "employe", userId, canal, titre: "Message ASM", texte }),
+      });
+      setRetour("Message envoyé ✓");
+      setTexte("");
+    } catch {
+      setRetour("Envoi impossible.");
+    }
+    setOccupe(false);
+  }
+
+  if (!ouvert) {
+    return <button className="adm-btn secondaire" style={{ marginTop: 14 }} onClick={() => setOuvert(true)}>Envoyer un message à {nom}</button>;
+  }
+  return (
+    <div className="fe-carte" style={{ marginTop: 14 }}>
+      <strong>Message à {nom}</strong>
+      <label className="fe-champ" style={{ marginTop: 10 }}><span>Canal</span>
+        <select value={canal} onChange={(e) => setCanal(e.target.value)}>
+          <option value="les_deux">Message + notification</option>
+          <option value="message">Message (chat) seulement</option>
+          <option value="notification">Notification seulement</option>
+        </select>
+      </label>
+      <label className="fe-champ" style={{ marginTop: 10 }}><span>Message</span>
+        <textarea rows={3} value={texte} onChange={(e) => setTexte(e.target.value)} placeholder="Votre message…" />
+      </label>
+      {retour && <p className="adm-msg">{retour}</p>}
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <button className={"adm-btn" + (occupe ? " btn-charge" : "")} onClick={envoyer} disabled={occupe || !texte.trim()}>Envoyer</button>
+        <button className="adm-btn secondaire" onClick={() => setOuvert(false)}>Fermer</button>
       </div>
     </div>
   );

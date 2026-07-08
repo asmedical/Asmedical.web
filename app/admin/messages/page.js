@@ -2,6 +2,74 @@
 import { useEffect, useRef, useState } from "react";
 import { fetchAdmin } from "../ui";
 
+const GROUPES = [
+  ["aides_soignants", "Tous les aides-soignants"],
+  ["infirmiers", "Tous les infirmiers"],
+  ["soignants", "Tous les soignants"],
+  ["chauffeurs", "Tous les chauffeurs / transporteurs"],
+  ["employes", "Tous les employés"],
+];
+
+// Diffusion proactive : message et/ou notification à un groupe d'employés.
+function Diffusion() {
+  const [ouvert, setOuvert] = useState(false);
+  const [groupe, setGroupe] = useState("aides_soignants");
+  const [canal, setCanal] = useState("les_deux");
+  const [titre, setTitre] = useState("");
+  const [texte, setTexte] = useState("");
+  const [occupe, setOccupe] = useState(false);
+  const [retour, setRetour] = useState("");
+
+  async function envoyer() {
+    if (!texte.trim()) return;
+    setOccupe(true);
+    setRetour("");
+    try {
+      const d = await fetchAdmin("/api/admin/diffusion", {
+        method: "POST",
+        body: JSON.stringify({ cible: "groupe", groupe, canal, titre, texte }),
+      });
+      setRetour(`Envoyé à ${d.envoyes} destinataire${d.envoyes > 1 ? "s" : ""} ✓`);
+      setTexte("");
+      setTitre("");
+    } catch (e) {
+      setRetour(e?.status === 400 ? "Aucun destinataire dans ce groupe (aucun compte lié)." : "Envoi impossible.");
+    }
+    setOccupe(false);
+  }
+
+  if (!ouvert) return <button className="adm-btn" onClick={() => setOuvert(true)}>+ Diffusion groupe</button>;
+
+  return (
+    <div className="adm-fiche" style={{ width: "100%", marginTop: 12 }}>
+      <strong>Diffusion à un groupe</strong>
+      <div className="adm-grille-form">
+        <label className="fe-champ"><span>Destinataires</span>
+          <select value={groupe} onChange={(e) => setGroupe(e.target.value)}>
+            {GROUPES.map(([k, v]) => <option value={k} key={k}>{v}</option>)}
+          </select>
+        </label>
+        <label className="fe-champ"><span>Canal</span>
+          <select value={canal} onChange={(e) => setCanal(e.target.value)}>
+            <option value="les_deux">Message + notification</option>
+            <option value="message">Message (chat) seulement</option>
+            <option value="notification">Notification seulement</option>
+          </select>
+        </label>
+      </div>
+      {canal !== "message" && (
+        <input placeholder="Titre de la notification (ex. Réunion d'équipe)" value={titre} onChange={(e) => setTitre(e.target.value)} style={{ width: "100%", marginTop: 8 }} />
+      )}
+      <textarea rows={3} placeholder="Votre message à l'équipe…" value={texte} onChange={(e) => setTexte(e.target.value)} style={{ width: "100%", marginTop: 8, padding: "11px 13px", fontFamily: "inherit", fontSize: 14.5, border: "1px solid var(--ligne)", borderRadius: 10 }} />
+      {retour && <p className="adm-msg">{retour}</p>}
+      <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
+        <button className={"adm-btn" + (occupe ? " btn-charge" : "")} onClick={envoyer} disabled={occupe || !texte.trim()}>Envoyer</button>
+        <button className="adm-btn secondaire" onClick={() => setOuvert(false)}>Fermer</button>
+      </div>
+    </div>
+  );
+}
+
 // Boîte de réception de l'équipe : conversations (non-lus en tête de liste),
 // fil complet et réponse. Rafraîchie automatiquement.
 export default function PageMessages() {
@@ -70,7 +138,10 @@ export default function PageMessages() {
 
   return (
     <>
-      <h1 className="adm-titre">Messages</h1>
+      <div className="adm-barre-titre">
+        <h1 className="adm-titre">Messages</h1>
+        {!ouvert && <Diffusion />}
+      </div>
       {msg && <p className="adm-msg">{msg}</p>}
       {!conversations && <p className="adm-vide">Chargement…</p>}
       {conversations?.length === 0 && (
