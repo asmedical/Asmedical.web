@@ -17,13 +17,18 @@ function detailIntervention(d) {
 }
 
 // Crée une notification dans l'espace de l'intervenant, s'il possède un
-// compte de connexion (userId rattaché à sa fiche).
-async function notifierIntervenant(entite, intervenantId, titre, corps, auteur) {
+// compte de connexion (userId rattaché à sa fiche). La notification pointe
+// vers la fiche mission (lienType/lienId) pour un clic actionnable.
+async function notifierIntervenant(entite, intervenantId, titre, corps, auteur, demandeId) {
   const modele = entite === "soignant" ? prisma.soignant : prisma.transporteur;
   const iv = await modele.findUnique({ where: { id: Number(intervenantId) }, select: { userId: true } });
   if (!iv?.userId) return;
   await prisma.notification.create({
-    data: { userId: iv.userId, type: "rdv", titre, corps, auteur: auteur || "Coordination ASM", statut: "NON_LU" },
+    data: {
+      userId: iv.userId, type: "rdv", titre, corps,
+      auteur: auteur || "Coordination ASM", statut: "NON_LU",
+      lienType: "intervention", lienId: String(demandeId),
+    },
   });
 }
 
@@ -116,14 +121,14 @@ export async function PATCH(req) {
     // Notifications automatiques dans l'espace de l'intervenant.
     try {
       if (data.soignantId && data.soignantId !== avant?.soignantId) {
-        await notifierIntervenant("soignant", data.soignantId, "Nouvelle intervention", detailIntervention(maj), acces.nomAffiche);
+        await notifierIntervenant("soignant", data.soignantId, "Nouvelle intervention", detailIntervention(maj), acces.nomAffiche, maj.id);
       }
       if (data.transporteurId && data.transporteurId !== avant?.transporteurId) {
-        await notifierIntervenant("transporteur", data.transporteurId, "Nouvelle course / tournée", detailIntervention(maj), acces.nomAffiche);
+        await notifierIntervenant("transporteur", data.transporteurId, "Nouvelle course / tournée", detailIntervention(maj), acces.nomAffiche, maj.id);
       }
       if (data.statut === "ANNULEE") {
-        if (maj.soignantId) await notifierIntervenant("soignant", maj.soignantId, "Intervention annulée", detailIntervention(maj), acces.nomAffiche);
-        if (maj.transporteurId) await notifierIntervenant("transporteur", maj.transporteurId, "Course annulée", detailIntervention(maj), acces.nomAffiche);
+        if (maj.soignantId) await notifierIntervenant("soignant", maj.soignantId, "Intervention annulée", detailIntervention(maj), acces.nomAffiche, maj.id);
+        if (maj.transporteurId) await notifierIntervenant("transporteur", maj.transporteurId, "Course annulée", detailIntervention(maj), acces.nomAffiche, maj.id);
       }
     } catch {}
 

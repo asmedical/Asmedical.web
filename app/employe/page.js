@@ -1,7 +1,5 @@
 "use client";
 import Link from "next/link";
-import { useState } from "react";
-import { supabase } from "@/lib/supabase";
 import { useEmploye } from "./layout";
 
 const SERVICES = { transport: "Transport", domicile: "Aide à domicile", medicaments: "Médicaments" };
@@ -16,9 +14,7 @@ function jourISO(d = new Date()) {
 }
 
 export default function TableauEmploye() {
-  const { moi, rafraichir } = useEmploye();
-  const [occupe, setOccupe] = useState(0); // id en cours de mise à jour
-  const [err, setErr] = useState("");
+  const { moi } = useEmploye();
   if (!moi) return null;
 
   const { intervenant, interventions = [], estChauffeur, prenom } = moi;
@@ -27,32 +23,11 @@ export default function TableauEmploye() {
   const aVenir = interventions.filter((i) => (i.date || "").slice(0, 10) > auj && !["ANNULEE", "TERMINEE"].includes(i.statut));
   const passees = interventions.filter((i) => (i.date || "").slice(0, 10) < auj || i.statut === "TERMINEE").slice(-10).reverse();
 
-  async function majStatut(id, statut) {
-    setErr("");
-    setOccupe(id);
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      const r = await fetch("/api/employe/intervention", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
-        body: JSON.stringify({ id, statut }),
-      });
-      if (!r.ok) throw new Error();
-      await rafraichir();
-    } catch {
-      setErr("Action impossible. Réessayez.");
-    }
-    setOccupe(0);
-  }
-
-  const motTournee = estChauffeur ? "tournée" : "interventions";
-
   return (
     <>
       <h1 className="emp-titre">Bonjour {prenom || ""} 👋</h1>
-      <p className="emp-sous">Voici votre {estChauffeur ? "tournée" : "journée"} et vos {motTournee}.</p>
+      <p className="emp-sous">Voici votre {estChauffeur ? "tournée" : "journée"} et vos {estChauffeur ? "courses" : "interventions"}.</p>
 
-      {/* Bandeau intervenant */}
       {intervenant ? (
         <div className="emp-bandeau">
           <div>
@@ -65,10 +40,9 @@ export default function TableauEmploye() {
           <span className={"fe-dispo d-" + (intervenant.dispo || "DISPONIBLE")}>{DISPO[intervenant.dispo] || "Disponible"}</span>
         </div>
       ) : (
-        <p className="emp-alerte">Votre compte n'est pas encore relié à une fiche {estChauffeur ? "transporteur" : "soignant"}. Contactez la coordination ASM.</p>
+        <p className="emp-alerte">Votre compte n&apos;est pas encore relié à une fiche {estChauffeur ? "transporteur" : "soignant"}. Contactez la coordination ASM.</p>
       )}
 
-      {/* Accès rapides */}
       <div className="emp-acces">
         <Link href="/employe/messagerie" className="emp-tuile"><span>💬</span>Messagerie</Link>
         <Link href="/employe/messagerie" className="emp-tuile"><span>🔔</span>Notifications</Link>
@@ -76,37 +50,28 @@ export default function TableauEmploye() {
         <Link href="/employe/profil" className="emp-tuile"><span>👤</span>Mon profil</Link>
       </div>
 
-      {err && <p className="erreur">{err}</p>}
-
-      {/* Aujourd'hui */}
       <h2 className="emp-section">Aujourd&apos;hui — {new Date().toLocaleDateString("fr-FR", { weekday: "long", day: "numeric", month: "long" })}</h2>
       {duJour.length === 0 && <p className="adm-vide">Aucune {estChauffeur ? "course" : "intervention"} prévue aujourd&apos;hui.</p>}
-      {duJour.map((i) => (
-        <CarteIntervention key={i.id} i={i} estChauffeur={estChauffeur} occupe={occupe === i.id} onStatut={majStatut} />
-      ))}
+      {duJour.map((i) => <CarteIntervention key={i.id} i={i} estChauffeur={estChauffeur} />)}
 
-      {/* À venir */}
       {aVenir.length > 0 && (
         <>
           <h2 className="emp-section">À venir</h2>
-          {aVenir.map((i) => (
-            <CarteIntervention key={i.id} i={i} estChauffeur={estChauffeur} occupe={occupe === i.id} onStatut={majStatut} futur />
-          ))}
+          {aVenir.map((i) => <CarteIntervention key={i.id} i={i} estChauffeur={estChauffeur} />)}
         </>
       )}
 
-      {/* Historique récent */}
       {passees.length > 0 && (
         <>
           <h2 className="emp-section">Historique récent</h2>
           {passees.map((i) => (
-            <div className="emp-carte-i passee" key={i.id}>
+            <Link className="emp-carte-i passee" href={`/employe/interventions/${i.id}`} key={i.id}>
               <span className="emp-i-txt">
                 <strong>{SERVICES[i.service] || i.service}{i.destination ? ` · ${i.destination}` : ""}</strong>
                 <small>{i.date?.replace("T", " à ")}</small>
               </span>
               <span className="emp-i-statut">{STATUT_LIB[i.statut] || i.statut}</span>
-            </div>
+            </Link>
           ))}
         </>
       )}
@@ -114,9 +79,10 @@ export default function TableauEmploye() {
   );
 }
 
-function CarteIntervention({ i, estChauffeur, occupe, onStatut, futur }) {
+// Carte cliquable → fiche mission complète.
+function CarteIntervention({ i, estChauffeur }) {
   return (
-    <div className={"emp-carte-i" + (i.prioritaire ? " urgente" : "")}>
+    <Link className={"emp-carte-i cliquable" + (i.prioritaire ? " urgente" : "")} href={`/employe/interventions/${i.id}`}>
       <div className="emp-i-tete">
         <span className="emp-i-txt">
           <strong>
@@ -128,23 +94,13 @@ function CarteIntervention({ i, estChauffeur, occupe, onStatut, futur }) {
             {estChauffeur && i.depart ? `${i.depart} → ` : ""}{i.destination || "Adresse communiquée par l'équipe"}
             {i.fenetre ? ` · ${i.fenetre}` : ""}
           </small>
-          {i.nom && <small>Patient : {i.nom}{i.telephone ? " · " : ""}{i.telephone && <a href={`tel:${i.telephone}`}>{i.telephone}</a>}</small>}
+          {i.nom && <small>Patient : {i.nom}</small>}
         </span>
-        <span className="emp-i-statut">{STATUT_LIB[i.statut] || i.statut}</span>
+        <span className="emp-i-droite">
+          <span className="emp-i-statut">{STATUT_LIB[i.statut] || i.statut}</span>
+          <span className="emp-chevron" aria-hidden="true">›</span>
+        </span>
       </div>
-      {!futur && i.statut !== "TERMINEE" && (
-        <div className="emp-i-actions">
-          {i.statut !== "EN_COURS" && (
-            <button className={"adm-btn secondaire" + (occupe ? " btn-charge" : "")} disabled={occupe} onClick={() => onStatut(i.id, "EN_COURS")}>
-              {estChauffeur ? "Prise en charge" : "Démarrer"}
-            </button>
-          )}
-          <button className={"adm-btn" + (occupe ? " btn-charge" : "")} disabled={occupe} onClick={() => onStatut(i.id, "TERMINEE")}>
-            {estChauffeur ? "Déposé / terminé" : "Terminée"}
-          </button>
-          <button className="adm-btn secondaire" disabled={occupe} onClick={() => onStatut(i.id, "ABSENT")}>Patient absent</button>
-        </div>
-      )}
-    </div>
+    </Link>
   );
 }

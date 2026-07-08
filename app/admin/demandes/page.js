@@ -168,6 +168,7 @@ function PageDemandes() {
             )}
             {d.notes && <p><b>Notes client :</b> {d.notes}</p>}
             <Precisions json={d.details} />
+            <SuiviIntervenant d={d} />
           </div>
 
           <div className="adm-actions">
@@ -226,6 +227,33 @@ function joursAbo(csv) {
     .map((j) => JOURS_FR[Number(j)])
     .filter(Boolean)
     .join(" · ");
+}
+
+// Suivi temps réel posé par l'intervenant sur le terrain (fiche mission).
+function SuiviIntervenant({ d }) {
+  const h = (v) => (v ? new Date(v).toLocaleString("fr-FR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" }) : null);
+  const etapes = [
+    ["Confirmée", d.accepteeLe],
+    ["En route", d.enRouteLe],
+    ["Arrivée", d.arriveeLe],
+    ["Commencée", d.debutLe],
+    ["Terminée", d.finLe],
+  ].filter(([, v]) => v);
+  if (!etapes.length && !d.problemeTexte && !d.compteRendu) return null;
+  return (
+    <div className="adm-suivi-terrain">
+      <b>Suivi intervenant :</b>
+      {etapes.length > 0 && (
+        <span className="adm-suivi-etapes">
+          {etapes.map(([l, v]) => (
+            <span key={l} className="adm-suivi-etape">{l} <small>{h(v)}</small></span>
+          ))}
+        </span>
+      )}
+      {d.problemeTexte && <p className="adm-suivi-pb">⚠️ Problème signalé{d.problemeLe ? ` (${h(d.problemeLe)})` : ""} : {d.problemeTexte}</p>}
+      {d.compteRendu && <p><b>Compte rendu :</b> {d.compteRendu}</p>}
+    </div>
+  );
 }
 
 // Affiche joliment le JSON des précisions structurées du client.

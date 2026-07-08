@@ -708,3 +708,29 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 @media(max-width:460px){
   .emp-acces{grid-template-columns:repeat(2,1fr)}
 }
+
+/* ============ Cartes cliquables + fiche mission (espace employé) ============ */
+.emp-carte-i.cliquable{display:block;text-decoration:none;color:inherit;transition:border-color .15s,transform .05s}
+.emp-carte-i.cliquable:active{transform:scale(.995)}
+.emp-carte-i.cliquable:hover{border-color:var(--vert)}
+.emp-i-droite{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.emp-chevron{color:var(--gris-clair);font-size:22px;line-height:1;font-weight:400}
+.mission-steps{display:flex;gap:4px;margin:6px 0 16px;overflow-x:auto;-webkit-overflow-scrolling:touch}
+.mission-steps::-webkit-scrollbar{display:none}
+.mission-step{flex:1 0 auto;min-width:58px;display:flex;flex-direction:column;align-items:center;gap:5px;text-align:center}
+.mission-step small{font-size:11px;color:var(--gris-clair);white-space:nowrap}
+.mission-pastille{width:14px;height:14px;border-radius:50%;background:var(--ligne);border:2px solid var(--ligne)}
+.mission-step.atteinte .mission-pastille{background:var(--vert);border-color:var(--vert)}
+.mission-step.atteinte small{color:var(--vert-fonce);font-weight:800}
+.mission-cta{width:100%;padding:15px;font-size:15.5px;margin-bottom:12px}
+.mission-contacts{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:6px}
+.mission-contact{flex:1 1 auto;min-width:140px;text-align:center;text-decoration:none;background:var(--blanc);border:1px solid var(--vert);color:var(--vert-fonce);border-radius:12px;padding:12px 10px;font-size:13.5px;font-weight:800}
+.mission-contact:active{background:var(--vert-pale)}
+.mission-secondaire{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.mission-secondaire .adm-btn{flex:1 1 auto}
+/* Suivi terrain côté admin */
+.adm-suivi-terrain{margin-top:10px;padding-top:10px;border-top:1px dashed var(--ligne)}
+.adm-suivi-etapes{display:flex;flex-wrap:wrap;gap:6px;margin:6px 0}
+.adm-suivi-etape{background:var(--vert-pale);color:var(--vert-fonce);border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:800}
+.adm-suivi-etape small{color:var(--gris);font-weight:600;margin-inline-start:4px}
+.adm-suivi-pb{color:#9B3222;font-weight:700;margin:6px 0}

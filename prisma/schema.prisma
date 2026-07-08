@@ -33,6 +33,15 @@ model Demande {
   transporteur   Transporteur? @relation(fields: [transporteurId], references: [id])
   abonnementId   Int?
   abonnement     Abonnement?   @relation(fields: [abonnementId], references: [id])
+  // --- Suivi d'avancement par l'intervenant (fiche mission) ---
+  accepteeLe     DateTime?  // acceptée / confirmée par l'intervenant
+  enRouteLe      DateTime?  // « je suis en route »
+  arriveeLe      DateTime?  // « arrivée sur place »
+  debutLe        DateTime?  // intervention commencée
+  finLe          DateTime?  // intervention terminée
+  problemeLe     DateTime?  // problème signalé
+  problemeTexte  String?    // description du problème signalé
+  compteRendu    String?    // compte rendu court après intervention (visible admin)
   creeLe         DateTime @default(now())
 }
 
@@ -161,6 +170,8 @@ model Notification {
   titre   String
   corps   String?
   docType String?   // pour type=document : piece_identite | ordonnance | justificatif | medical | autre
+  lienType String?  // entité liée : intervention | demande (pour ouvrir la bonne page)
+  lienId   String?  // id de l'entité liée
   auteur  String?   // agent qui l'a envoyée
   statut  String    @default("NON_LU") // NON_LU | LU | TRAITEE
   luLe    DateTime?

@@ -56,7 +56,7 @@ export default function PlanningEmploye() {
         <div key={j} style={{ marginBottom: 18 }}>
           <h2 className="emp-section" style={{ textTransform: "capitalize", marginTop: 8 }}>{libJour(j)}</h2>
           {parJour[j].map((i) => (
-            <div className={"emp-carte-i" + (i.prioritaire ? " urgente" : "")} key={i.id}>
+            <Link className={"emp-carte-i cliquable" + (i.prioritaire ? " urgente" : "")} href={`/employe/interventions/${i.id}`} key={i.id}>
               <div className="emp-i-tete">
                 <span className="emp-i-txt">
                   <strong>
@@ -70,9 +70,12 @@ export default function PlanningEmploye() {
                   </small>
                   {i.nom && <small>Patient : {i.nom}</small>}
                 </span>
-                <span className="emp-i-statut">{STATUT_LIB[i.statut] || i.statut}</span>
+                <span className="emp-i-droite">
+                  <span className="emp-i-statut">{STATUT_LIB[i.statut] || i.statut}</span>
+                  <span className="emp-chevron" aria-hidden="true">›</span>
+                </span>
               </div>
-            </div>
+            </Link>
           ))}
         </div>
       ))}

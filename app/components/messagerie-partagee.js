@@ -158,6 +158,11 @@ export default function CentreMessages() {
                     {ouverte === n.id && (
                       <span className="notif-detail">
                         {n.corps && <p>{n.corps}</p>}
+                        {n.lienType === "intervention" && n.lienId && (
+                          <Link className="btn-action" style={{ marginTop: 10 }} href={`/employe/interventions/${n.lienId}`}>
+                            Voir l&apos;intervention
+                          </Link>
+                        )}
                         {n.type === "document" && (
                           <Link className="btn-action" style={{ marginTop: 10 }} href={lienDocuments()}>
                             {t("notif_envoyer_doc")}
