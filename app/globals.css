@@ -541,6 +541,7 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .adm-carte span{font-size:13px;color:var(--gris);font-weight:700}
 .adm-carte.alerte{border-color:#E3B7AC;background:#FDF7F5}
 .adm-carte.alerte strong{color:#A4432F}
+.adm-tout-ok{background:var(--vert-pale);border:1px solid var(--vert);color:var(--vert-fonce);font-weight:800;font-size:14.5px;padding:14px 16px;border-radius:12px;margin-bottom:8px}
 .adm-liste{display:flex;flex-direction:column;gap:8px;margin-top:8px}
 .adm-ligne{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--blanc);border:1px solid var(--ligne);border-radius:12px;padding:13px 15px;text-decoration:none;color:var(--encre)}
 .adm-ligne.cliquable{cursor:pointer}

@@ -10,18 +10,30 @@ export async function GET(req) {
   if (!acces) return refus();
   try {
     const aujourdhui = new Date().toISOString().slice(0, 10);
+    const maintenant = new Date().toISOString().slice(0, 16);
 
-    const [aRappeler, duJour, prioritaires, soignantsAttente, transporteursAttente, abonnementsActifs, messagesNonLus, dernieres] =
-      await Promise.all([
-        prisma.demande.count({ where: { statut: "A_RAPPELER" } }),
-        prisma.demande.count({ where: { date: { startsWith: aujourdhui }, statut: { not: "ANNULEE" } } }),
-        prisma.demande.count({ where: { prioritaire: true, statut: { notIn: ["TERMINEE", "ANNULEE"] } } }),
-        prisma.soignant.count({ where: { statut: "EN_ATTENTE" } }),
-        prisma.transporteur.count({ where: { statut: "EN_ATTENTE" } }),
-        prisma.abonnement.count({ where: { statut: "ACTIF" } }),
-        prisma.message.count({ where: { deEquipe: false, luParEquipe: false } }),
-        prisma.demande.findMany({ orderBy: { creeLe: "desc" }, take: 5 }),
-      ]);
+    const [
+      aRappeler, duJour, prioritaires, enCours, enRetard, nonConfirmees, problemes,
+      soignantsAttente, transporteursAttente, soignantsActifs, transporteursActifs,
+      comptesSoignants, comptesTransporteurs, abonnementsActifs, messagesNonLus, dernieres,
+    ] = await Promise.all([
+      prisma.demande.count({ where: { statut: "A_RAPPELER" } }),
+      prisma.demande.count({ where: { date: { startsWith: aujourdhui }, statut: { not: "ANNULEE" } } }),
+      prisma.demande.count({ where: { prioritaire: true, statut: { notIn: ["TERMINEE", "ANNULEE"] } } }),
+      prisma.demande.count({ where: { statut: "EN_COURS" } }),
+      prisma.demande.count({ where: { date: { lt: maintenant }, statut: { notIn: ["TERMINEE", "ANNULEE", "ABSENT"] } } }),
+      prisma.demande.count({ where: { AND: [{ OR: [{ soignantId: { not: null } }, { transporteurId: { not: null } }] }, { accepteeLe: null }, { statut: { in: ["AFFECTEE", "CONFIRMEE"] } }] } }),
+      prisma.demande.count({ where: { problemeLe: { not: null }, statut: { notIn: ["TERMINEE", "ANNULEE"] } } }),
+      prisma.soignant.count({ where: { statut: "EN_ATTENTE" } }),
+      prisma.transporteur.count({ where: { statut: "EN_ATTENTE" } }),
+      prisma.soignant.count({ where: { statut: "VALIDE" } }),
+      prisma.transporteur.count({ where: { statut: "VALIDE" } }),
+      prisma.soignant.count({ where: { userId: { not: null } } }),
+      prisma.transporteur.count({ where: { userId: { not: null } } }),
+      prisma.abonnement.count({ where: { statut: "ACTIF" } }),
+      prisma.message.count({ where: { deEquipe: false, luParEquipe: false } }),
+      prisma.demande.findMany({ orderBy: { creeLe: "desc" }, take: 5 }),
+    ]);
 
     // Nombre de clients (profils) via Supabase
     let clients = null;
@@ -36,8 +48,15 @@ export async function GET(req) {
       aRappeler,
       duJour,
       prioritaires,
+      enCours,
+      enRetard,
+      nonConfirmees,
+      problemes,
       soignantsAttente,
       transporteursAttente,
+      soignantsActifs,
+      transporteursActifs,
+      comptesEmployes: comptesSoignants + comptesTransporteurs,
       abonnementsActifs,
       messagesNonLus,
       clients,
