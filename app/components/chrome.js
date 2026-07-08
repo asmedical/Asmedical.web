@@ -90,17 +90,118 @@ function MenuUtilisateur() {
   );
 }
 
-// Cloche de notifications (en-tête) : badge = notifications + chat non lus,
-// clic → la messagerie (centre de messages). Vraies données uniquement.
+// Cloche de notifications (en-tête) : badge + panneau déroulant avec les
+// dernières notifications réelles et l'état du chat. Clic sur une entrée →
+// ouverture directe dans la messagerie. Vraies données uniquement.
 function Cloche() {
   const { t, nonLus } = useAsm();
   const routeur = useRouter();
+  const [ouvert, setOuvert] = useState(false);
+  const [liste, setListe] = useState(null); // null = pas encore chargé
+  const [anime, setAnime] = useState(false);
+  const ref = useRef(null);
+  const precedent = useRef(0);
+
   const total = (nonLus?.notifs || 0) + (nonLus?.chat || 0);
+
+  // Petite animation quand le nombre de non-lus augmente.
+  useEffect(() => {
+    if (total > precedent.current) {
+      setAnime(true);
+      const fin = setTimeout(() => setAnime(false), 1200);
+      return () => clearTimeout(fin);
+    }
+    precedent.current = total;
+  }, [total]);
+  useEffect(() => {
+    precedent.current = total;
+  }, [total]);
+
+  // Fermeture au clic extérieur.
+  useEffect(() => {
+    if (!ouvert) return;
+    const fermer = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOuvert(false);
+    };
+    document.addEventListener("pointerdown", fermer);
+    return () => document.removeEventListener("pointerdown", fermer);
+  }, [ouvert]);
+
+  async function basculer() {
+    const prochain = !ouvert;
+    setOuvert(prochain);
+    if (prochain) {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const r = await fetch("/api/notifications", {
+          headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+        });
+        const d = r.ok ? await r.json() : { notifications: [] };
+        setListe((d.notifications || []).slice(0, 5));
+      } catch {
+        setListe([]);
+      }
+    }
+  }
+
+  const aller = (chemin) => {
+    setOuvert(false);
+    routeur.push(chemin);
+  };
+
   return (
-    <button className="btn-cloche" aria-label={t("cloche_l")} onClick={() => routeur.push("/messagerie")}>
-      <IcoCloche />
-      {total > 0 && <span className="badge-nonlu">{total > 99 ? "99+" : total}</span>}
-    </button>
+    <div className="menu-user" ref={ref}>
+      <button
+        className={"btn-cloche" + (anime ? " sonne" : "")}
+        aria-label={t("cloche_l")}
+        aria-expanded={ouvert}
+        onClick={basculer}
+      >
+        <IcoCloche />
+        {total > 0 && <span className="badge-nonlu">{total > 99 ? "99+" : total}</span>}
+      </button>
+
+      {ouvert && (
+        <div className="panneau-cloche" role="menu">
+          <div className="panneau-cloche-titre">{t("cloche_l")}</div>
+
+          {(nonLus?.chat || 0) > 0 && (
+            <button className="cloche-item chat" onClick={() => aller("/messagerie?chat=1")}>
+              <IcoBulle />
+              <span>
+                <strong>{t("cloche_chat_t")}</strong>
+                <small>{t("cloche_chat_s")}</small>
+              </span>
+              <span className="badge-nonlu statique">{nonLus.chat}</span>
+            </button>
+          )}
+
+          {liste === null && <p className="cloche-vide">…</p>}
+          {liste?.length === 0 && (nonLus?.chat || 0) === 0 && (
+            <p className="cloche-vide">{t("cloche_vide")}</p>
+          )}
+          {liste?.map((n) => (
+            <button className="cloche-item" key={n.id} onClick={() => aller(`/messagerie?n=${n.id}`)}>
+              <span className={"point-nonlu" + (n.statut === "NON_LU" ? "" : " lu")} aria-hidden="true" />
+              <span>
+                <strong>{n.titre}</strong>
+                <small>
+                  {new Date(n.creeLe).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}
+                  {n.corps ? ` · ${n.corps.slice(0, 40)}${n.corps.length > 40 ? "…" : ""}` : ""}
+                </small>
+              </span>
+            </button>
+          ))}
+
+          <button className="cloche-tout" onClick={() => aller("/messagerie")}>
+            {t("cloche_tout")}
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
 

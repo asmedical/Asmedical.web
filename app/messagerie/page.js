@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { supabase } from "@/lib/supabase";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
@@ -19,12 +20,14 @@ async function jeton() {
 
 const ICO_TYPE = { message: IcoBulle, document: IcoDocument, rdv: IcoCalendrier, rappel: IcoCloche };
 
-export default function Messagerie() {
+function Messagerie() {
   const { t, connecte, nonLus, rafraichirNonLus } = useAsm();
-  const [vue, setVue] = useState("centre"); // centre | chat
+  const params = useSearchParams();
+  const [vue, setVue] = useState(params.get("chat") ? "chat" : "centre"); // centre | chat
   const [etat, setEtat] = useState("chargement"); // chargement | anonyme | pret | erreur
   const [notifications, setNotifications] = useState([]);
   const [ouverte, setOuverte] = useState(null); // id notification dépliée
+  const autoOuvert = useRef(false);
 
   async function chargerNotifs() {
     const token = await jeton();
@@ -47,6 +50,21 @@ export default function Messagerie() {
     chargerNotifs();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [connecte]);
+
+  // Ouverture directe d'une notification passée en ?n=<id> (depuis la cloche).
+  useEffect(() => {
+    const id = params.get("n");
+    if (!id || autoOuvert.current || etat !== "pret") return;
+    const cible = notifications.find((x) => String(x.id) === String(id));
+    if (cible) {
+      autoOuvert.current = true;
+      ouvrir(cible);
+      requestAnimationFrame(() =>
+        document.getElementById(`notif-${cible.id}`)?.scrollIntoView({ block: "center", behavior: "smooth" })
+      );
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [etat, notifications, params]);
 
   async function ouvrir(n) {
     setOuverte(ouverte === n.id ? null : n.id);
@@ -120,6 +138,7 @@ export default function Messagerie() {
               return (
                 <div
                   className={"carte-notif" + (nonLue ? " nonlue" : "")}
+                  id={`notif-${n.id}`}
                   key={n.id}
                   onClick={() => ouvrir(n)}
                 >
@@ -158,6 +177,14 @@ export default function Messagerie() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function MessageriePage() {
+  return (
+    <Suspense>
+      <Messagerie />
+    </Suspense>
   );
 }
 
