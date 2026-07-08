@@ -734,3 +734,9 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .adm-suivi-etape{background:var(--vert-pale);color:var(--vert-fonce);border-radius:999px;padding:4px 10px;font-size:12.5px;font-weight:800}
 .adm-suivi-etape small{color:var(--gris);font-weight:600;margin-inline-start:4px}
 .adm-suivi-pb{color:#9B3222;font-weight:700;margin:6px 0}
+
+/* ============ Supervision terrain (liste demandes admin) ============ */
+.adm-supervision{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.adm-chip-sup{background:var(--blanc);border:1px solid var(--ligne);border-radius:999px;padding:8px 14px;font-family:inherit;font-size:13px;font-weight:800;color:var(--gris);cursor:pointer}
+.adm-chip-sup.actif{background:var(--vert-pale);border-color:var(--vert);color:var(--vert-fonce)}
+.adm-ligne.signale{border-color:#E3B7AC;background:#FDF7F5}

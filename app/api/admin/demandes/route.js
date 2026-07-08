@@ -44,6 +44,25 @@ export async function GET(req) {
     if (p.get("jour")) where.date = { startsWith: p.get("jour") };
     if (p.get("soignantId")) where.soignantId = Number(p.get("soignantId"));
     if (p.get("transporteurId")) where.transporteurId = Number(p.get("transporteurId"));
+
+    // Filtres de supervision terrain.
+    const sup = p.get("supervision");
+    if (sup === "probleme") {
+      where.problemeLe = { not: null };
+    } else if (sup === "non_confirmee") {
+      // Affectée à un intervenant mais pas encore confirmée par lui.
+      where.AND = [
+        { OR: [{ soignantId: { not: null } }, { transporteurId: { not: null } }] },
+        { accepteeLe: null },
+        { statut: { in: ["AFFECTEE", "CONFIRMEE"] } },
+      ];
+    } else if (sup === "en_retard") {
+      // Heure prévue passée mais intervention pas clôturée.
+      const maintenant = new Date().toISOString().slice(0, 16);
+      where.date = { lt: maintenant };
+      where.statut = { notIn: ["TERMINEE", "ANNULEE", "ABSENT"] };
+    }
+
     const q = (p.get("q") || "").trim();
     if (q) {
       where.OR = [

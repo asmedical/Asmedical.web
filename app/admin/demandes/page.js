@@ -7,6 +7,7 @@ function PageDemandes() {
   const params = useSearchParams();
   const [statut, setStatut] = useState(params.get("statut") || "");
   const [service, setService] = useState("");
+  const [supervision, setSupervision] = useState(params.get("supervision") || "");
   const [jour, setJour] = useState(params.get("jour") === "auj" ? new Date().toISOString().slice(0, 10) : "");
   const [q, setQ] = useState("");
   const [page, setPage] = useState(1);
@@ -23,6 +24,7 @@ function PageDemandes() {
       const u = new URLSearchParams();
       if (statut) u.set("statut", statut);
       if (service) u.set("service", service);
+      if (supervision) u.set("supervision", supervision);
       if (jour) u.set("jour", jour);
       if (q.trim()) u.set("q", q.trim());
       u.set("page", String(page));
@@ -34,7 +36,7 @@ function PageDemandes() {
   useEffect(() => {
     charger();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [statut, service, jour, page]);
+  }, [statut, service, supervision, jour, page]);
 
   useEffect(() => {
     fetchAdmin("/api/admin/soignants?statut=VALIDE").then((d) => setSoignants(d.soignants)).catch(() => {});
@@ -101,6 +103,24 @@ function PageDemandes() {
         </div>
       )}
 
+      {/* Supervision terrain : accès rapide en un tap */}
+      <div className="adm-supervision">
+        {[
+          ["", "Toutes"],
+          ["en_retard", "⏱ En retard"],
+          ["non_confirmee", "❓ Non confirmées"],
+          ["probleme", "⚠️ Problèmes"],
+        ].map(([k, v]) => (
+          <button
+            key={k}
+            className={"adm-chip-sup" + (supervision === k ? " actif" : "")}
+            onClick={() => { setSupervision(k); setPage(1); }}
+          >
+            {v}
+          </button>
+        ))}
+      </div>
+
       <div className="adm-filtres">
         <input placeholder="Rechercher (nom, téléphone, destination)…" value={q} onChange={(e) => setQ(e.target.value)} onKeyDown={(e) => e.key === "Enter" && (setPage(1), charger())} />
         <select value={statut} onChange={(e) => { setStatut(e.target.value); setPage(1); }}>
@@ -124,16 +144,17 @@ function PageDemandes() {
 
       <div className="adm-liste">
         {donnees?.demandes.map((x) => (
-          <div className={"adm-ligne cliquable" + (x.prioritaire ? " prioritaire" : "")} key={x.id} onClick={() => setOuverte(ouverte === x.id ? null : x.id)}>
+          <div className={"adm-ligne cliquable" + (x.prioritaire ? " prioritaire" : "") + (x.problemeLe ? " signale" : "")} key={x.id} onClick={() => setOuverte(ouverte === x.id ? null : x.id)}>
             <span>
               <strong>
-                {x.prioritaire ? "🔴 " : ""}n°{x.id} · {SERVICES[x.service] || x.service}
+                {x.problemeLe ? "⚠️ " : x.prioritaire ? "🔴 " : ""}n°{x.id} · {SERVICES[x.service] || x.service}
                 {x.typeTrajet ? ` (${x.typeTrajet})` : ""}
               </strong>
               <small>
                 {x.nom || "—"} · {x.telephone} · {x.date?.replace("T", " à ")}
                 {x.soignant ? ` · 👩‍⚕️ ${x.soignant.prenom} ${x.soignant.nom}` : ""}
                 {x.transporteur ? ` · 🚑 ${x.transporteur.nom}` : x.chauffeur ? ` · 🚑 ${x.chauffeur}` : ""}
+                {etapeCourte(x) ? ` · ${etapeCourte(x)}` : ""}
               </small>
             </span>
             <Pastille statut={x.statut} />
@@ -227,6 +248,16 @@ function joursAbo(csv) {
     .map((j) => JOURS_FR[Number(j)])
     .filter(Boolean)
     .join(" · ");
+}
+
+// Étape courte de l'avancement terrain, pour l'aperçu en liste.
+function etapeCourte(d) {
+  if (d.finLe) return "✅ terminée";
+  if (d.debutLe) return "🔧 en cours";
+  if (d.arriveeLe) return "📍 arrivée";
+  if (d.enRouteLe) return "🚗 en route";
+  if (d.accepteeLe) return "👍 confirmée";
+  return "";
 }
 
 // Suivi temps réel posé par l'intervenant sur le terrain (fiche mission).
