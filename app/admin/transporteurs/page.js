@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchAdmin, Pastille, NotesInternes, ChampPhoto, LIBELLE_STATUT_INTERVENANT } from "../ui";
+import { fetchAdmin, Pastille, NotesInternes, ChampPhoto, Avatar, LIBELLE_STATUT_INTERVENANT } from "../ui";
 
 const TYPES = { simple: "Simple (assis)", accompagne: "Accompagné (fauteuil)", medicalise: "Médicalisé" };
 const VIDE = { nom: "", responsable: "", telephone: "", email: "", typeTransport: "simple", vehicule: "", zone: "" };
@@ -102,7 +102,8 @@ export default function PageTransporteurs() {
       <div className="adm-liste">
         {liste?.map((x) => (
           <div className="adm-ligne cliquable" key={x.id} onClick={() => setOuvert(ouvert === x.id ? null : x.id)}>
-            <span>
+            <Avatar mini url={x.photoUrl} nom={x.nom} />
+            <span className="adm-ligne-texte">
               <strong>{x.nom}</strong>
               <small>{TYPES[x.typeTransport]} · {x.telephone || "—"} {x.zone ? `· ${x.zone}` : ""}</small>
             </span>

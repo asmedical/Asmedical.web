@@ -35,6 +35,7 @@ export default function Documentation() {
   const [sheet, setSheet] = useState(false);
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
+  const [succes, setSucces] = useState("");
   const [aSupprimer, setASupprimer] = useState(null);
 
   const refFichiers = useRef(null);
@@ -124,6 +125,7 @@ export default function Documentation() {
     }
     setEnvoi(true);
     setErreur("");
+    setSucces("");
     try {
       const chemin = `${user.id}/${crypto.randomUUID()}-${nettoyerNom(fichier.name)}`;
       const { error: eUp } = await supabase.storage
@@ -138,7 +140,13 @@ export default function Documentation() {
         chemin,
       });
       if (eMeta) throw new Error("Base : " + (eMeta.message || "erreur inconnue"));
-      await charger();
+      // Le document est bien envoyé : on l'affiche tout de suite, même si
+      // le rechargement de la liste échoue (l'état ne doit jamais rester bloqué).
+      try {
+        await charger();
+      } catch {}
+      setSucces(t("doc_envoye"));
+      setTimeout(() => setSucces(""), 4000);
     } catch (e) {
       setErreur(e && e.message ? e.message : t("err_upload"));
     } finally {
@@ -213,8 +221,9 @@ export default function Documentation() {
         )}
 
         {erreur && <p className="erreur">{erreur}</p>}
+        {succes && <p className="succes-envoi">{succes}</p>}
 
-        <button className="btn-action" onClick={() => setSheet(true)} disabled={envoi}>
+        <button className={"btn-action" + (envoi ? " btn-charge" : "")} onClick={() => setSheet(true)} disabled={envoi}>
           {envoi ? t("doc_envoi") : t("doc_ajouter")}
         </button>
 

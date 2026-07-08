@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchAdmin, Pastille, NotesInternes, SERVICES, LIBELLE_ROLE } from "../ui";
+import { fetchAdmin, Pastille, NotesInternes, SERVICES, LIBELLE_ROLE, Avatar } from "../ui";
 
 export default function PageClients() {
   const [q, setQ] = useState("");
@@ -70,7 +70,8 @@ export default function PageClients() {
       <div className="adm-liste">
         {clients?.map((c) => (
           <div className="adm-ligne cliquable" key={c.id} onClick={() => ouvrir(c.id)}>
-            <span>
+            <Avatar mini nom={c.etablissement || [c.prenom, c.nom].filter(Boolean).join(" ")} />
+            <span className="adm-ligne-texte">
               <strong>{c.etablissement || [c.prenom, c.nom].filter(Boolean).join(" ") || "Sans nom"}</strong>
               <small>
                 {LIBELLE_ROLE[c.role] || c.role} · {c.telephone || "—"} · {c.email || "—"}

@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchAdmin, Pastille, NotesInternes, ChampPhoto, LIBELLE_STATUT_INTERVENANT } from "../ui";
+import { fetchAdmin, Pastille, NotesInternes, ChampPhoto, Avatar, LIBELLE_STATUT_INTERVENANT } from "../ui";
 
 const QUALIFS = { aide_soignant: "Aide-soignant(e)", infirmier: "Infirmier(ère)" };
 const VIDE = { prenom: "", nom: "", telephone: "", email: "", qualification: "aide_soignant", communes: "" };
@@ -101,7 +101,8 @@ export default function PageSoignants() {
       <div className="adm-liste">
         {liste?.map((x) => (
           <div className="adm-ligne cliquable" key={x.id} onClick={() => setOuvert(ouvert === x.id ? null : x.id)}>
-            <span>
+            <Avatar mini url={x.photoUrl} nom={`${x.prenom} ${x.nom}`} />
+            <span className="adm-ligne-texte">
               <strong>{x.prenom} {x.nom}</strong>
               <small>{QUALIFS[x.qualification]} · {x.telephone || "—"} {x.communes ? `· ${x.communes}` : ""}</small>
             </span>

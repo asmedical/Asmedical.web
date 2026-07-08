@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchAdmin, LIBELLE_ROLE, ROLES_ADMIN } from "../ui";
+import { fetchAdmin, LIBELLE_ROLE, ROLES_ADMIN, Avatar } from "../ui";
 
 // Gestion des comptes internes + journal d'activité.
 // Un membre est un compte NORMAL du site (créé par SMS comme un patient),
@@ -66,7 +66,8 @@ export default function PageEquipe() {
       <div className="adm-liste">
         {donnees.membres.map((m) => (
           <div className="adm-ligne" key={m.id}>
-            <span>
+            <Avatar mini nom={[m.prenom, m.nom].filter(Boolean).join(" ") || m.email} />
+            <span className="adm-ligne-texte">
               <strong>{[m.prenom, m.nom].filter(Boolean).join(" ") || m.email || m.telephone}</strong>
               <small>{m.telephone || "—"} · {m.email || "—"}</small>
             </span>

@@ -195,6 +195,12 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .precisions-aide{color:var(--gris);font-size:13.5px;margin:-6px 0 14px}
 .case-ligne{display:flex;align-items:center;gap:10px;font-size:15px;font-weight:600;margin:0 0 16px;cursor:pointer}
 .case-ligne input{width:20px;height:20px;accent-color:var(--vert);flex-shrink:0}
+/* Barre de chargement « vague » ASM : vert foncé qui balaye de gauche à
+   droite pendant un envoi (photos, documents, enregistrements). */
+.btn-charge{position:relative;overflow:hidden;pointer-events:none;opacity:1!important}
+.btn-charge::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent 15%,rgba(11,74,52,.30) 50%,transparent 85%);transform:translateX(-100%);animation:vague-charge 1.3s ease-in-out infinite}
+@keyframes vague-charge{to{transform:translateX(100%)}}
+.succes-envoi{color:var(--vert-fonce);font-weight:700;font-size:14px;margin:10px 0;text-align:center}
 .mini-label{display:block;font-weight:800;font-size:13.5px;color:var(--gris);margin-bottom:9px}
 .chips{display:flex;flex-wrap:wrap;gap:8px}
 .chip{padding:9px 13px;border:1px solid var(--ligne);border-radius:999px;background:var(--blanc);
@@ -261,7 +267,9 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .cloche-item strong{display:block;font-size:14.5px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cloche-item small{display:block;color:var(--gris);font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .cloche-item.chat{background:var(--vert-pale)}
-.cloche-item .point-nonlu.lu{background:var(--gris-clair)}
+.cloche-ico{position:relative;width:36px;height:36px;border-radius:50%;background:var(--vert-pale);display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.cloche-ico svg{width:18px;height:18px}
+.cloche-ico .point-nonlu{position:absolute;top:-2px;inset-inline-end:-2px;width:12px;height:12px;border:2px solid var(--blanc)}
 .badge-nonlu.statique{position:static;border:none}
 .cloche-vide{color:var(--gris);font-size:13.5px;text-align:center;padding:16px 10px}
 .cloche-tout{width:100%;padding:11px;margin-top:4px;border:none;border-top:1px solid var(--ligne);background:none;color:var(--vert);font-weight:800;font-size:14px;font-family:inherit;cursor:pointer}
@@ -538,8 +546,10 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .adm-ligne.cliquable{cursor:pointer}
 .adm-ligne.cliquable:hover{border-color:var(--vert)}
 .adm-ligne.prioritaire{border-color:#E3B7AC;background:#FDF7F5}
-.adm-ligne strong{display:block;font-size:15px}
-.adm-ligne small{display:block;color:var(--gris);font-size:13px;margin-top:2px;word-break:break-word}
+.adm-ligne>span{min-width:0}
+.adm-ligne strong{display:block;font-size:15px;overflow-wrap:anywhere}
+.adm-ligne small{display:block;color:var(--gris);font-size:13px;margin-top:2px;overflow-wrap:anywhere}
+.adm-detail p{overflow-wrap:anywhere}
 .adm-pastille{flex-shrink:0;font-size:12.5px;font-weight:800;background:var(--vert-pale);color:var(--vert-fonce);padding:5px 11px;border-radius:999px;white-space:nowrap}
 .adm-pastille.ok{background:#E1EEF8;color:#12557F}
 .adm-pastille.ko{background:#F9E8E3;color:#A4432F}
@@ -556,10 +566,14 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .adm-fiche{background:var(--blanc);border:1.5px solid var(--vert);border-radius:14px;padding:18px;margin-top:14px}
 .adm-fiche>strong{font-size:16px;color:var(--vert-fonce)}
 .adm-photo{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}
-.adm-photo .adm-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--vert-pale);border:1px solid var(--ligne)}
-.adm-photo .adm-avatar.vide{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:var(--vert)}
+.adm-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--vert-pale);border:1px solid var(--ligne)}
+.adm-avatar.vide{display:flex;align-items:center;justify-content:center;font-weight:800;font-size:20px;color:var(--vert)}
+.adm-avatar.mini{width:46px;height:46px}
+.adm-avatar.mini.vide{font-size:15px}
+.adm-ligne-texte{flex:1;min-width:0}
 .adm-photo-btn{cursor:pointer;margin:0}
 .adm-photo-err{color:#c0392b;font-size:12.5px;flex-basis:100%}
+.adm-photo-ok{color:var(--vert-fonce);font-weight:700;font-size:12.5px;flex-basis:100%}
 .adm-detail{margin-top:10px;font-size:14.5px}
 .adm-detail p{margin-bottom:6px}
 .adm-detail a{color:var(--vert);font-weight:800}

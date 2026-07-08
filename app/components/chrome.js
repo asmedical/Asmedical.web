@@ -10,12 +10,16 @@ import {
   IcoCalendrier,
   IcoBulle,
   IcoPlus,
+  IcoDocument,
   IcoDocumentLignes,
   IcoPersonne,
   IcoReglages,
   IcoSortie,
   IcoCloche,
 } from "@/app/components/icones";
+
+// Icône selon le type de notification (panneau de la cloche).
+const ICO_NOTIF = { message: IcoBulle, document: IcoDocument, rdv: IcoCalendrier, rappel: IcoCloche };
 
 export function BandeauAppel() {
   const { t } = useAsm();
@@ -183,18 +187,24 @@ function Cloche() {
           {liste?.length === 0 && (nonLus?.chat || 0) === 0 && (
             <p className="cloche-vide">{t("cloche_vide")}</p>
           )}
-          {liste?.map((n) => (
-            <button className="cloche-item" key={n.id} onClick={() => aller(`/messagerie?n=${n.id}`)}>
-              <span className={"point-nonlu" + (n.statut === "NON_LU" ? "" : " lu")} aria-hidden="true" />
-              <span>
-                <strong>{n.titre}</strong>
-                <small>
-                  {new Date(n.creeLe).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}
-                  {n.corps ? ` · ${n.corps.slice(0, 40)}${n.corps.length > 40 ? "…" : ""}` : ""}
-                </small>
-              </span>
-            </button>
-          ))}
+          {liste?.map((n) => {
+            const Ico = ICO_NOTIF[n.type] || IcoCloche;
+            return (
+              <button className="cloche-item" key={n.id} onClick={() => aller(`/messagerie?n=${n.id}`)}>
+                <span className="cloche-ico" aria-hidden="true">
+                  <Ico />
+                  {n.statut === "NON_LU" && <span className="point-nonlu" />}
+                </span>
+                <span>
+                  <strong>{n.titre}</strong>
+                  <small>
+                    {new Date(n.creeLe).toLocaleDateString("fr-FR", { day: "2-digit", month: "2-digit" })}
+                    {n.corps ? ` · ${n.corps.slice(0, 40)}${n.corps.length > 40 ? "…" : ""}` : ""}
+                  </small>
+                </span>
+              </button>
+            );
+          })}
 
           <button className="cloche-tout" onClick={() => aller("/messagerie")}>
             {t("cloche_tout")}

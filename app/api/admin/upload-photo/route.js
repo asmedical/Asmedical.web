@@ -37,10 +37,35 @@ export async function POST(req) {
     const { error: eUp } = await acces.admin.storage
       .from("photos")
       .upload(chemin, buffer, { contentType: fichier.type, upsert: true });
-    if (eUp) throw eUp;
+    if (eUp) {
+      const detail = String(eUp.message || "");
+      const msg = /bucket/i.test(detail)
+        ? "Le bucket « photos » est introuvable dans Supabase Storage."
+        : `Stockage impossible : ${detail || "erreur inconnue"}`;
+      return NextResponse.json({ erreur: msg }, { status: 500 });
+    }
 
+    // URL publique si le bucket est public ; sinon bascule automatique
+    // sur une URL signée longue durée (10 ans) — bucket privé accepté.
     const { data: pub } = acces.admin.storage.from("photos").getPublicUrl(chemin);
-    const url = pub.publicUrl;
+    let url = pub.publicUrl;
+    let accessible = false;
+    try {
+      const test = await fetch(url, { method: "HEAD" });
+      accessible = test.ok;
+    } catch {}
+    if (!accessible) {
+      const { data: signee, error: eSign } = await acces.admin.storage
+        .from("photos")
+        .createSignedUrl(chemin, 60 * 60 * 24 * 365 * 10);
+      if (eSign || !signee?.signedUrl) {
+        return NextResponse.json(
+          { erreur: "Photo enregistrée mais illisible : rendez le bucket « photos » public dans Supabase Storage." },
+          { status: 500 }
+        );
+      }
+      url = signee.signedUrl;
+    }
 
     if (entite === "soignant") await prisma.soignant.update({ where: { id }, data: { photoUrl: url } });
     else await prisma.transporteur.update({ where: { id }, data: { photoUrl: url } });

@@ -78,48 +78,72 @@ export async function envoyerPhoto(entite, id, fichier) {
   return d.url;
 }
 
+// Avatar rond réutilisable : photo si disponible, sinon initiales.
+// En cas d'image cassée (URL morte, bucket privé…), repli propre sur
+// les initiales — jamais d'icône « ? » du navigateur.
+export function Avatar({ url, nom, mini }) {
+  const [casse, setCasse] = useState(false);
+  useEffect(() => {
+    setCasse(false);
+  }, [url]);
+  const initiales =
+    String(nom || "")
+      .split(/\s+/)
+      .map((m) => m[0])
+      .filter(Boolean)
+      .slice(0, 2)
+      .join("")
+      .toUpperCase() || "•";
+  const classe = "adm-avatar" + (mini ? " mini" : "");
+  if (!url || casse) return <span className={classe + " vide"}>{initiales}</span>;
+  return (
+    // eslint-disable-next-line @next/next/no-img-element
+    <img src={url} alt={nom || ""} className={classe} onError={() => setCasse(true)} />
+  );
+}
+
 // Avatar + bouton d'envoi de photo réutilisable (soignant / transporteur).
-// Affiche la photo actuelle (ou les initiales) et permet d'en choisir une.
+// Affiche la photo actuelle (ou les initiales) et permet d'en choisir une,
+// avec barre de chargement pendant l'envoi et messages clairs.
 export function ChampPhoto({ entite, id, url, nom, onPhoto }) {
   const [apercu, setApercu] = useState(url || "");
   const [occupe, setOccupe] = useState(false);
+  const [msg, setMsg] = useState("");
   const [err, setErr] = useState("");
-  const initiales = String(nom || "?")
-    .split(/\s+/)
-    .map((m) => m[0])
-    .filter(Boolean)
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
+
+  // Suit la photo réelle quand la fiche change ou est rechargée.
+  useEffect(() => {
+    setApercu(url || "");
+    setMsg("");
+    setErr("");
+  }, [url, id]);
 
   async function choisir(e) {
     const fichier = e.target.files?.[0];
     e.target.value = "";
     if (!fichier) return;
     setErr("");
+    setMsg("");
     setOccupe(true);
     try {
       const nouvelle = await envoyerPhoto(entite, id, fichier);
       setApercu(nouvelle);
+      setMsg("Photo mise à jour ✓");
       onPhoto?.(nouvelle);
     } catch (ex) {
-      setErr(ex.message || "Envoi impossible.");
+      setErr(ex.message || "Erreur lors de l'envoi de la photo.");
     }
     setOccupe(false);
   }
 
   return (
     <div className="adm-photo">
-      {apercu ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={apercu} alt={nom || ""} className="adm-avatar" />
-      ) : (
-        <span className="adm-avatar vide">{initiales}</span>
-      )}
-      <label className="adm-btn secondaire adm-photo-btn">
-        {occupe ? "Envoi…" : apercu ? "Changer la photo" : "Ajouter une photo"}
+      <Avatar url={apercu} nom={nom} />
+      <label className={"adm-btn secondaire adm-photo-btn" + (occupe ? " btn-charge" : "")}>
+        {occupe ? "Envoi de la photo…" : apercu ? "Changer la photo" : "Ajouter une photo"}
         <input type="file" accept="image/*" onChange={choisir} disabled={occupe} hidden />
       </label>
+      {msg && <small className="adm-photo-ok">{msg}</small>}
       {err && <small className="adm-photo-err">{err}</small>}
     </div>
   );
