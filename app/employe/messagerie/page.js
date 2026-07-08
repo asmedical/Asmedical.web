@@ -2,9 +2,9 @@
 import { Suspense } from "react";
 import CentreMessages from "@/app/components/messagerie-partagee";
 
-// « Ma messagerie » côté patient — le contenu est partagé avec l'espace
-// employé ; seul l'habillage (barre du bas) diffère.
-export default function MessageriePage() {
+// Messagerie de l'employé — même centre de messages que côté patient,
+// mais rendu dans l'habillage employé (barre du bas dédiée).
+export default function MessagerieEmploye() {
   return (
     <Suspense>
       <CentreMessages />

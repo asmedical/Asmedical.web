@@ -117,7 +117,7 @@ export default function LayoutEmploye({ children }) {
                 <button className="emp-dispo-btn d-OCCUPE" onClick={() => definirDispo("OCCUPE")}>Occupé</button>
                 <button className="emp-dispo-btn d-ABSENT" onClick={() => definirDispo("ABSENT")}>Absent</button>
               </div>
-              <button className="sheet-opt" onClick={() => { setSheet(false); routeur.push("/messagerie?chat=1"); }}>
+              <button className="sheet-opt" onClick={() => { setSheet(false); routeur.push("/employe/messagerie?chat=1"); }}>
                 <IcoBulle /> <span>Message à l&apos;équipe ASM</span>
               </button>
               <button className="sheet-opt" onClick={() => { setSheet(false); routeur.push("/employe/planning"); }}>
@@ -147,7 +147,7 @@ function BarreEmploye({ chemin, routeur, onPlus }) {
       <button className="btn-accueil" onClick={onPlus} aria-label="Actions rapides" title="Actions rapides">
         <span className="croix" aria-hidden="true"><IcoPlus /></span>
       </button>
-      <button onClick={() => routeur.push("/messagerie")} aria-label="Messagerie" title="Messagerie" style={{ position: "relative" }}>
+      <button className={actif("/employe/messagerie") ? "actif" : ""} onClick={() => routeur.push("/employe/messagerie")} aria-label="Messagerie" title="Messagerie" style={{ position: "relative" }}>
         <IcoBulle strokeWidth="1.9" />
         {total > 0 && <span className="badge-nonlu badge-nav">{total > 99 ? "99+" : total}</span>}
       </button>

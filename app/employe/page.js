@@ -70,9 +70,9 @@ export default function TableauEmploye() {
 
       {/* Accès rapides */}
       <div className="emp-acces">
-        <Link href="/messagerie" className="emp-tuile"><span>💬</span>Messagerie</Link>
-        <Link href="/messagerie" className="emp-tuile"><span>🔔</span>Notifications</Link>
-        <Link href="/documentation" className="emp-tuile"><span>📄</span>Mes documents</Link>
+        <Link href="/employe/messagerie" className="emp-tuile"><span>💬</span>Messagerie</Link>
+        <Link href="/employe/messagerie" className="emp-tuile"><span>🔔</span>Notifications</Link>
+        <Link href="/employe/documents" className="emp-tuile"><span>📄</span>Mes documents</Link>
         <Link href="/employe/profil" className="emp-tuile"><span>👤</span>Mon profil</Link>
       </div>
 
