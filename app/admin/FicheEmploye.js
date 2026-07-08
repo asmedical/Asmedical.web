@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   fetchAdmin,
   Pastille,
@@ -20,6 +20,7 @@ const REMU = { fixe: "Salaire fixe", horaire: "Taux horaire", mission: "Par inte
 const ONGLETS = [
   ["resume", "Résumé"],
   ["perso", "Infos perso"],
+  ["compte", "Compte & accès"],
   ["travail", "Travail & dispos"],
   ["planning", "Planning"],
   ["paie", "Paie"],
@@ -268,6 +269,11 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
           )
         )}
 
+        {/* ---------------- COMPTE & ACCÈS ---------------- */}
+        {onglet === "compte" && (
+          <OngletCompte data={data} emploi={emploi} nomComplet={nomComplet} estSoignant={estSoignant} superadmin={superadmin} onChange={onChange} />
+        )}
+
         {/* ---------------- TRAVAIL & DISPOS ---------------- */}
         {onglet === "travail" && (
           mode === "modifier" ? (
@@ -432,6 +438,143 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
           <button className="btn-danger" onClick={supprimer}>Supprimer définitivement</button>
         </div>
       )}
+    </div>
+  );
+}
+
+// Onglet « Compte & accès » : création du compte de connexion de l'employé,
+// mot de passe temporaire, et actions (réinitialiser, forcer, suspendre).
+// Réservé au super admin (l'API le vérifie aussi côté serveur).
+function OngletCompte({ data, emploi, nomComplet, estSoignant, superadmin, onChange }) {
+  const [statut, setStatut] = useState(null); // état du compte (si lié)
+  const [chargement, setChargement] = useState(false);
+  const [msg, setMsg] = useState("");
+  const [err, setErr] = useState("");
+
+  const roleParDefaut = estSoignant ? (data.qualification === "infirmier" ? "infirmier" : "aide_soignant") : "chauffeur";
+  const [form, setForm] = useState({ email: data.email || "", telephone: data.telephone || "", motDePasse: "", role: roleParDefaut });
+  const [nouveauMdp, setNouveauMdp] = useState("");
+
+  const ROLES = estSoignant
+    ? [["aide_soignant", "Aide-soignant"], ["infirmier", "Infirmier"], ["coordinateur", "Coordinateur"]]
+    : [["chauffeur", "Chauffeur"], ["transporteur", "Transporteur"]];
+
+  async function chargerStatut() {
+    if (!data.userId) return;
+    setChargement(true);
+    try {
+      const d = await fetchAdmin(`/api/admin/compte?userId=${data.userId}`);
+      setStatut(d.compte);
+    } catch {
+      setStatut(null);
+    }
+    setChargement(false);
+  }
+  useEffect(() => {
+    chargerStatut();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.userId]);
+
+  function motDePasseAuto() {
+    const base = "Asm" + Math.floor(1000 + Math.random() * 9000) + "!";
+    setForm((f) => ({ ...f, motDePasse: base }));
+  }
+
+  async function creer() {
+    setErr(""); setMsg("");
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) return setErr("Email de connexion invalide.");
+    if (form.motDePasse.length < 8) return setErr("Mot de passe temporaire : 8 caractères minimum.");
+    setChargement(true);
+    try {
+      const d = await fetchAdmin("/api/admin/compte", {
+        method: "POST",
+        body: JSON.stringify({ ...form, prenom: data.prenom || "", nom: data.nom || data.responsable || "", entite: emploi, entiteId: data.id }),
+      });
+      setMsg("Compte créé ✓ — communiquez l'email et le mot de passe temporaire à l'employé.");
+      onChange?.({ ...data, userId: d.userId });
+    } catch (e) {
+      setErr(e?.status === 409 ? "Un compte existe déjà avec cet email." : "Création impossible.");
+    }
+    setChargement(false);
+  }
+
+  async function action(act, extra) {
+    setErr(""); setMsg("");
+    try {
+      await fetchAdmin("/api/admin/compte", { method: "PATCH", body: JSON.stringify({ userId: data.userId, action: act, ...extra }) });
+      setMsg("Effectué ✓");
+      setNouveauMdp("");
+      await chargerStatut();
+    } catch {
+      setErr("Action impossible.");
+    }
+  }
+
+  if (!superadmin) {
+    return <div className="adm-vide fe-etat-vide"><p>La gestion des comptes de connexion est réservée au super admin.</p></div>;
+  }
+
+  // Pas encore de compte → formulaire de création.
+  if (!data.userId) {
+    return (
+      <div>
+        <p className="fe-aide" style={{ marginTop: 0 }}>Créez un compte de connexion pour que {nomComplet} accède à son espace employé. Un mot de passe temporaire sera exigé au premier accès.</p>
+        <div className="fe-grille-edit">
+          <Champ label="Email de connexion" valeur={form.email} onChange={(v) => setForm({ ...form, email: v })} type="email" />
+          <Champ label="Téléphone" valeur={form.telephone} onChange={(v) => setForm({ ...form, telephone: v })} type="tel" />
+          <Champ label="Rôle" valeur={form.role} onChange={(v) => setForm({ ...form, role: v })} options={ROLES} />
+          <div className="fe-champ">
+            <span>Mot de passe temporaire</span>
+            <div style={{ display: "flex", gap: 6 }}>
+              <input type="text" value={form.motDePasse} onChange={(e) => setForm({ ...form, motDePasse: e.target.value })} placeholder="8 caractères min." />
+              <button type="button" className="adm-btn secondaire" onClick={motDePasseAuto} style={{ flexShrink: 0 }}>Générer</button>
+            </div>
+          </div>
+        </div>
+        {err && <p className="erreur">{err}</p>}
+        {msg && <p className="adm-msg">{msg}</p>}
+        <button className={"adm-btn" + (chargement ? " btn-charge" : "")} onClick={creer} disabled={chargement} style={{ marginTop: 14 }}>Créer le compte de connexion</button>
+      </div>
+    );
+  }
+
+  // Compte existant → statut + actions.
+  return (
+    <div>
+      {chargement && !statut && <p className="adm-vide">Chargement du compte…</p>}
+      {statut && (
+        <div className="fe-carte">
+          <div className="fe-ligne"><span className="fe-label">Email de connexion</span><span className="fe-valeur">{statut.email}</span></div>
+          <div className="fe-ligne"><span className="fe-label">Téléphone</span><span className="fe-valeur">{statut.telephone || "—"}</span></div>
+          <div className="fe-ligne"><span className="fe-label">Rôle du compte</span><span className="fe-valeur">{statut.role || "—"}</span></div>
+          <div className="fe-ligne"><span className="fe-label">Mot de passe temporaire</span><span className="fe-valeur">{statut.motDePasseTemporaire ? "Oui — changement exigé" : "Non (déjà changé)"}</span></div>
+          <div className="fe-ligne"><span className="fe-label">Première connexion</span><span className="fe-valeur">{statut.premiereConnexionFaite ? "Effectuée" : "Pas encore"}</span></div>
+          <div className="fe-ligne"><span className="fe-label">Dernière connexion</span><span className="fe-valeur">{statut.derniereConnexion ? new Date(statut.derniereConnexion).toLocaleString("fr-FR") : "—"}</span></div>
+          <div className="fe-ligne"><span className="fe-label">Accès</span><span className="fe-valeur">{statut.suspendu ? "🔴 Suspendu" : "🟢 Actif"}</span></div>
+        </div>
+      )}
+
+      {err && <p className="erreur">{err}</p>}
+      {msg && <p className="adm-msg">{msg}</p>}
+
+      <div className="fe-champ" style={{ marginTop: 16, maxWidth: 360 }}>
+        <span>Réinitialiser le mot de passe (nouveau temporaire)</span>
+        <div style={{ display: "flex", gap: 6 }}>
+          <input type="text" value={nouveauMdp} onChange={(e) => setNouveauMdp(e.target.value)} placeholder="Nouveau mot de passe temporaire" />
+          <button className="adm-btn" onClick={() => nouveauMdp.length >= 8 ? action("reset", { motDePasse: nouveauMdp }) : setErr("8 caractères min.")} style={{ flexShrink: 0 }}>Réinitialiser</button>
+        </div>
+      </div>
+
+      <div className="fe-actions-rapides" style={{ marginTop: 16 }}>
+        {!statut?.motDePasseTemporaire && (
+          <button className="adm-btn secondaire" onClick={() => action("forcer")}>Forcer un changement de mot de passe</button>
+        )}
+        {statut?.suspendu ? (
+          <button className="adm-btn" onClick={() => action("reactiver")}>Réactiver l&apos;accès</button>
+        ) : (
+          <button className="adm-btn secondaire" onClick={() => window.confirm("Suspendre l'accès de cet employé à son espace ?") && action("suspendre")}>Suspendre l&apos;accès</button>
+        )}
+      </div>
     </div>
   );
 }

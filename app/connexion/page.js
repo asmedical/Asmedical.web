@@ -47,11 +47,29 @@ function FormulaireConnexion() {
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
 
-  // Après connexion : nouveau compte → écran de confirmation (pour éviter la
-  // création accidentelle sur un numéro mal saisi) ; sinon → app.
+  // Rôles employé (espace /employe) et internes (espace /admin).
+  const ROLES_EMPLOYE = ["aide_soignant", "infirmier", "chauffeur", "transporteur", "coordinateur", "employe_interne"];
+  const ROLES_INTERNE = ["superadmin", "admin", "moderateur", "standardiste"];
+
+  // Après connexion : on aiguille selon le rôle. Un employé avec mot de passe
+  // temporaire est envoyé changer son mot de passe (obligatoire).
   async function apresConnexion(user) {
-    const type = espaceChoisi === "pro" ? "pro" : "patient";
     const profil = await chargerProfil(user?.id);
+    const role = profil?.role || user?.user_metadata?.role || "";
+
+    if (ROLES_EMPLOYE.includes(role)) {
+      seConnecter("patient");
+      if (user?.user_metadata?.must_change_password) routeur.push("/employe/mot-de-passe");
+      else routeur.push("/employe");
+      return;
+    }
+    if (ROLES_INTERNE.includes(role)) {
+      seConnecter("patient");
+      routeur.push("/admin");
+      return;
+    }
+
+    const type = espaceChoisi === "pro" ? "pro" : "patient";
     if (!profil) {
       setEtape("nouveau");
       return;

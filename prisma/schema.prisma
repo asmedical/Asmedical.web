@@ -45,6 +45,7 @@ model Soignant {
   email         String?
   photoUrl      String?
   qualification String   @default("aide_soignant") // aide_soignant | infirmier
+  userId        String?  @unique                   // compte de connexion Supabase lié (espace employé)
   communes      String   @default("")              // communes couvertes, séparées par des virgules
   heureDebut    Int      @default(7)               // horaires propres (défaut 7h-19h)
   heureFin      Int      @default(19)
@@ -80,6 +81,7 @@ model Transporteur {
   email         String?
   photoUrl      String?
   typeTransport String   @default("simple") // simple | accompagne | medicalise
+  userId        String?  @unique             // compte de connexion Supabase lié (espace employé)
   vehicule      String?
   zone          String   @default("")       // communes couvertes
   statut        String   @default("EN_ATTENTE") // EN_ATTENTE | VALIDE | SUSPENDU | INACTIF | REFUSE

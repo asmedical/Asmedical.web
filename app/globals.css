@@ -662,3 +662,42 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
   .adm-contenu{width:100%;padding:16px 12px 60px}
   .adm-actions{flex-direction:column;align-items:stretch}
 }
+
+/* ================= Espace employé (aide-soignant / chauffeur) ================= */
+.emp-page{min-height:100vh;background:var(--vert-pale)}
+.emp-entete{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--vert-fonce);color:#fff;padding:13px 18px;position:sticky;top:0;z-index:70}
+.emp-entete strong{font-size:15.5px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.emp-deco{background:rgba(255,255,255,.16);color:#fff;border:none;border-radius:999px;padding:7px 14px;font-size:13px;font-weight:800;font-family:inherit;cursor:pointer;flex-shrink:0}
+.emp-contenu{max-width:640px;margin:0 auto;padding:20px 16px 48px}
+.emp-refus{max-width:440px;margin:70px auto;padding:0 22px;text-align:center}
+.emp-refus h1{font-size:21px;color:var(--vert-fonce);margin-bottom:12px}
+.emp-refus p{color:var(--gris);margin-bottom:22px}
+.emp-titre{font-size:22px;color:var(--vert-fonce);margin-bottom:4px}
+.emp-sous{color:var(--gris);font-size:14.5px;margin-bottom:16px}
+.emp-section{font-size:15px;color:var(--vert-fonce);margin:24px 0 10px;font-weight:800}
+.emp-bandeau{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--blanc);border:1px solid var(--ligne);border-radius:14px;padding:14px 16px}
+.emp-bandeau strong{display:block;font-size:16px}
+.emp-bandeau small{display:block;color:var(--gris);font-size:13px;margin-top:2px}
+.emp-alerte{background:#FDF2E3;color:#8A5A12;font-size:13.5px;font-weight:700;padding:12px 14px;border-radius:10px;margin-top:12px}
+.emp-acces{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:16px}
+.emp-tuile{display:flex;flex-direction:column;align-items:center;gap:6px;background:var(--blanc);border:1px solid var(--ligne);border-radius:12px;padding:14px 6px;text-decoration:none;color:var(--encre);font-size:12px;font-weight:700;text-align:center}
+.emp-tuile span{font-size:22px}
+.emp-tuile:hover{border-color:var(--vert)}
+.emp-carte-i{background:var(--blanc);border:1px solid var(--ligne);border-radius:14px;padding:14px 16px;margin-bottom:10px}
+.emp-carte-i.urgente{border-color:#E3B7AC;background:#FDF7F5}
+.emp-carte-i.passee{display:flex;align-items:center;justify-content:space-between;gap:12px;opacity:.85}
+.emp-i-tete{display:flex;align-items:flex-start;justify-content:space-between;gap:12px}
+.emp-i-txt{min-width:0;flex:1}
+.emp-i-txt strong{display:block;font-size:15px;overflow-wrap:anywhere}
+.emp-i-txt small{display:block;color:var(--gris);font-size:13px;margin-top:2px;overflow-wrap:anywhere}
+.emp-i-txt a{color:var(--vert);font-weight:800}
+.emp-i-statut{flex-shrink:0;font-size:12px;font-weight:800;background:var(--vert-pale);color:var(--vert-fonce);padding:5px 11px;border-radius:999px;white-space:nowrap}
+.emp-i-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+.emp-i-actions .adm-btn{padding:9px 14px;font-size:13px}
+.emp-carte-centre{max-width:420px;margin:26px auto 0;background:var(--blanc);border:1px solid var(--ligne);border-radius:16px;padding:22px}
+.emp-regles{list-style:none;margin:14px 0;padding:0;display:flex;flex-direction:column;gap:6px}
+.emp-regles li{font-size:13px;color:var(--gris)}
+.emp-regles li.ok{color:var(--vert-fonce);font-weight:700}
+@media(max-width:460px){
+  .emp-acces{grid-template-columns:repeat(2,1fr)}
+}
