@@ -16,6 +16,8 @@ export async function GET(req) {
     if (p.get("statut")) where.statut = p.get("statut");
     if (p.get("service")) where.service = p.get("service");
     if (p.get("jour")) where.date = { startsWith: p.get("jour") };
+    if (p.get("soignantId")) where.soignantId = Number(p.get("soignantId"));
+    if (p.get("transporteurId")) where.transporteurId = Number(p.get("transporteurId"));
     const q = (p.get("q") || "").trim();
     if (q) {
       where.OR = [

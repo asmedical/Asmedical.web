@@ -198,7 +198,7 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 /* Barre de chargement « vague » ASM : vert foncé qui balaye de gauche à
    droite pendant un envoi (photos, documents, enregistrements). */
 .btn-charge{position:relative;overflow:hidden;pointer-events:none;opacity:1!important}
-.btn-charge::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent 15%,rgba(11,74,52,.30) 50%,transparent 85%);transform:translateX(-100%);animation:vague-charge 1.3s ease-in-out infinite}
+.btn-charge::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(90deg,transparent 15%,rgba(0,0,0,.20) 50%,transparent 85%);transform:translateX(-100%);animation:vague-charge 1.3s ease-in-out infinite}
 @keyframes vague-charge{to{transform:translateX(100%)}}
 .succes-envoi{color:var(--vert-fonce);font-weight:700;font-size:14px;margin:10px 0;text-align:center}
 .mini-label{display:block;font-weight:800;font-size:13.5px;color:var(--gris);margin-bottom:9px}
@@ -563,6 +563,65 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .adm-btn:disabled{opacity:.6;cursor:wait}
 .adm-vide{color:var(--gris);font-size:14.5px;text-align:center;padding:14px}
 .adm-msg{color:var(--vert-fonce);background:var(--vert-pale);font-weight:800;font-size:14px;padding:10px 14px;border-radius:10px;margin:10px 0}
+
+/* ============ Menu d'actions au clic sur une carte employé ============ */
+.adm-menu-actions{display:flex;flex-wrap:wrap;gap:8px;padding:12px;margin:-6px 0 4px;background:var(--vert-pale);border:1px solid var(--ligne);border-top:none;border-radius:0 0 12px 12px}
+.adm-menu-actions .adm-btn{padding:9px 15px;font-size:13.5px}
+
+/* ============ Fiche employé (back-office RH à onglets) ============ */
+.fe{max-width:720px;margin:0 auto}
+.fe-retour{margin-bottom:14px}
+.fe-entete{display:flex;align-items:center;gap:16px;background:var(--blanc);border:1px solid var(--ligne);border-radius:14px;padding:16px;margin-bottom:14px}
+.fe-entete .adm-avatar{width:72px;height:72px}
+.fe-entete-txt{min-width:0;flex:1}
+.fe-nom{font-size:20px;color:var(--vert-fonce);margin:0;overflow-wrap:anywhere}
+.fe-role{color:var(--gris);font-size:14px;margin:2px 0 8px}
+.fe-badges{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.fe-dispo{font-size:12px;font-weight:800;padding:5px 11px;border-radius:999px;white-space:nowrap}
+.fe-dispo.d-DISPONIBLE{background:#E7F6EC;color:#1E7A45}
+.fe-dispo.d-OCCUPE{background:#FDF2E3;color:#9A6212}
+.fe-dispo.d-ABSENT{background:#F1F1F3;color:#6B7280}
+.fe-onglets{display:flex;gap:4px;overflow-x:auto;-webkit-overflow-scrolling:touch;border-bottom:2px solid var(--ligne);margin-bottom:16px;padding-bottom:0}
+.fe-onglets::-webkit-scrollbar{display:none}
+.fe-onglet{flex:0 0 auto;background:none;border:none;font-family:inherit;font-size:14px;font-weight:800;color:var(--gris);padding:10px 14px;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;white-space:nowrap}
+.fe-onglet.actif{color:var(--vert-fonce);border-bottom-color:var(--vert)}
+.fe-contenu{min-height:120px}
+.fe-actions-rapides{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:14px}
+.fe-actions-rapides .adm-btn{padding:9px 15px;font-size:13.5px}
+.fe-carte{background:var(--blanc);border:1px solid var(--ligne);border-radius:12px;padding:6px 16px}
+.fe-ligne{display:flex;gap:14px;padding:11px 0;border-bottom:1px solid var(--ligne);font-size:14.5px}
+.fe-ligne:last-child{border-bottom:none}
+.fe-label{flex:0 0 42%;max-width:200px;color:var(--gris);font-weight:700}
+.fe-valeur{flex:1;min-width:0;overflow-wrap:anywhere}
+.fe-valeur a{color:var(--vert);font-weight:800}
+.fe-vide{color:var(--gris-clair);font-style:normal}
+.fe-photo-bloc{display:flex;gap:14px;padding:14px 0 4px;flex-wrap:wrap}
+.fe-photo-bloc .fe-label{flex:0 0 42%;max-width:200px}
+.fe-grille-edit{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.fe-champ{display:flex;flex-direction:column;gap:5px;font-size:13px;font-weight:800;color:var(--gris)}
+.fe-champ-large{grid-column:1/-1}
+.fe-champ input,.fe-champ select,.fe-champ textarea{padding:11px 13px;font-size:14.5px;font-family:inherit;border:1px solid var(--ligne);border-radius:10px;background:var(--blanc);color:var(--encre);width:100%}
+.fe-alerte{background:#FDF2E3;color:#8A5A12;font-size:13.5px;font-weight:700;padding:11px 14px;border-radius:10px;margin-top:14px}
+.fe-aide{color:var(--gris);font-size:13px;margin-top:12px;line-height:1.5}
+.fe-etat-vide{background:var(--blanc);border:1px dashed var(--ligne);border-radius:12px;padding:26px 18px}
+.fe-etat-vide p{margin:4px 0}
+.fe-histo{position:relative;padding-inline-start:6px}
+.fe-histo-ligne{display:flex;gap:12px;padding:10px 0;border-bottom:1px solid var(--ligne)}
+.fe-histo-ligne:last-child{border-bottom:none}
+.fe-histo-point{width:10px;height:10px;border-radius:50%;background:var(--vert);flex-shrink:0;margin-top:5px}
+.fe-histo-ligne strong{font-size:14.5px}
+.fe-histo-detail{color:var(--encre);font-size:14px}
+.fe-histo-ligne small{display:block;color:var(--gris);font-size:12.5px;margin-top:2px}
+.fe-barre-edit{position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--blanc);border:1px solid var(--ligne);border-radius:12px;box-shadow:0 -4px 16px rgba(0,0,0,.06);padding:12px 16px;margin-top:18px;flex-wrap:wrap}
+.fe-barre-info{font-weight:800;color:var(--vert-fonce);font-size:13.5px}
+.fe-zone-danger{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;margin-top:22px;padding:14px 16px;border:1px solid #E3B7AC;background:#FDF7F5;border-radius:12px}
+.fe-zone-danger span{font-weight:800;color:#9B3222;font-size:13.5px}
+@media(max-width:520px){
+  .fe-label{flex-basis:48%}
+  .fe-barre-edit{position:sticky;flex-direction:column;align-items:stretch}
+  .fe-barre-edit>div{display:flex;gap:8px}
+  .fe-barre-edit>div .adm-btn{flex:1}
+}
 .adm-fiche{background:var(--blanc);border:1.5px solid var(--vert);border-radius:14px;padding:18px;margin-top:14px}
 .adm-fiche>strong{font-size:16px;color:var(--vert-fonce)}
 .adm-photo{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}

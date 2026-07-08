@@ -1,18 +1,20 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchAdmin, Pastille, NotesInternes, ChampPhoto, Avatar, LIBELLE_STATUT_INTERVENANT } from "../ui";
+import { fetchAdmin, Pastille, Avatar, useGardeAdmin, LIBELLE_STATUT_INTERVENANT } from "../ui";
+import FicheEmploye from "../FicheEmploye";
 
 const QUALIFS = { aide_soignant: "Aide-soignant(e)", infirmier: "Infirmier(ère)" };
 const VIDE = { prenom: "", nom: "", telephone: "", email: "", qualification: "aide_soignant", communes: "" };
 
 export default function PageSoignants() {
+  const { role } = useGardeAdmin();
   const [statut, setStatut] = useState("");
   const [q, setQ] = useState("");
   const [liste, setListe] = useState(null);
-  const [ouvert, setOuvert] = useState(null);
+  const [menuId, setMenuId] = useState(null); // carte dont le menu d'actions est ouvert
+  const [fiche, setFiche] = useState(null); // { id, mode } — fiche employé ouverte
   const [creation, setCreation] = useState(false);
   const [neuf, setNeuf] = useState(VIDE);
-  const [edition, setEdition] = useState(null);
   const [msg, setMsg] = useState("");
 
   async function charger() {
@@ -48,20 +50,40 @@ export default function PageSoignants() {
     }
   }
 
-  async function maj(id, champs, confirmation) {
-    if (confirmation && !window.confirm(confirmation)) return;
-    setMsg("");
+  async function suspendre(x) {
+    if (!window.confirm(`Suspendre ${x.prenom} ${x.nom} ? Il/elle ne pourra plus être affecté(e).`)) return;
     try {
-      await fetchAdmin("/api/admin/soignants", { method: "PATCH", body: JSON.stringify({ id, ...champs }) });
-      setMsg("Enregistré ✓");
-      setEdition(null);
+      await fetchAdmin("/api/admin/soignants", { method: "PATCH", body: JSON.stringify({ id: x.id, statut: "SUSPENDU" }) });
+      setMenuId(null);
       await charger();
     } catch {
-      setMsg("Erreur (vos droits ne le permettent peut-être pas).");
+      setMsg("Action impossible.");
+    }
+  }
+  async function reactiver(x) {
+    try {
+      await fetchAdmin("/api/admin/soignants", { method: "PATCH", body: JSON.stringify({ id: x.id, statut: "VALIDE" }) });
+      setMenuId(null);
+      await charger();
+    } catch {
+      setMsg("Action impossible.");
     }
   }
 
-  const s = liste?.find((x) => x.id === ouvert);
+  // Fiche employé ouverte : elle remplace la liste.
+  const employe = fiche && liste?.find((x) => x.id === fiche.id);
+  if (employe) {
+    return (
+      <FicheEmploye
+        emploi="soignant"
+        data={employe}
+        role={role}
+        modeInitial={fiche.mode}
+        onChange={(maj) => { setListe((l) => l.map((x) => (x.id === maj.id ? { ...x, ...maj } : x))); }}
+        onFermer={(supprime) => { setFiche(null); if (supprime) charger(); }}
+      />
+    );
+  }
 
   return (
     <>
@@ -100,86 +122,29 @@ export default function PageSoignants() {
 
       <div className="adm-liste">
         {liste?.map((x) => (
-          <div className="adm-ligne cliquable" key={x.id} onClick={() => setOuvert(ouvert === x.id ? null : x.id)}>
-            <Avatar mini url={x.photoUrl} nom={`${x.prenom} ${x.nom}`} />
-            <span className="adm-ligne-texte">
-              <strong>{x.prenom} {x.nom}</strong>
-              <small>{QUALIFS[x.qualification]} · {x.telephone || "—"} {x.communes ? `· ${x.communes}` : ""}</small>
-            </span>
-            <Pastille statut={x.statut} table={LIBELLE_STATUT_INTERVENANT} />
+          <div key={x.id}>
+            <div className="adm-ligne cliquable" onClick={() => setMenuId(menuId === x.id ? null : x.id)}>
+              <Avatar mini url={x.photoUrl} nom={`${x.prenom} ${x.nom}`} />
+              <span className="adm-ligne-texte">
+                <strong>{x.prenom} {x.nom}</strong>
+                <small>{QUALIFS[x.qualification]} · {x.telephone || "—"} {x.communes ? `· ${x.communes}` : ""}</small>
+              </span>
+              <Pastille statut={x.statut} table={LIBELLE_STATUT_INTERVENANT} />
+            </div>
+            {menuId === x.id && (
+              <div className="adm-menu-actions">
+                <button className="adm-btn" onClick={() => { setFiche({ id: x.id, mode: "voir" }); setMenuId(null); }}>Voir la fiche</button>
+                <button className="adm-btn secondaire" onClick={() => { setFiche({ id: x.id, mode: "modifier" }); setMenuId(null); }}>Modifier</button>
+                {x.statut === "VALIDE" ? (
+                  <button className="adm-btn secondaire" onClick={() => suspendre(x)}>Suspendre</button>
+                ) : (
+                  <button className="adm-btn secondaire" onClick={() => reactiver(x)}>Valider / Réactiver</button>
+                )}
+              </div>
+            )}
           </div>
         ))}
       </div>
-
-      {s && (
-        <div className="adm-fiche">
-          <strong>{s.prenom} {s.nom} — {QUALIFS[s.qualification]}</strong>
-          <ChampPhoto
-            entite="soignant"
-            id={s.id}
-            url={s.photoUrl}
-            nom={`${s.prenom} ${s.nom}`}
-            onPhoto={charger}
-          />
-          {edition !== s.id ? (
-            <div className="adm-detail">
-              <p><b>Téléphone :</b> {s.telephone ? <a href={`tel:${s.telephone}`}>{s.telephone}</a> : "—"} · <b>Email :</b> {s.email || "—"}</p>
-              <p><b>Communes :</b> {s.communes || "—"}</p>
-              <p><b>Horaires :</b> {s.heureDebut}h – {s.heureFin}h {s.joursOff ? `· repos : ${s.joursOff}` : ""}</p>
-              {s.conges && <p><b>Congés :</b> {s.conges}</p>}
-              <button className="adm-btn secondaire" onClick={() => setEdition(s.id)}>Modifier</button>
-            </div>
-          ) : (
-            <FormEdition s={s} onValider={(champs) => maj(s.id, champs)} onAnnuler={() => setEdition(null)} />
-          )}
-
-          <div className="adm-actions">
-            {s.statut !== "VALIDE" && (
-              <button className="adm-btn" onClick={() => maj(s.id, { statut: "VALIDE" }, `Valider le profil de ${s.prenom} ${s.nom} ?`)}>✓ Valider</button>
-            )}
-            {s.statut === "VALIDE" && (
-              <button className="adm-btn secondaire" onClick={() => maj(s.id, { statut: "SUSPENDU" }, `Suspendre ${s.prenom} ${s.nom} ? Il/elle ne sera plus proposé(e).`)}>Suspendre</button>
-            )}
-            {s.statut === "SUSPENDU" && (
-              <button className="adm-btn" onClick={() => maj(s.id, { statut: "VALIDE" })}>Réactiver</button>
-            )}
-            {s.statut === "EN_ATTENTE" && (
-              <button className="adm-btn secondaire" onClick={() => maj(s.id, { statut: "REFUSE" }, "Refuser ce profil ?")}>Refuser</button>
-            )}
-          </div>
-
-          <NotesInternes entite="soignant" entiteId={s.id} />
-        </div>
-      )}
     </>
-  );
-}
-
-function FormEdition({ s, onValider, onAnnuler }) {
-  const [c, setC] = useState({
-    prenom: s.prenom, nom: s.nom, telephone: s.telephone || "", email: s.email || "",
-    qualification: s.qualification, communes: s.communes || "",
-    heureDebut: s.heureDebut, heureFin: s.heureFin, joursOff: s.joursOff || "", conges: s.conges || "",
-  });
-  return (
-    <div className="adm-detail">
-      <div className="adm-grille-form">
-        <input placeholder="Prénom" value={c.prenom} onChange={(e) => setC({ ...c, prenom: e.target.value })} />
-        <input placeholder="Nom" value={c.nom} onChange={(e) => setC({ ...c, nom: e.target.value })} />
-        <input placeholder="Téléphone" value={c.telephone} onChange={(e) => setC({ ...c, telephone: e.target.value })} />
-        <input placeholder="Email" value={c.email} onChange={(e) => setC({ ...c, email: e.target.value })} />
-        <select value={c.qualification} onChange={(e) => setC({ ...c, qualification: e.target.value })}>
-          <option value="aide_soignant">Aide-soignant(e)</option>
-          <option value="infirmier">Infirmier(ère)</option>
-        </select>
-        <input placeholder="Communes couvertes" value={c.communes} onChange={(e) => setC({ ...c, communes: e.target.value })} />
-        <input type="number" min="0" max="24" placeholder="Début (h)" value={c.heureDebut} onChange={(e) => setC({ ...c, heureDebut: e.target.value })} />
-        <input type="number" min="0" max="24" placeholder="Fin (h)" value={c.heureFin} onChange={(e) => setC({ ...c, heureFin: e.target.value })} />
-        <input placeholder="Jours de repos (ex. 4,5 = ven,sam)" value={c.joursOff} onChange={(e) => setC({ ...c, joursOff: e.target.value })} />
-        <input placeholder="Congés (dates AAAA-MM-JJ, virgules)" value={c.conges} onChange={(e) => setC({ ...c, conges: e.target.value })} />
-      </div>
-      <button className="adm-btn" style={{ marginTop: 10 }} onClick={() => onValider(c)}>Enregistrer</button>
-      <button className="adm-btn secondaire" style={{ marginTop: 10, marginInlineStart: 8 }} onClick={onAnnuler}>Annuler</button>
-    </div>
   );
 }

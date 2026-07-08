@@ -51,8 +51,24 @@ model Soignant {
   joursOff      String   @default("")              // jours de repos hebdo "5,6" (0=lun … 6=dim)
   conges        String   @default("")              // dates AAAA-MM-JJ séparées par des virgules
   statut        String   @default("EN_ATTENTE")    // EN_ATTENTE | VALIDE | SUSPENDU | INACTIF | REFUSE
+  // --- RH étendu (fiche employé) ---
+  adresse         String?
+  commune         String?
+  wilaya          String?
+  dateNaissance   String?   // AAAA-MM-JJ
+  contactUrgence  String?   // nom + téléphone d'un proche
+  dispo           String    @default("DISPONIBLE")  // DISPONIBLE | OCCUPE | ABSENT
+  specialites     String    @default("")            // compétences / types de soins, virgules
+  accepteUrgences Boolean   @default(false)
+  typeRemuneration String?  // fixe | horaire | mission | forfait
+  tauxHoraire     Float?
+  tarifMission    Float?
+  primes          Float?
+  retenues        Float?
+  notesPaie       String?
   demandes      Demande[]
   creeLe        DateTime @default(now())
+  majLe         DateTime @updatedAt @default(now())
 }
 
 // Transporteur / chauffeur (Mode B)
@@ -67,8 +83,28 @@ model Transporteur {
   vehicule      String?
   zone          String   @default("")       // communes couvertes
   statut        String   @default("EN_ATTENTE") // EN_ATTENTE | VALIDE | SUSPENDU | INACTIF | REFUSE
+  // --- RH étendu (fiche employé) ---
+  heureDebut      Int       @default(7)
+  heureFin        Int       @default(19)
+  joursOff        String    @default("")
+  conges          String    @default("")
+  adresse         String?
+  commune         String?
+  wilaya          String?
+  dateNaissance   String?
+  contactUrgence  String?
+  dispo           String    @default("DISPONIBLE")  // DISPONIBLE | OCCUPE | ABSENT
+  specialites     String    @default("")            // capacité, options du véhicule…
+  accepteUrgences Boolean   @default(false)
+  typeRemuneration String?  // fixe | horaire | mission | forfait
+  tauxHoraire     Float?
+  tarifMission    Float?
+  primes          Float?
+  retenues        Float?
+  notesPaie       String?
   demandes      Demande[]
   creeLe        DateTime @default(now())
+  majLe         DateTime @updatedAt @default(now())
 }
 
 // Série récurrente de transports (dialyse, chimio…)

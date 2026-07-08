@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifierAdmin, journaliser, refus, ROLES_GESTION_INTERVENANTS } from "@/lib/adminAuth";
+import { verifierAdmin, journaliser, refus, ROLES_GESTION_INTERVENANTS, ROLES_GESTION_EQUIPE } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
 
@@ -62,19 +62,55 @@ export async function PATCH(req) {
     const c = await req.json();
     const id = Number(c.id);
     if (!id) return NextResponse.json({ erreur: "id manquant" }, { status: 400 });
+    const VIDE = new Set(["communes", "conges", "joursOff", "specialites"]);
     const data = {};
-    for (const [k, m] of [["prenom", 60], ["nom", 60], ["telephone", 20], ["email", 120], ["communes", 400], ["conges", 800], ["joursOff", 20], ["photoUrl", 400]]) {
-      if (c[k] !== undefined) data[k] = c[k] ? String(c[k]).slice(0, m) : k === "communes" || k === "conges" || k === "joursOff" ? "" : null;
+    const champs = [
+      ["prenom", 60], ["nom", 60], ["telephone", 20], ["email", 120], ["communes", 400],
+      ["conges", 800], ["joursOff", 20], ["photoUrl", 400], ["adresse", 160], ["commune", 80],
+      ["wilaya", 80], ["dateNaissance", 10], ["contactUrgence", 120], ["specialites", 400],
+      ["notesPaie", 1000],
+    ];
+    for (const [k, m] of champs) {
+      if (c[k] !== undefined) data[k] = c[k] ? String(c[k]).slice(0, m) : VIDE.has(k) ? "" : null;
     }
     if (c.qualification) data.qualification = c.qualification === "infirmier" ? "infirmier" : "aide_soignant";
     for (const k of ["heureDebut", "heureFin"]) {
       const v = parseInt(c[k], 10);
       if (Number.isFinite(v) && v >= 0 && v <= 24) data[k] = v;
     }
+    if (["DISPONIBLE", "OCCUPE", "ABSENT"].includes(c.dispo)) data.dispo = c.dispo;
+    if (c.accepteUrgences !== undefined) data.accepteUrgences = Boolean(c.accepteUrgences);
+    if (c.typeRemuneration !== undefined)
+      data.typeRemuneration = ["fixe", "horaire", "mission", "forfait"].includes(c.typeRemuneration) ? c.typeRemuneration : null;
+    for (const k of ["tauxHoraire", "tarifMission", "primes", "retenues"]) {
+      if (c[k] !== undefined) {
+        const v = parseFloat(c[k]);
+        data[k] = Number.isFinite(v) && v >= 0 ? v : null;
+      }
+    }
     if (c.statut && STATUTS.includes(c.statut)) data.statut = c.statut;
     const s = await prisma.soignant.update({ where: { id }, data });
     await journaliser(acces.nomAffiche, "soignant.maj", "soignant", id, c.statut ? `statut → ${c.statut}` : "profil modifié");
     return NextResponse.json({ ok: true, soignant: s });
+  } catch {
+    return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
+  }
+}
+
+// Suppression définitive — réservée au super admin. Les demandes liées
+// sont d'abord détachées pour ne pas casser l'historique des clients.
+export async function DELETE(req) {
+  const acces = await verifierAdmin(req, ROLES_GESTION_EQUIPE);
+  if (!acces) return refus();
+  try {
+    const id = Number(new URL(req.url).searchParams.get("id"));
+    if (!id) return NextResponse.json({ erreur: "id manquant" }, { status: 400 });
+    const s = await prisma.soignant.findUnique({ where: { id } });
+    if (!s) return NextResponse.json({ erreur: "introuvable" }, { status: 404 });
+    await prisma.demande.updateMany({ where: { soignantId: id }, data: { soignantId: null } });
+    await prisma.soignant.delete({ where: { id } });
+    await journaliser(acces.nomAffiche, "soignant.supprime", "soignant", id, `${s.prenom} ${s.nom}`);
+    return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
   }
