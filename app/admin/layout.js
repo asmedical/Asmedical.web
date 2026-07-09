@@ -19,6 +19,7 @@ import {
 const ONGLETS = [
   { href: "/admin", libelle: "Bord", Ico: IcoDocumentLignes },
   { href: "/admin/demandes", libelle: "Demandes", Ico: IcoCalendrier },
+  { href: "/admin/abonnements", libelle: "Abonnés", Ico: IcoVehicule },
   { href: "/admin/messages", libelle: "Messages", Ico: IcoBulle },
   { href: "/admin/clients", libelle: "Clients", Ico: IcoPersonne },
   { href: "/admin/soignants", libelle: "Soignants", Ico: IcoMaison },
