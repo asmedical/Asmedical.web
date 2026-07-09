@@ -101,11 +101,11 @@ export async function POST(req) {
     await journaliser(acces.nomAffiche, "compte.cree", "compte", userId, `${role} · ${email}`);
 
     // Email d'invitation (best-effort : n'empêche jamais la création).
+    // Le lien utilise TOUJOURS le domaine public propre (jamais l'URL
+    // Vercel de déploiement, qui peut afficher une page « Log in to Vercel »).
     let emailEnvoye = false;
     if (emailConfigure()) {
-      const proto = req.headers.get("x-forwarded-proto") || "https";
-      const host = req.headers.get("host");
-      const base = host ? `${proto}://${host}` : (process.env.NEXT_PUBLIC_SITE_URL || "https://asm-sante.com");
+      const base = process.env.NEXT_PUBLIC_SITE_URL || "https://asm-sante.com";
       const res = await envoyerEmail({
         to: email,
         subject: "Bienvenue chez ASM — votre accès",
