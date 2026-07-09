@@ -84,6 +84,7 @@ export async function GET(req) {
           soignant: { select: { prenom: true, nom: true } },
           transporteur: { select: { nom: true } },
           abonnement: true,
+          avis: { select: { note: true, commentaire: true } },
         },
       }),
     ]);

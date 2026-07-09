@@ -283,6 +283,7 @@ function SuiviIntervenant({ d }) {
       )}
       {d.problemeTexte && <p className="adm-suivi-pb">⚠️ Problème signalé{d.problemeLe ? ` (${h(d.problemeLe)})` : ""} : {d.problemeTexte}</p>}
       {d.compteRendu && <p><b>Compte rendu :</b> {d.compteRendu}</p>}
+      {d.avis && <p><b>Avis patient :</b> {"★".repeat(d.avis.note)}{"☆".repeat(5 - d.avis.note)} {d.avis.commentaire ? `— « ${d.avis.commentaire} »` : ""}</p>}
     </div>
   );
 }

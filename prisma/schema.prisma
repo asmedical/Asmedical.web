@@ -42,6 +42,7 @@ model Demande {
   problemeLe     DateTime?  // problème signalé
   problemeTexte  String?    // description du problème signalé
   compteRendu    String?    // compte rendu court après intervention (visible admin)
+  avis           Avis?
   creeLe         DateTime @default(now())
 }
 
@@ -77,6 +78,7 @@ model Soignant {
   retenues        Float?
   notesPaie       String?
   demandes      Demande[]
+  avis          Avis[]
   creeLe        DateTime @default(now())
   majLe         DateTime @updatedAt @default(now())
 }
@@ -114,6 +116,7 @@ model Transporteur {
   retenues        Float?
   notesPaie       String?
   demandes      Demande[]
+  avis          Avis[]
   creeLe        DateTime @default(now())
   majLe         DateTime @updatedAt @default(now())
 }
@@ -178,6 +181,24 @@ model Notification {
   creeLe  DateTime  @default(now())
 
   @@index([userId, creeLe])
+}
+
+// Avis d'un patient après une intervention terminée (note + commentaire).
+model Avis {
+  id             Int           @id @default(autoincrement())
+  demandeId      Int           @unique
+  demande        Demande       @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  soignantId     Int?
+  soignant       Soignant?     @relation(fields: [soignantId], references: [id], onDelete: SetNull)
+  transporteurId Int?
+  transporteur   Transporteur? @relation(fields: [transporteurId], references: [id], onDelete: SetNull)
+  note           Int           // 1 à 5
+  commentaire    String?
+  telephone      String        // identité patient (contrôle d'appartenance)
+  creeLe         DateTime      @default(now())
+
+  @@index([soignantId])
+  @@index([transporteurId])
 }
 
 // Document RH d'un employé (pièce d'identité, diplôme, permis, contrat…).

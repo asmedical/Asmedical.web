@@ -4,8 +4,80 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
-import { chargerMesDemandes } from "@/lib/supabase";
+import { chargerMesDemandes, supabase } from "@/lib/supabase";
 import { IcoPersonne, IcoTelephone } from "@/app/components/icones";
+
+// Bloc d'avis : le patient note son intervention terminée (une seule fois).
+function BlocAvis({ demande, t }) {
+  const [note, setNote] = useState(0);
+  const [survol, setSurvol] = useState(0);
+  const [commentaire, setCommentaire] = useState("");
+  const [etat, setEtat] = useState(demande.avis ? "fait" : "form"); // form | envoi | fait | erreur
+  const avis = demande.avis;
+
+  async function envoyer() {
+    if (note < 1) return;
+    setEtat("envoi");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch("/api/avis", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ demandeId: demande.id, note, commentaire: commentaire.trim() }),
+      });
+      if (!r.ok) throw new Error();
+      setEtat("fait");
+    } catch {
+      setEtat("erreur");
+    }
+  }
+
+  if (etat === "fait" || avis) {
+    const n = avis?.note ?? note;
+    return (
+      <div className="avis-bloc">
+        <strong>{t("avis_merci")}</strong>
+        <div className="avis-etoiles lecture" aria-label={`${n}/5`}>
+          {[1, 2, 3, 4, 5].map((i) => <span key={i} className={i <= n ? "on" : ""}>★</span>)}
+        </div>
+        {avis?.commentaire && <p className="avis-comment">« {avis.commentaire} »</p>}
+      </div>
+    );
+  }
+
+  return (
+    <div className="avis-bloc">
+      <strong>{t("avis_titre")}</strong>
+      <div className="avis-etoiles" role="radiogroup" aria-label={t("avis_titre")}>
+        {[1, 2, 3, 4, 5].map((i) => (
+          <button
+            key={i}
+            type="button"
+            className={(survol || note) >= i ? "on" : ""}
+            onMouseEnter={() => setSurvol(i)}
+            onMouseLeave={() => setSurvol(0)}
+            onClick={() => setNote(i)}
+            aria-label={`${i} / 5`}
+          >
+            ★
+          </button>
+        ))}
+      </div>
+      <textarea
+        className="avis-comment-input"
+        rows={2}
+        placeholder={t("avis_ph")}
+        value={commentaire}
+        onChange={(e) => setCommentaire(e.target.value)}
+        maxLength={600}
+      />
+      {etat === "erreur" && <p className="erreur">{t("avis_err")}</p>}
+      <button className="btn-action" onClick={envoyer} disabled={note < 1 || etat === "envoi"}>
+        {etat === "envoi" ? t("envoi") : t("avis_envoyer")}
+      </button>
+    </div>
+  );
+}
 
 // Étapes réelles du suivi (mappées sur le statut de la demande).
 const ETAPES = [
@@ -154,6 +226,8 @@ function FicheSuivi({ demande, t }) {
       ) : (
         !annulee && <p className="suivi-info">{t("suivi_pas_affecte")}</p>
       )}
+
+      {(demande.statut === "TERMINEE" || demande.avis) && <BlocAvis demande={demande} t={t} />}
 
       <div className="info-appel" style={{ marginTop: 16 }}>
         <span>{t("suivi_besoin")}</span> <a href={TEL_LIEN}>{TEL_AFFICHE}</a>

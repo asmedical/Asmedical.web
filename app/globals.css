@@ -781,3 +781,17 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .suivi-live.actif{background:#EAF6EF;border-color:var(--vert)}
 .suivi-live.actif .suivi-live-pastille{background:var(--vert);box-shadow:0 0 0 0 rgba(14,107,63,.5);animation:pulse-live 1.6s infinite}
 @keyframes pulse-live{0%{box-shadow:0 0 0 0 rgba(14,107,63,.5)}70%{box-shadow:0 0 0 10px rgba(14,107,63,0)}100%{box-shadow:0 0 0 0 rgba(14,107,63,0)}}
+
+/* ============ Avis patient (étoiles) ============ */
+.avis-bloc{margin-top:16px;padding:16px;background:var(--vert-pale);border:1px solid var(--ligne);border-radius:12px}
+.avis-bloc>strong{display:block;font-size:15px;color:var(--vert-fonce);margin-bottom:10px}
+.avis-etoiles{display:flex;gap:6px}
+.avis-etoiles button{background:none;border:none;font-size:32px;line-height:1;color:var(--gris-clair);cursor:pointer;padding:0;transition:color .1s,transform .05s}
+.avis-etoiles button.on{color:#F2B705}
+.avis-etoiles button:active{transform:scale(.9)}
+.avis-etoiles.lecture{font-size:22px;color:var(--gris-clair)}
+.avis-etoiles.lecture span{font-size:22px}
+.avis-etoiles.lecture span.on{color:#F2B705}
+.avis-comment-input{width:100%;margin-top:12px;padding:11px 13px;font-family:inherit;font-size:14.5px;border:1px solid var(--ligne);border-radius:10px;background:var(--blanc);color:var(--encre)}
+.avis-bloc .btn-action{margin-top:12px}
+.avis-comment{margin-top:8px;font-style:italic;color:var(--encre)}

@@ -238,6 +238,8 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
             )}
 
             {data.userId && <EnvoiMessageEmploye userId={data.userId} nom={nomComplet} />}
+
+            <AvisIntervenant emploi={emploi} id={data.id} />
           </>
         )}
 
@@ -729,6 +731,32 @@ function OngletDocuments({ userId, nom, gestion }) {
           </div>
         );
       })}
+    </div>
+  );
+}
+
+// Avis patients reçus par l'intervenant (moyenne + derniers avis).
+function AvisIntervenant({ emploi, id }) {
+  const [d, setD] = useState(null);
+  useEffect(() => {
+    fetchAdmin(`/api/admin/avis?entite=${emploi}&id=${id}`).then(setD).catch(() => setD({ nombre: 0, avis: [] }));
+  }, [emploi, id]);
+  if (!d || d.nombre === 0) return null;
+  const etoiles = (n) => "★".repeat(n) + "☆".repeat(5 - n);
+  return (
+    <div className="fe-carte" style={{ marginTop: 14 }}>
+      <strong>Avis patients — {d.moyenne}/5 <span style={{ color: "#F2B705" }}>{etoiles(Math.round(d.moyenne))}</span> <span style={{ color: "var(--gris)", fontWeight: 400 }}>({d.nombre})</span></strong>
+      <div style={{ marginTop: 10 }}>
+        {d.avis.slice(0, 5).map((a) => (
+          <div key={a.id} className="fe-histo-ligne" style={{ borderColor: "var(--ligne)" }}>
+            <div>
+              <strong style={{ color: "#F2B705", fontSize: 14 }}>{etoiles(a.note)}</strong>
+              {a.commentaire && <span className="fe-histo-detail"> « {a.commentaire} »</span>}
+              <small>{new Date(a.creeLe).toLocaleDateString("fr-FR")}</small>
+            </div>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }

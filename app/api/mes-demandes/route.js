@@ -41,6 +41,7 @@ export async function GET(req) {
       include: {
         soignant: { select: { prenom: true, nom: true, telephone: true, photoUrl: true } },
         transporteur: { select: { nom: true, telephone: true, photoUrl: true } },
+        avis: { select: { note: true, commentaire: true } },
       },
     });
     return NextResponse.json({ demandes });
