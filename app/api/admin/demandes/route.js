@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifierAdmin, journaliser, refus } from "@/lib/adminAuth";
+import { notifierPatient } from "@/lib/notifier";
 
 export const dynamic = "force-dynamic";
 
@@ -149,6 +150,15 @@ export async function PATCH(req) {
       if (data.statut === "ANNULEE") {
         if (maj.soignantId) await notifierIntervenant("soignant", maj.soignantId, "Intervention annulée", detailIntervention(maj), acces.nomAffiche, maj.id);
         if (maj.transporteurId) await notifierIntervenant("transporteur", maj.transporteurId, "Course annulée", detailIntervention(maj), acces.nomAffiche, maj.id);
+      }
+
+      // ---- Notifications côté patient ----
+      const nouvelleAffectation = (data.soignantId && data.soignantId !== avant?.soignantId) || (data.transporteurId && data.transporteurId !== avant?.transporteurId);
+      if (nouvelleAffectation) {
+        await notifierPatient(acces.admin, maj, { titre: "Un intervenant vous a été assigné", corps: `Votre demande n°${maj.id} est prise en charge. Suivez son avancement en direct.` });
+      }
+      if (data.statut === "ANNULEE") {
+        await notifierPatient(acces.admin, maj, { titre: "Votre rendez-vous a été annulé", corps: `Votre demande n°${maj.id} a été annulée. Contactez-nous pour toute question.` });
       }
     } catch {}
 

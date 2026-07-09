@@ -24,8 +24,15 @@ async function contexte(req) {
   const modele = estChauffeur ? prisma.transporteur : prisma.soignant;
   const iv = await modele.findUnique({ where: { userId: user.id } });
   if (!iv) return { err: NextResponse.json({ erreur: "aucune fiche liée" }, { status: 403 }) };
-  return { user, role, estChauffeur, iv };
+  return { user, role, estChauffeur, iv, admin };
 }
+
+// Message patient selon l'action posée par l'intervenant sur le terrain.
+const MSG_PATIENT = {
+  en_route: { titre: "Votre intervenant est en route 🚗", corps: "Il/elle se dirige vers vous." },
+  arrivee: { titre: "Votre intervenant est arrivé 📍", corps: "Il/elle est sur place." },
+  terminer: { titre: "Intervention terminée ✅", corps: "Merci ! Donnez votre avis en quelques secondes." },
+};
 
 // Vérifie que la demande est bien affectée à cet intervenant (sécurité).
 function possede(demande, ctx) {
@@ -151,6 +158,13 @@ export async function PATCH(req) {
         detail: `${libelle} (par l'intervenant)`,
       },
     });
+
+    // Prévient le patient des étapes qui le concernent (en route / arrivé / terminé).
+    if (MSG_PATIENT[action]) {
+      const { notifierPatient } = await import("@/lib/notifier");
+      await notifierPatient(ctx.admin, maj, MSG_PATIENT[action]);
+    }
+
     return NextResponse.json({ ok: true, intervention: vueIntervenant(maj) });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });

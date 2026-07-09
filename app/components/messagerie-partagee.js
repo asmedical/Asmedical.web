@@ -163,6 +163,11 @@ export default function CentreMessages() {
                             Voir l&apos;intervention
                           </Link>
                         )}
+                        {n.lienType === "suivi" && n.lienId && (
+                          <Link className="btn-action" style={{ marginTop: 10 }} href={`/suivi?id=${n.lienId}`}>
+                            Voir le suivi
+                          </Link>
+                        )}
                         {n.type === "document" && (
                           <Link className="btn-action" style={{ marginTop: 10 }} href={lienDocuments()}>
                             {t("notif_envoyer_doc")}
