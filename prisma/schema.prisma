@@ -319,3 +319,12 @@ model Reglage {
   capaciteFenetre     Int     @default(8)     // livraisons max par fenêtre (matin/midi/soir)
   affectationAuto     Boolean @default(false) // affecter automatiquement l'intervenant le moins chargé
 }
+
+// Canal choisi par l'utilisateur pour recevoir son code de connexion
+// (sms | whatsapp). Consulté par le hook d'envoi au moment de l'OTP.
+model OtpCanal {
+  id        Int      @id @default(autoincrement())
+  telephone String   @unique // format E.164
+  canal     String   @default("sms")
+  majLe     DateTime @updatedAt @default(now())
+}

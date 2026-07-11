@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Suspense, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
@@ -10,9 +10,39 @@ import {
   normaliserTel,
   chargerProfil,
   connexionIdentifiant,
+  connexionOAuth,
   deconnexion,
+  supabase,
   supabaseConfigured,
 } from "@/lib/supabase";
+
+// Fournisseurs de connexion externes proposés (activés dans Supabase).
+// Ex. NEXT_PUBLIC_OAUTH_PROVIDERS="google,facebook,apple" — vide = masqués.
+const OAUTH_PROVIDERS = (process.env.NEXT_PUBLIC_OAUTH_PROVIDERS || "")
+  .split(",").map((s) => s.trim().toLowerCase())
+  .filter((s) => ["google", "facebook", "apple"].includes(s));
+
+const ICONES_OAUTH = {
+  google: (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path fill="#4285F4" d="M23.5 12.3c0-.9-.1-1.5-.3-2.3H12v4.5h6.5c-.1 1-.8 2.6-2.4 3.7l3.8 2.9c2.3-2.1 3.6-5.2 3.6-8.8z"/>
+      <path fill="#34A853" d="M12 24c3.2 0 6-1.1 7.9-2.9l-3.8-2.9c-1 .7-2.4 1.2-4.1 1.2-3.2 0-5.9-2.1-6.8-5l-3.9 3C3.3 21.3 7.3 24 12 24z"/>
+      <path fill="#FBBC05" d="M5.2 14.4c-.2-.7-.4-1.5-.4-2.4s.1-1.7.4-2.4l-4-3C.5 8.2 0 10 0 12s.5 3.8 1.3 5.4l3.9-3z"/>
+      <path fill="#EA4335" d="M12 4.7c2.3 0 3.8 1 4.7 1.8l3.4-3.3C18 1.2 15.2 0 12 0 7.3 0 3.3 2.7 1.3 6.6l4 3c.9-2.8 3.5-4.9 6.7-4.9z"/>
+    </svg>
+  ),
+  facebook: (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path fill="#1877F2" d="M24 12a12 12 0 1 0-13.9 11.9v-8.4h-3v-3.5h3V9.4c0-3 1.8-4.7 4.6-4.7 1.3 0 2.7.2 2.7.2v3h-1.5c-1.5 0-2 .9-2 1.9V12h3.4l-.5 3.5h-2.9v8.4A12 12 0 0 0 24 12z"/>
+    </svg>
+  ),
+  apple: (
+    <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
+      <path fill="currentColor" d="M16.4 12.9c0-2.4 2-3.6 2.1-3.7-1.1-1.7-2.9-1.9-3.5-1.9-1.5-.2-2.9.9-3.7.9-.8 0-1.9-.9-3.2-.8-1.6 0-3.1 1-4 2.4-1.7 3-.4 7.4 1.2 9.8.8 1.2 1.8 2.5 3.1 2.4 1.2-.1 1.7-.8 3.2-.8s1.9.8 3.2.8c1.3 0 2.2-1.2 3-2.4.9-1.4 1.3-2.7 1.3-2.8-.1 0-2.6-1-2.7-3.9zM14 5.6c.7-.8 1.1-1.9 1-3.1-1 0-2.2.7-2.9 1.5-.6.7-1.2 1.9-1 3 1.1.1 2.2-.6 2.9-1.4z"/>
+    </svg>
+  ),
+};
+const NOMS_OAUTH = { google: "Google", facebook: "Facebook", apple: "Apple" };
 
 // Indicatifs proposés (Algérie par défaut ; diaspora + Maghreb + Europe).
 const INDICATIFS = [
@@ -46,6 +76,38 @@ function FormulaireConnexion() {
   const [motDePasse, setMotDePasse] = useState("");
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
+  const [canal, setCanal] = useState("sms"); // sms | whatsapp (réception du code)
+  const [waActif, setWaActif] = useState(false);
+  const [oauthEnCours, setOauthEnCours] = useState(params.get("oauth") === "retour");
+
+  // WhatsApp proposé seulement si configuré côté serveur.
+  useEffect(() => {
+    fetch("/api/otp-canal").then((r) => r.json()).then((d) => setWaActif(!!d?.whatsapp)).catch(() => {});
+  }, []);
+
+  // Retour d'une connexion Google / Facebook / Apple : la session arrive
+  // dans l'URL, on attend qu'elle soit posée puis on aiguille par rôle.
+  useEffect(() => {
+    if (params.get("oauth") !== "retour" || !supabase) return;
+    let arret = false;
+    (async () => {
+      for (let i = 0; i < 25 && !arret; i++) {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.user) {
+          await apresConnexion(session.user);
+          if (!arret) setOauthEnCours(false);
+          return;
+        }
+        await new Promise((r) => setTimeout(r, 300));
+      }
+      if (!arret) {
+        setOauthEnCours(false);
+        setErreur(t("err_oauth"));
+      }
+    })();
+    return () => { arret = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Rôles employé (espace /employe) et internes (espace /admin).
   const ROLES_EMPLOYE = ["aide_soignant", "infirmier", "chauffeur", "transporteur", "coordinateur", "employe_interne"];
@@ -73,6 +135,10 @@ function FormulaireConnexion() {
     // jamais le choix d'entrée (patient / établissement) sur le site.
     // Un compte patient n'entre pas dans l'espace pro, et inversement.
     if (!profil) {
+      // Compte tout neuf (SMS ou Google/Facebook/Apple) : proposer la création.
+      if (!phoneE164) setPhoneE164(user?.phone || user?.email || "");
+      setMode("sms");
+      setIntention("connexion");
       setEtape("nouveau");
       return;
     }
@@ -113,6 +179,16 @@ function FormulaireConnexion() {
     }
     setOccupe(true);
     try {
+      if (waActif) {
+        // Mémorise le canal choisi (SMS / WhatsApp) pour cet envoi.
+        try {
+          await fetch("/api/otp-canal", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ phone: p, canal }),
+          });
+        } catch {}
+      }
       await envoyerCode(p);
       setPhoneE164(p);
       setEtape("code");
@@ -158,6 +234,17 @@ function FormulaireConnexion() {
     : espaceChoisi === "pro"
     ? t("connexion_s_pro")
     : t("otp_sous_tel");
+
+  if (oauthEnCours) {
+    return (
+      <div className="page">
+        <div className="contenu-page" style={{ maxWidth: 420, textAlign: "center" }}>
+          <h2 className="titre-page">{t("connexion_t")}</h2>
+          <p className="sous-page">{t("oauth_attente")}</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="page">
@@ -221,6 +308,18 @@ function FormulaireConnexion() {
                 />
               </div>
             </div>
+            {waActif && (
+              <div className="canal-choix">
+                <span>{t("canal_l")}</span>
+                <div className="canal-chips">
+                  <button type="button" className={canal === "sms" ? "actif" : ""} onClick={() => setCanal("sms")}>SMS</button>
+                  <button type="button" className={canal === "whatsapp" ? "actif" : ""} onClick={() => setCanal("whatsapp")}>
+                    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="#25D366" d="M12 0a12 12 0 0 0-10.4 18L0 24l6.2-1.6A12 12 0 1 0 12 0zm0 21.8a9.7 9.7 0 0 1-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4A9.8 9.8 0 1 1 12 21.8zm5.4-7.3c-.3-.2-1.8-.9-2-1s-.5-.2-.7.1-.8 1-1 1.2-.4.2-.7.1a8 8 0 0 1-2.4-1.5 8.9 8.9 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6c.1-.2.2-.3.3-.5s0-.4 0-.5-.7-1.6-.9-2.2-.5-.5-.7-.5h-.6a1.1 1.1 0 0 0-.8.4A3.4 3.4 0 0 0 5.8 9c0 1.5 1.1 3 1.2 3.2a13.3 13.3 0 0 0 5.1 4.5c.7.3 1.3.5 1.7.6a4 4 0 0 0 1.9.1 3.1 3.1 0 0 0 2-1.4 2.5 2.5 0 0 0 .2-1.4c-.1-.1-.3-.2-.5-.1z"/></svg>
+                    WhatsApp
+                  </button>
+                </div>
+              </div>
+            )}
             <button className="btn-action" onClick={demanderCode} disabled={occupe}>
               {occupe ? t("otp_envoi") : intention === "creer" ? t("nouveau_b") : t("otp_envoyer")}
             </button>
@@ -337,6 +436,32 @@ function FormulaireConnexion() {
 
         {erreur && <p className="erreur">{erreur}</p>}
         {!supabaseConfigured && <p className="erreur">{t("err_config")}</p>}
+
+        {/* ---- Connexion Google / Facebook / Apple (si activés) ---- */}
+        {OAUTH_PROVIDERS.length > 0 && etape !== "nouveau" && (
+          <>
+            <div className="oauth-sep"><span>{t("oauth_ou")}</span></div>
+            <div className="oauth-liste">
+              {OAUTH_PROVIDERS.map((prov) => (
+                <button
+                  key={prov}
+                  type="button"
+                  className="btn-oauth"
+                  onClick={async () => {
+                    setErreur("");
+                    try {
+                      await connexionOAuth(prov);
+                    } catch {
+                      setErreur(t("err_oauth"));
+                    }
+                  }}
+                >
+                  {ICONES_OAUTH[prov]} {NOMS_OAUTH[prov]}
+                </button>
+              ))}
+            </div>
+          </>
+        )}
 
         {etape !== "nouveau" && (
           <p className="lien-probleme">
