@@ -28,22 +28,34 @@ export async function GET(req) {
       if (!profil) return NextResponse.json({ erreur: "introuvable" }, { status: 404 });
 
       const tel8 = String(profil.telephone || "").replace(/\D/g, "").slice(-8);
+      const estPro = profil.role === "pro";
+      // Patient : ses demandes (par téléphone) + les établissements autorisés.
+      // Établissement : les réservations faites PAR lui + ses patients rattachés.
+      const ouDemandes = estPro
+        ? { OR: [{ parEtabUserId: id }, ...(tel8 ? [{ telephone: { contains: tel8 } }] : [])] }
+        : tel8 ? { telephone: { contains: tel8 } } : null;
       const [demandes, rattachementsTous] = await Promise.all([
-        tel8
+        ouDemandes
           ? prisma.demande.findMany({
-              where: { telephone: { contains: tel8 } },
+              where: ouDemandes,
               orderBy: { creeLe: "desc" },
               take: 50,
               include: { avis: { select: { note: true } } },
             })
           : Promise.resolve([]),
-        tel8
+        estPro
+          ? prisma.rattachement.findMany({
+              where: { etabUserId: id, statut: { not: "CODE_ATTENTE" } },
+              orderBy: { creeLe: "desc" },
+              take: 300,
+            })
+          : tel8
           ? prisma.rattachement.findMany({ where: { statut: { not: "CODE_ATTENTE" } }, orderBy: { creeLe: "desc" }, take: 300 })
           : Promise.resolve([]),
       ]);
-      const rattachements = rattachementsTous.filter(
-        (r) => String(r.patientTel || "").replace(/\D/g, "").slice(-8) === tel8
-      );
+      const rattachements = estPro
+        ? rattachementsTous
+        : rattachementsTous.filter((r) => String(r.patientTel || "").replace(/\D/g, "").slice(-8) === tel8);
 
       // Documents déposés par le patient (bucket privé → URL signées).
       let documents = [];

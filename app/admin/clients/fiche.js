@@ -103,7 +103,7 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
       <div className="fe-onglets" role="tablist">
         {ONGLETS.map(([id, label]) => (
           <button key={id} role="tab" className={"fe-onglet" + (onglet === id ? " actif" : "")} onClick={() => setOnglet(id)}>
-            {label}
+            {id === "etabs" && estPro ? "Patients rattachés" : label}
             {id === "etabs" && enAttente > 0 ? ` (${enAttente})` : ""}
           </button>
         ))}
@@ -139,8 +139,9 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
                 <Ligne label="Commune">{p.commune}</Ligne>
                 {!estPro && <Ligne label="Contact famille / proche">{p.contact}</Ligne>}
                 <Ligne label="Rendez-vous au total">{String(fiche.demandes.length)}</Ligne>
+                {estPro && <Ligne label="Réservations pour ses patients">{String(fiche.demandes.filter((d) => d.parEtabUserId === p.id).length)}</Ligne>}
                 <Ligne label="Annulations">{String(annulees)}</Ligne>
-                <Ligne label="Établissements autorisés">{String(rattachesActifs)}</Ligne>
+                <Ligne label={estPro ? "Patients rattachés (actifs)" : "Établissements autorisés"}>{String(rattachesActifs)}</Ligne>
                 <Ligne label="Dernier rendez-vous">{passes[0] ? passes[0].date.replace("T", " à ") : null}</Ligne>
                 <div style={{ padding: "12px 0" }}>
                   <button
@@ -190,7 +191,8 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
                     <strong>n°{d.id} · {SERVICES[d.service] || d.service}{d.avis ? ` · ${"★".repeat(d.avis.note)}` : ""}</strong>
                     <small>
                       {d.date?.replace("T", " à ")}{d.destination ? ` · ${d.destination}` : ""}
-                      {d.parEtablissement ? ` · réservé par ${d.parEtablissement}` : ""}
+                      {estPro && d.parEtabUserId === p.id && d.nom ? ` · pour ${d.nom}` : ""}
+                      {!estPro && d.parEtablissement ? ` · réservé par ${d.parEtablissement}` : ""}
                     </small>
                   </span>
                   <Pastille statut={d.statut} />
@@ -204,17 +206,22 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
         {onglet === "etabs" && (
           <>
             <p className="fe-aide" style={{ marginTop: 0 }}>
-              Établissements autorisés à réserver pour ce patient. « Valider » confirme une demande
-              vérifiée avec le patient (méthode staff) ; « Révoquer » coupe l&apos;accès immédiatement.
+              {estPro
+                ? "Patients pour lesquels cet établissement est autorisé à réserver (procurations). « Valider » confirme une demande vérifiée avec le patient ; « Révoquer » coupe l'accès immédiatement."
+                : "Établissements autorisés à réserver pour ce patient. « Valider » confirme une demande vérifiée avec le patient (méthode staff) ; « Révoquer » coupe l'accès immédiatement."}
             </p>
             {!estPro && <RattacherEtablissement patient={p} onFait={onRecharger} />}
+            {estPro && <RattacherPatient etab={p} nomEtab={nom} onFait={onRecharger} />}
 
-            {(fiche.rattachements || []).length === 0 && <p className="adm-vide">Aucun rattachement pour ce patient.</p>}
+            {(fiche.rattachements || []).length === 0 && (
+              <p className="adm-vide">{estPro ? "Aucun patient rattaché à cet établissement." : "Aucun rattachement pour ce patient."}</p>
+            )}
             {(fiche.rattachements || []).map((r) => (
               <div className="fe-carte doc-emp" key={r.id}>
                 <div className="doc-emp-tete">
                   <span className="doc-emp-txt">
-                    <strong>{r.etabNom || "Établissement"}</strong>
+                    <strong>{estPro ? (r.patientNom || r.patientTel || "Patient") : (r.etabNom || "Établissement")}</strong>
+                    {estPro && r.patientNom && <small dir="ltr">{r.patientTel}</small>}
                     <small>Services : {r.scopes} · source : {r.source}{r.expiration ? ` · expire le ${r.expiration}` : ""}</small>
                     <small>Créé le {new Date(r.creeLe).toLocaleDateString("fr-FR")}</small>
                   </span>
@@ -330,6 +337,122 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
           </div>
         )
       )}
+    </div>
+  );
+}
+
+// Rattachement DIRECT depuis la fiche ÉTABLISSEMENT : on cherche un patient
+// existant, on choisit les services autorisés (procuration ACCEPTE, source
+// « staff », patient notifié) — même API que côté fiche patient.
+function RattacherPatient({ etab, nomEtab, onFait }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [q, setQ] = useState("");
+  const [resultats, setResultats] = useState(null);
+  const [patient, setPatient] = useState(null);
+  const [scopes, setScopes] = useState(["transport", "domicile", "medicaments"]);
+  const [expiration, setExpiration] = useState("");
+  const [occupe, setOccupe] = useState(false);
+  const [retour, setRetour] = useState("");
+
+  async function chercher() {
+    if (q.trim().length < 2) return;
+    try {
+      const d = await fetchAdmin(`/api/admin/clients?type=patient&q=${encodeURIComponent(q.trim())}`);
+      setResultats((d.clients || []).filter((c) => c.telephone));
+    } catch {
+      setResultats([]);
+    }
+  }
+
+  const basculer = (s) => setScopes((l) => (l.includes(s) ? l.filter((x) => x !== s) : [...l, s]));
+
+  async function valider() {
+    if (!patient || scopes.length === 0) return;
+    setOccupe(true);
+    setRetour("");
+    try {
+      await fetchAdmin("/api/admin/rattachements", {
+        method: "POST",
+        body: JSON.stringify({
+          patientTel: patient.telephone,
+          patientNom: [patient.prenom, patient.nom].filter(Boolean).join(" "),
+          etabUserId: etab.id,
+          scopes: scopes.join(","),
+          expiration: expiration || undefined,
+        }),
+      });
+      setRetour("Rattachement créé ✓ — le patient a été notifié.");
+      setOuvert(false);
+      setPatient(null);
+      setQ("");
+      setResultats(null);
+      onFait?.();
+    } catch {
+      setRetour("Création impossible.");
+    }
+    setOccupe(false);
+  }
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {!ouvert ? (
+        <button className="adm-btn" onClick={() => setOuvert(true)}>+ Rattacher un patient</button>
+      ) : (
+        <div className="fe-carte">
+          <strong>Rattacher un patient à {nomEtab}</strong>
+          {!patient ? (
+            <>
+              <div className="adm-filtres" style={{ marginTop: 10 }}>
+                <input
+                  placeholder="Rechercher le patient (nom, téléphone)…"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && chercher()}
+                />
+                <button className="adm-btn" onClick={chercher}>Rechercher</button>
+              </div>
+              {resultats?.length === 0 && (
+                <p className="adm-vide">Aucun patient trouvé (le compte doit exister — « + Créer un client » si besoin).</p>
+              )}
+              <div className="adm-liste">
+                {resultats?.map((c) => (
+                  <button className="adm-ligne cliquable" key={c.id} onClick={() => setPatient(c)} style={{ width: "100%", textAlign: "start", font: "inherit", background: "none", border: "none", cursor: "pointer" }}>
+                    <span className="adm-ligne-texte">
+                      <strong>{[c.prenom, c.nom].filter(Boolean).join(" ") || "Sans nom"}</strong>
+                      <small dir="ltr">{c.telephone}{c.commune ? ` · ${c.commune}` : ""}</small>
+                    </span>
+                    <span className="adm-pastille">Choisir</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              <p className="fe-aide">
+                Patient : <strong>{[patient.prenom, patient.nom].filter(Boolean).join(" ") || patient.telephone}</strong>{" "}
+                <a onClick={() => setPatient(null)} style={{ color: "var(--vert)", fontWeight: 700 }}>changer</a>
+              </p>
+              <div className="fe-champ" style={{ marginTop: 10 }}>
+                <span>Services autorisés</span>
+                <div className="chips" style={{ marginTop: 6 }}>
+                  {[["transport", "Transport"], ["domicile", "Aide à domicile"], ["medicaments", "Médicaments"]].map(([s, l]) => (
+                    <button type="button" key={s} className={"chip" + (scopes.includes(s) ? " actif" : "")} onClick={() => basculer(s)}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              <label className="fe-champ" style={{ marginTop: 10, maxWidth: 220 }}>
+                <span>Fin d&apos;autorisation (facultatif)</span>
+                <input type="date" value={expiration} onChange={(e) => setExpiration(e.target.value)} />
+              </label>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button className={"adm-btn" + (occupe ? " btn-charge" : "")} disabled={occupe || !scopes.length} onClick={valider}>Créer le rattachement</button>
+                <button className="adm-btn secondaire" onClick={() => setOuvert(false)}>Annuler</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {retour && <p className="adm-msg">{retour}</p>}
     </div>
   );
 }
