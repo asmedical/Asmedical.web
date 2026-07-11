@@ -154,33 +154,39 @@ function FormulaireConnexion() {
   return (
     <div className="page">
       <div className="contenu-page" style={{ maxWidth: 420 }}>
-        <h2 className="titre-page">{t("connexion_t")}</h2>
-
-        <div className="onglets-connexion">
-          <button
-            className={mode === "sms" ? "actif" : ""}
-            onClick={() => {
-              setMode("sms");
-              setErreur("");
-            }}
-          >
-            {t("onglet_sms")}
-          </button>
-          <button
-            className={mode === "identifiant" ? "actif" : ""}
-            onClick={() => {
-              setMode("identifiant");
-              setErreur("");
-            }}
-          >
-            {t("onglet_id")}
-          </button>
-        </div>
+        {/* En mode CRÉATION, le titre change et les onglets de connexion
+            disparaissent : aucune confusion possible avec « Se connecter ». */}
+        {intention === "creer" && mode === "sms" ? (
+          <h2 className="titre-page">{t("nouveau_t")}</h2>
+        ) : (
+          <>
+            <h2 className="titre-page">{t("connexion_t")}</h2>
+            <div className="onglets-connexion">
+              <button
+                className={mode === "sms" ? "actif" : ""}
+                onClick={() => {
+                  setMode("sms");
+                  setErreur("");
+                }}
+              >
+                {t("onglet_sms")}
+              </button>
+              <button
+                className={mode === "identifiant" ? "actif" : ""}
+                onClick={() => {
+                  setMode("identifiant");
+                  setErreur("");
+                }}
+              >
+                {t("onglet_id")}
+              </button>
+            </div>
+          </>
+        )}
 
         {/* ---- Connexion par SMS ---- */}
         {mode === "sms" && etape === "tel" && (
           <>
-            {intention === "creer" && <h3 className="titre-nouveau">{t("nouveau_t")}</h3>}
             <p className="sous-page">{intention === "creer" ? t("creer_sous") : sousTitre}</p>
             <div className="champ">
               <label>{t("tel_l")}</label>
