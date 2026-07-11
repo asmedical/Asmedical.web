@@ -51,7 +51,9 @@ export function AsmProvider({ children }) {
     return () => clearInterval(minuteur);
   }, [connecte, rafraichirNonLus]);
 
-  // Récupère le rôle réel (Supabase) pour révéler l'accès admin aux internes.
+  // Récupère le rôle réel (Supabase) : révèle l'accès admin aux internes ET
+  // recale le type de compte sur le rôle réel — un compte patient ne peut
+  // pas rester « pro » (et inversement), même après un rechargement.
   useEffect(() => {
     let annule = false;
     (async () => {
@@ -62,7 +64,18 @@ export function AsmProvider({ children }) {
         } = await supabase.auth.getUser();
         if (!user || annule) return;
         const { data } = await supabase.from("profil").select("role").eq("id", user.id).maybeSingle();
-        if (!annule) setRoleInterne(ROLES_INTERNES.includes(data?.role) ? data.role : "");
+        if (annule) return;
+        const role = data?.role || "";
+        setRoleInterne(ROLES_INTERNES.includes(role) ? role : "");
+        if (role) {
+          const type = role === "pro" ? "pro" : "patient";
+          setCompteType(type);
+          setEspaceChoisi(type);
+          try {
+            sessionStorage.setItem("asm_connecte", type);
+            sessionStorage.setItem("asm_espace", type);
+          } catch {}
+        }
       } catch {}
     })();
     return () => {

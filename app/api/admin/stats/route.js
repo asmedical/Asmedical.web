@@ -35,12 +35,14 @@ export async function GET(req) {
       prisma.demande.findMany({ orderBy: { creeLe: "desc" }, take: 5 }),
     ]);
 
-    // Nombre de clients (profils) via Supabase
+    // Nombre de clients PATIENTS (les employés/internes/établissements
+    // ont leurs propres sections et ne sont pas des « clients »).
     let clients = null;
     try {
       const { count } = await acces.admin
         .from("profil")
-        .select("id", { count: "exact", head: true });
+        .select("id", { count: "exact", head: true })
+        .or("role.eq.patient,role.is.null");
       clients = count;
     } catch {}
 

@@ -32,11 +32,17 @@ export async function GET(req) {
     }
 
     const q = (p.get("q") || "").trim();
+    // L'onglet Clients ne montre que les CLIENTS : patients par défaut
+    // (?type=pro pour les établissements). Les comptes employés et
+    // internes ont leurs propres sections (Soignants, Transport, Équipe).
+    const type = p.get("type") === "pro" ? "pro" : "patient";
     let requete = acces.admin
       .from("profil")
       .select("id, role, prenom, nom, telephone, email, commune, etablissement, cree_le")
       .order("cree_le", { ascending: false })
       .limit(100);
+    if (type === "pro") requete = requete.eq("role", "pro");
+    else requete = requete.or("role.eq.patient,role.is.null"); // anciens comptes sans rôle = patients
     if (q) {
       requete = requete.or(
         `nom.ilike.%${q}%,prenom.ilike.%${q}%,telephone.ilike.%${q}%,email.ilike.%${q}%,etablissement.ilike.%${q}%`

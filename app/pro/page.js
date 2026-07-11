@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { chargerMesDemandes } from "@/lib/supabase";
 import { IcoVehicule, IcoMaison, IcoMedicaments } from "@/app/components/icones";
@@ -41,9 +42,29 @@ function badgeStatut(d, t, maintenant) {
 // historique des rendez-vous passés à la demande.
 export default function EspacePro() {
   const { t } = useAsm();
+  const routeur = useRouter();
   const [demandes, setDemandes] = useState(null);
   const [vue, setVue] = useState("actifs");
   const [ouvert, setOuvert] = useState(null);
+
+  // Garde d'espace : réservé aux comptes ÉTABLISSEMENT (role pro).
+  // Un patient / employé connecté est renvoyé vers son propre espace.
+  useEffect(() => {
+    let annule = false;
+    (async () => {
+      try {
+        const { utilisateurCourant, chargerProfil } = await import("@/lib/supabase");
+        const u = await utilisateurCourant();
+        if (annule) return;
+        if (!u) return; // non connecté : la page reste consultable (vitrine pro)
+        const p = await chargerProfil(u.id);
+        if (!annule && p && p.role !== "pro") routeur.replace("/tableau");
+      } catch {}
+    })();
+    return () => {
+      annule = true;
+    };
+  }, [routeur]);
 
   useEffect(() => {
     let annule = false;

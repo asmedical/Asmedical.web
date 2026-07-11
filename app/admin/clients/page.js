@@ -4,6 +4,7 @@ import { fetchAdmin, Pastille, NotesInternes, SERVICES, LIBELLE_ROLE, Avatar } f
 
 export default function PageClients() {
   const [q, setQ] = useState("");
+  const [type, setType] = useState("patient"); // patient | pro
   const [clients, setClients] = useState(null);
   const [fiche, setFiche] = useState(null); // { profil, demandes }
   const [edition, setEdition] = useState(false);
@@ -12,7 +13,9 @@ export default function PageClients() {
 
   async function charger() {
     try {
-      const d = await fetchAdmin(`/api/admin/clients${q.trim() ? `?q=${encodeURIComponent(q.trim())}` : ""}`);
+      const u = new URLSearchParams({ type });
+      if (q.trim()) u.set("q", q.trim());
+      const d = await fetchAdmin(`/api/admin/clients?${u}`);
       setClients(d.clients);
     } catch {
       setClients([]);
@@ -21,7 +24,7 @@ export default function PageClients() {
   useEffect(() => {
     charger();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [type]);
 
   async function ouvrir(id) {
     setMsg("");
@@ -54,6 +57,16 @@ export default function PageClients() {
   return (
     <>
       <h1 className="adm-titre">Clients</h1>
+      {/* Uniquement les CLIENTS : patients ou établissements. Les employés
+          sont dans Soignants / Transport, l'équipe interne dans Équipe. */}
+      <div className="adm-supervision">
+        <button className={"adm-chip-sup" + (type === "patient" ? " actif" : "")} onClick={() => { setFiche(null); setType("patient"); }}>
+          👤 Patients
+        </button>
+        <button className={"adm-chip-sup" + (type === "pro" ? " actif" : "")} onClick={() => { setFiche(null); setType("pro"); }}>
+          🏥 Établissements
+        </button>
+      </div>
       <div className="adm-filtres">
         <input
           placeholder="Rechercher par nom, téléphone, email…"

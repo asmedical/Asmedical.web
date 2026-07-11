@@ -69,11 +69,14 @@ function FormulaireConnexion() {
       return;
     }
 
-    const type = espaceChoisi === "pro" ? "pro" : "patient";
+    // Compte EXISTANT : c'est le RÔLE du compte qui décide de l'espace,
+    // jamais le choix d'entrée (patient / établissement) sur le site.
+    // Un compte patient n'entre pas dans l'espace pro, et inversement.
     if (!profil) {
       setEtape("nouveau");
       return;
     }
+    const type = profil.role === "pro" ? "pro" : "patient";
     seConnecter(type);
     if (type === "pro") routeur.push("/pro");
     else if (serviceEnCours) routeur.push("/rdv");

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { chargerMesDemandes } from "@/lib/supabase";
 import { IcoVehicule, IcoMaison, IcoMedicaments } from "@/app/components/icones";
@@ -21,7 +22,25 @@ function badge(statut, t) {
 // Tableau de bord patient : ses VRAIES demandes (depuis la base), rien d'autre.
 export default function Tableau() {
   const { t } = useAsm();
+  const routeur = useRouter();
   const [demandes, setDemandes] = useState(null);
+
+  // Garde d'espace : un compte ÉTABLISSEMENT est renvoyé vers /pro.
+  useEffect(() => {
+    let annule = false;
+    (async () => {
+      try {
+        const { utilisateurCourant, chargerProfil } = await import("@/lib/supabase");
+        const u = await utilisateurCourant();
+        if (!u || annule) return;
+        const p = await chargerProfil(u.id);
+        if (!annule && p?.role === "pro") routeur.replace("/pro");
+      } catch {}
+    })();
+    return () => {
+      annule = true;
+    };
+  }, [routeur]);
 
   useEffect(() => {
     chargerMesDemandes()
