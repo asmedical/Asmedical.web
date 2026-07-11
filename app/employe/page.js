@@ -55,7 +55,8 @@ export default function TableauEmploye() {
         <div className="emp-vehicule">
           <span className="emp-veh-ico" aria-hidden="true">🚐</span>
           <div>
-            <strong>{intervenant.vehicule || "Véhicule non renseigné"}</strong>
+            <strong>{[intervenant.vehicule, intervenant.vehiculeCouleur].filter(Boolean).join(" · ") || "Véhicule non renseigné"}</strong>
+            {intervenant.vehiculeImmat && <span className="suivi-plaque" dir="ltr">{intervenant.vehiculeImmat}</span>}
             <small>
               {({ simple: "Transport simple", accompagne: "Accompagné (fauteuil)", medicalise: "Médicalisé" }[intervenant.typeTransport]) || "Transport"}
               {intervenant.communes ? ` · zone : ${intervenant.communes}` : ""}

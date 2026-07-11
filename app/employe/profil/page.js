@@ -47,7 +47,10 @@ export default function ProfilEmploye() {
           <div className="fe-ligne"><span className="fe-label">Jours de repos</span><span className="fe-valeur">{repos || "—"}</span></div>
           {iv.conges && <div className="fe-ligne"><span className="fe-label">Congés</span><span className="fe-valeur">{iv.conges}</span></div>}
           {moi.estChauffeur ? (
-            <div className="fe-ligne"><span className="fe-label">Véhicule</span><span className="fe-valeur">{iv.vehicule || "—"}</span></div>
+            <>
+              <div className="fe-ligne"><span className="fe-label">Véhicule</span><span className="fe-valeur">{[iv.vehicule, iv.vehiculeCouleur].filter(Boolean).join(" · ") || "—"}</span></div>
+              <div className="fe-ligne"><span className="fe-label">Immatriculation</span><span className="fe-valeur">{iv.vehiculeImmat || "—"}</span></div>
+            </>
           ) : (
             <div className="fe-ligne"><span className="fe-label">Spécialités</span><span className="fe-valeur">{iv.specialites || "—"}</span></div>
           )}

@@ -127,7 +127,7 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
     ];
     return estSoignant
       ? ["prenom", "nom", "qualification", "communes", ...communs]
-      : ["nom", "responsable", "typeTransport", "vehicule", "zone", ...communs];
+      : ["nom", "responsable", "typeTransport", "vehicule", "vehiculeCouleur", "vehiculeImmat", "zone", ...communs];
   }
 
   async function enregistrer() {
@@ -314,7 +314,9 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
               ) : (
                 <>
                   <Champ label="Type de transport" valeur={form.typeTransport} onChange={set("typeTransport")} options={Object.entries(TYPES_TR)} />
-                  <Champ label="Véhicule" valeur={form.vehicule} onChange={set("vehicule")} placeholder="Ex. Trafic aménagé, 4 places" />
+                  <Champ label="Véhicule (modèle)" valeur={form.vehicule} onChange={set("vehicule")} placeholder="Ex. Renault Trafic aménagé" />
+                  <Champ label="Couleur du véhicule" valeur={form.vehiculeCouleur} onChange={set("vehiculeCouleur")} placeholder="Ex. blanc" />
+                  <Champ label="Immatriculation" valeur={form.vehiculeImmat} onChange={set("vehiculeImmat")} placeholder="Ex. 01234-119-16" />
                   <Champ label="Options / capacité" valeur={form.specialites} onChange={set("specialites")} placeholder="Ex. brancard, oxygène…" />
                 </>
               )}
@@ -346,7 +348,8 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
               ) : (
                 <>
                   <Ligne label="Type de transport">{TYPES_TR[data.typeTransport]}</Ligne>
-                  <Ligne label="Véhicule">{data.vehicule}</Ligne>
+                  <Ligne label="Véhicule">{[data.vehicule, data.vehiculeCouleur].filter(Boolean).join(" · ")}</Ligne>
+                  <Ligne label="Immatriculation">{data.vehiculeImmat}</Ligne>
                   <Ligne label="Options / capacité">{data.specialites}</Ligne>
                 </>
               )}

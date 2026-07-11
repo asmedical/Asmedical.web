@@ -4,7 +4,7 @@ import { fetchAdmin, Pastille, Avatar, useGardeAdmin, LIBELLE_STATUT_INTERVENANT
 import FicheEmploye from "../FicheEmploye";
 
 const TYPES = { simple: "Simple (assis)", accompagne: "Accompagné (fauteuil)", medicalise: "Médicalisé" };
-const VIDE = { nom: "", responsable: "", telephone: "", email: "", typeTransport: "simple", vehicule: "", zone: "" };
+const VIDE = { nom: "", responsable: "", telephone: "", email: "", typeTransport: "simple", vehicule: "", vehiculeCouleur: "", vehiculeImmat: "", zone: "" };
 
 export default function PageTransporteurs() {
   const { role } = useGardeAdmin();
@@ -103,6 +103,8 @@ export default function PageTransporteurs() {
               {Object.entries(TYPES).map(([k, v]) => (<option value={k} key={k}>{v}</option>))}
             </select>
             <input placeholder="Véhicule (ex. Trafic aménagé)" value={neuf.vehicule} onChange={(e) => setNeuf({ ...neuf, vehicule: e.target.value })} />
+            <input placeholder="Couleur (ex. blanc)" value={neuf.vehiculeCouleur} onChange={(e) => setNeuf({ ...neuf, vehiculeCouleur: e.target.value })} />
+            <input placeholder="Immatriculation (ex. 01234-119-16)" value={neuf.vehiculeImmat} onChange={(e) => setNeuf({ ...neuf, vehiculeImmat: e.target.value })} />
             <input placeholder="Zone couverte (communes)" value={neuf.zone} onChange={(e) => setNeuf({ ...neuf, zone: e.target.value })} />
           </div>
           <button className="adm-btn" style={{ marginTop: 10 }} onClick={creer}>Créer</button>

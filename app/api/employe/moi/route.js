@@ -106,6 +106,8 @@ export async function GET(req) {
             joursOff: intervenant.joursOff,
             conges: intervenant.conges,
             vehicule: estChauffeur ? intervenant.vehicule : null,
+            vehiculeCouleur: estChauffeur ? intervenant.vehiculeCouleur : null,
+            vehiculeImmat: estChauffeur ? intervenant.vehiculeImmat : null,
             typeTransport: estChauffeur ? intervenant.typeTransport : null,
             qualification: estChauffeur ? null : intervenant.qualification,
             specialites: intervenant.specialites,

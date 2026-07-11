@@ -40,7 +40,7 @@ export async function GET(req) {
       take: 50,
       include: {
         soignant: { select: { prenom: true, nom: true, telephone: true, photoUrl: true } },
-        transporteur: { select: { nom: true, telephone: true, photoUrl: true } },
+        transporteur: { select: { nom: true, telephone: true, photoUrl: true, vehicule: true, vehiculeCouleur: true, vehiculeImmat: true } },
         avis: { select: { note: true, commentaire: true } },
       },
     });

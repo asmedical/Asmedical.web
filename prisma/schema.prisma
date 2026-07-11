@@ -97,7 +97,9 @@ model Transporteur {
   photoUrl      String?
   typeTransport String   @default("simple") // simple | accompagne | medicalise
   userId        String?  @unique             // compte de connexion Supabase lié (espace employé)
-  vehicule      String?
+  vehicule      String?                     // modèle (ex. Renault Trafic aménagé)
+  vehiculeCouleur String?                   // couleur (ex. blanc)
+  vehiculeImmat String?                     // plaque d'immatriculation
   zone          String   @default("")       // communes couvertes
   statut        String   @default("EN_ATTENTE") // EN_ATTENTE | VALIDE | SUSPENDU | INACTIF | REFUSE
   // --- RH étendu (fiche employé) ---

@@ -227,6 +227,20 @@ function FicheSuivi({ demande, t }) {
         !annulee && <p className="suivi-info">{t("suivi_pas_affecte")}</p>
       )}
 
+      {/* Véhicule du transporteur : le patient sait quoi attendre. */}
+      {demande.transporteur && (demande.transporteur.vehicule || demande.transporteur.vehiculeImmat) && (
+        <div className="suivi-vehicule">
+          <span className="suivi-veh-ico" aria-hidden="true">🚐</span>
+          <span className="suivi-veh-txt">
+            <strong>{[demande.transporteur.vehicule, demande.transporteur.vehiculeCouleur].filter(Boolean).join(" · ") || t("suivi_vehicule")}</strong>
+            <small>{t("suivi_vehicule")}</small>
+          </span>
+          {demande.transporteur.vehiculeImmat && (
+            <span className="suivi-plaque" dir="ltr">{demande.transporteur.vehiculeImmat}</span>
+          )}
+        </div>
+      )}
+
       {(demande.statut === "TERMINEE" || demande.avis) && <BlocAvis demande={demande} t={t} />}
 
       <div className="info-appel" style={{ marginTop: 16 }}>

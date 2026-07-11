@@ -43,6 +43,8 @@ export async function POST(req) {
         email: c.email ? String(c.email).slice(0, 120) : null,
         typeTransport: ["simple", "accompagne", "medicalise"].includes(c.typeTransport) ? c.typeTransport : "simple",
         vehicule: c.vehicule ? String(c.vehicule).slice(0, 120) : null,
+        vehiculeCouleur: c.vehiculeCouleur ? String(c.vehiculeCouleur).slice(0, 40) : null,
+        vehiculeImmat: c.vehiculeImmat ? String(c.vehiculeImmat).slice(0, 20) : null,
         zone: c.zone ? String(c.zone).slice(0, 400) : "",
         statut: STATUTS.includes(c.statut) ? c.statut : "EN_ATTENTE",
       },
@@ -65,6 +67,7 @@ export async function PATCH(req) {
     const data = {};
     const champs = [
       ["nom", 100], ["responsable", 80], ["telephone", 20], ["email", 120], ["vehicule", 120],
+      ["vehiculeCouleur", 40], ["vehiculeImmat", 20],
       ["zone", 400], ["photoUrl", 400], ["conges", 800], ["joursOff", 20], ["adresse", 160],
       ["commune", 80], ["wilaya", 80], ["dateNaissance", 10], ["contactUrgence", 120],
       ["specialites", 400], ["notesPaie", 1000],
