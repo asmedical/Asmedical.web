@@ -870,3 +870,62 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 
   .adm-corps .adm-contenu{flex:1;max-width:1160px;padding:26px 30px 60px;min-width:0}
 }
+
+/* ---------- ADMIN : planning calendrier ---------- */
+.adm-plan-outils{display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center;margin-bottom:10px}
+.adm-plan-nav{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.adm-plan-nav input[type="date"]{border:1px solid var(--ligne);border-radius:10px;padding:8px 10px;font-family:inherit;font-size:13.5px;background:var(--blanc)}
+.adm-plan-periode{font-size:14.5px;color:var(--vert-fonce);text-transform:capitalize;margin-inline-start:2px}
+.adm-plan-bascule{display:flex;background:var(--blanc);border:1px solid var(--ligne);border-radius:10px;overflow:hidden}
+.adm-plan-bascule button{border:none;background:none;font-family:inherit;font-size:13px;font-weight:700;color:var(--gris);padding:8px 13px;cursor:pointer}
+.adm-plan-bascule button.actif{background:var(--vert);color:#fff}
+.adm-plan-legende{display:flex;flex-wrap:wrap;gap:14px;align-items:center;font-size:12.5px;color:var(--gris);margin-bottom:12px}
+.adm-plan-legende .pl-point{display:inline-block;width:10px;height:10px;border-radius:3px;margin-inline-end:5px;vertical-align:-1px}
+.pl-point.transport{background:#2F6FBF}.pl-point.domicile{background:var(--vert)}.pl-point.medicaments{background:#C9862B}
+.adm-plan-alerte{color:#A33B3B;font-weight:700}
+.adm-plan-defile{overflow-x:auto;background:var(--blanc);border:1px solid var(--ligne);border-radius:var(--r-s);box-shadow:var(--ombre)}
+
+/* Vue jour : gouttière des heures + une colonne par intervenant */
+.adm-plan-jour{display:flex;min-width:max-content}
+.adm-plan-heures{flex:0 0 46px;border-inline-end:1px solid var(--ligne)}
+.adm-plan-heures-corps{position:relative;height:var(--h-grille)}
+.adm-plan-heures-corps span{position:absolute;inset-inline-end:6px;transform:translateY(-7px);font-size:11px;color:var(--gris-clair);font-weight:700}
+.adm-plan-entete-col{height:52px;border-bottom:1px solid var(--ligne);padding:7px 9px;display:flex;flex-direction:column;justify-content:center;gap:1px;position:sticky;top:0;background:var(--blanc);z-index:2}
+.adm-plan-entete-col strong{font-size:13px;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm-plan-entete-col small{font-size:11px;color:var(--gris);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm-plan-col{flex:1 1 0;min-width:150px;max-width:230px;border-inline-end:1px solid var(--ligne)}
+.adm-plan-col:last-child{border-inline-end:none}
+.adm-plan-col.na .adm-plan-entete-col strong{color:#A33B3B}
+.adm-plan-corps{position:relative;height:var(--h-grille);background:repeating-linear-gradient(to bottom,transparent,transparent 51px,var(--ligne) 51px,var(--ligne) 52px)}
+.adm-plan-corps.off{background:repeating-linear-gradient(45deg,#F6F6F3,#F6F6F3 8px,#EFEFEA 8px,#EFEFEA 16px)}
+.adm-plan-off-lib{position:absolute;top:10px;inset-inline-start:50%;transform:translateX(-50%);font-size:11.5px;font-weight:800;color:var(--gris-clair);background:var(--blanc);border:1px solid var(--ligne);border-radius:99px;padding:3px 10px;z-index:1}
+[dir="rtl"] .adm-plan-off-lib{transform:translateX(50%)}
+.adm-plan-horszone{position:absolute;inset-inline:0;background:repeating-linear-gradient(45deg,transparent,transparent 7px,rgba(107,122,114,.07) 7px,rgba(107,122,114,.07) 14px)}
+.adm-plan-evt{position:absolute;inset-inline:4px;border:none;border-radius:8px;padding:3px 7px;text-align:start;cursor:pointer;overflow:hidden;font-family:inherit;color:#fff;display:flex;flex-direction:column;gap:0;z-index:1;box-shadow:0 1px 3px rgba(34,51,44,.18)}
+.adm-plan-evt strong{font-size:11.5px;line-height:1.25}
+.adm-plan-evt span{font-size:11px;line-height:1.25;opacity:.92;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm-plan-evt.transport{background:#2F6FBF}.adm-plan-evt.domicile{background:var(--vert)}.adm-plan-evt.medicaments{background:#C9862B}
+.adm-plan-evt.fini{opacity:.55}
+.adm-plan-evt.annule{opacity:.4;text-decoration:line-through}
+.adm-plan-evt.probleme{outline:2px solid #C05252;outline-offset:1px}
+.adm-plan-evt:hover{filter:brightness(1.07)}
+
+/* Vue semaine : intervenants en lignes, jours en colonnes */
+.adm-plan-semaine{border-collapse:collapse;width:100%;min-width:860px}
+.adm-plan-semaine th,.adm-plan-semaine td{border:1px solid var(--ligne);vertical-align:top}
+.adm-plan-semaine thead th{padding:0;background:var(--vert-pale)}
+.adm-plan-semaine thead th button{width:100%;border:none;background:none;font-family:inherit;font-size:12.5px;font-weight:700;color:var(--encre);padding:9px 6px;cursor:pointer}
+.adm-plan-semaine thead th.auj button{color:var(--vert-fonce)}
+.adm-plan-semaine thead th.auj{box-shadow:inset 0 -3px 0 var(--vert)}
+.adm-plan-semaine tbody th{padding:9px 10px;text-align:start;background:var(--blanc);min-width:140px;max-width:180px}
+.adm-plan-semaine tbody th strong{display:block;font-size:12.5px;line-height:1.25}
+.adm-plan-semaine tbody th small{font-size:11px;color:var(--gris);font-weight:600}
+.adm-plan-semaine tbody tr.na th strong{color:#A33B3B}
+.adm-plan-semaine td{padding:5px;min-width:105px}
+.adm-plan-semaine td.off{background:repeating-linear-gradient(45deg,#F8F8F5,#F8F8F5 8px,#F1F1EC 8px,#F1F1EC 16px)}
+.adm-plan-semaine td .adm-plan-off-lib{position:static;transform:none;display:inline-block}
+.adm-plan-puce{display:block;width:100%;border:none;border-radius:7px;color:#fff;font-family:inherit;font-size:11px;font-weight:700;text-align:start;padding:4px 7px;margin-bottom:4px;cursor:pointer;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.adm-plan-puce.transport{background:#2F6FBF}.adm-plan-puce.domicile{background:var(--vert)}.adm-plan-puce.medicaments{background:#C9862B}
+.adm-plan-puce.annule{opacity:.4;text-decoration:line-through}
+.adm-plan-puce.probleme{outline:2px solid #C05252;outline-offset:-1px}
+.adm-plan-puce:hover{filter:brightness(1.07)}

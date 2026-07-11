@@ -70,7 +70,12 @@ export default function TableauDeBordAdmin() {
         <div className="adm-tout-ok">✅ Tout est à jour — aucune action en attente.</div>
       )}
 
-      <h2 className="adm-sous-titre">Aujourd&apos;hui</h2>
+      <h2 className="adm-sous-titre">
+        Aujourd&apos;hui
+        <Link href="/admin/planning" style={{ fontSize: 13, fontWeight: 700, marginInlineStart: 12, color: "var(--vert)" }}>
+          📅 Voir le planning →
+        </Link>
+      </h2>
       <div className="adm-cartes">
         {jour.map((c) => (
           <Link className={"adm-carte" + (c.alerte ? " alerte" : "")} href={c.href} key={c.l}>
