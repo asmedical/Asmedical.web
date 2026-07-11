@@ -6,6 +6,7 @@ import { useAsm } from "@/app/providers";
 import { supabase } from "@/lib/supabase";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
 import { IcoBulle, IcoEnvoyer, IcoDocument, IcoCalendrier, IcoCloche } from "@/app/components/icones";
+import BoutonPush from "@/app/components/push";
 
 // « Ma messagerie » (composant partagé patient + employé) : centre de
 // messages officiels ASM (notifications, demandes de documents, infos
@@ -114,6 +115,8 @@ export default function CentreMessages() {
 
         {etat === "pret" && (
           <>
+            <BoutonPush />
+
             {/* ---- Carte d'accès au chat instantané (design conservé) ---- */}
             <button className="carte-chat" onClick={() => setVue("chat")}>
               <span className="ico-service">

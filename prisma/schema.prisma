@@ -183,6 +183,19 @@ model Notification {
   @@index([userId, creeLe])
 }
 
+// Abonnement aux notifications push (Web Push) d'un appareil.
+// Un utilisateur peut avoir plusieurs appareils (téléphone, tablette…).
+model PushAbonnement {
+  id       Int      @id @default(autoincrement())
+  userId   String
+  endpoint String   @unique
+  p256dh   String
+  auth     String
+  creeLe   DateTime @default(now())
+
+  @@index([userId])
+}
+
 // Avis d'un patient après une intervention terminée (note + commentaire).
 model Avis {
   id             Int           @id @default(autoincrement())

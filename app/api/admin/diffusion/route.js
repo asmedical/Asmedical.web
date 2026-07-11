@@ -53,6 +53,12 @@ export async function POST(req) {
       });
     }
 
+    // Push sur les appareils des destinataires (best-effort).
+    try {
+      const { envoyerPush } = await import("@/lib/pushEnvoi");
+      await Promise.allSettled(ids.map((userId) => envoyerPush(userId, { titre, corps: texte, url: "/employe/messagerie" })));
+    } catch {}
+
     const cibleLib = c.cible === "employe" ? "1 employé" : `groupe « ${c.groupe} » (${ids.length})`;
     await journaliser(acces.nomAffiche, "diffusion", "message", c.userId || c.groupe || "", `${cibleLib} · ${canal}`);
     return NextResponse.json({ ok: true, envoyes: ids.length });

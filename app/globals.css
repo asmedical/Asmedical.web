@@ -795,3 +795,10 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .avis-comment-input{width:100%;margin-top:12px;padding:11px 13px;font-family:inherit;font-size:14.5px;border:1px solid var(--ligne);border-radius:10px;background:var(--blanc);color:var(--encre)}
 .avis-bloc .btn-action{margin-top:12px}
 .avis-comment{margin-top:8px;font-style:italic;color:var(--encre)}
+
+/* ============ Activation notifications push ============ */
+.push-banniere{background:var(--vert-pale);border:1px solid var(--ligne);border-radius:12px;padding:16px;margin-bottom:16px}
+.push-banniere strong{display:block;font-size:15px;color:var(--vert-fonce);margin-bottom:6px}
+.push-banniere p{color:var(--gris);font-size:13.5px;line-height:1.5;margin-bottom:10px}
+.push-banniere .btn-action{margin-top:0}
+.push-actif{color:var(--vert-fonce);font-weight:700;font-size:13.5px;margin-bottom:14px}

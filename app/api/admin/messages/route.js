@@ -95,6 +95,17 @@ export async function POST(req) {
       data: { userId: String(userId), deEquipe: true, auteur: acces.nomAffiche, texte: propre },
     });
     await journaliser(acces.nomAffiche, "message.envoye", "client", userId);
+
+    // Push : le destinataire est prévenu même app fermée (best-effort).
+    try {
+      const { envoyerPush } = await import("@/lib/pushEnvoi");
+      await envoyerPush(String(userId), {
+        titre: "Nouveau message ASM 💬",
+        corps: propre.slice(0, 120),
+        url: "/messagerie?chat=1",
+      });
+    } catch {}
+
     return NextResponse.json({ ok: true, message }, { status: 201 });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });

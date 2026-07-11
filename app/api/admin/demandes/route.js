@@ -31,6 +31,8 @@ async function notifierIntervenant(entite, intervenantId, titre, corps, auteur, 
       lienType: "intervention", lienId: String(demandeId),
     },
   });
+  const { envoyerPush } = await import("@/lib/pushEnvoi");
+  await envoyerPush(iv.userId, { titre, corps, url: `/employe/interventions/${demandeId}` });
 }
 
 // GET /api/admin/demandes?statut=&service=&jour=&q=&page=
