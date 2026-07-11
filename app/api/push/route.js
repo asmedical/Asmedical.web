@@ -26,7 +26,7 @@ export async function POST(req) {
     const endpoint = subscription?.endpoint;
     const p256dh = subscription?.keys?.p256dh;
     const auth = subscription?.keys?.auth;
-    if (!endpoint || !p256dh || !auth || String(endpoint).length > 600) {
+    if (!endpoint || !p256dh || !auth || String(endpoint).length > 600 || String(p256dh).length > 200 || String(auth).length > 100) {
       return NextResponse.json({ erreur: "abonnement invalide" }, { status: 400 });
     }
     await prisma.pushAbonnement.upsert({

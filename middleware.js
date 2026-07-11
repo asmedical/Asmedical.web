@@ -5,7 +5,7 @@ import { NextResponse } from "next/server";
 // (ou de re-déclencher). /api/health reste joignable pour le monitoring.
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|logo-asm.jpg|icone-|manifest.webmanifest|robots.txt|sitemap.xml|api/health).*)",
+    "/((?!_next/static|_next/image|favicon.ico|logo-asm.jpg|icone-|manifest.webmanifest|robots.txt|sitemap.xml|sw.js|api/health).*)",
   ],
 };
 
