@@ -68,6 +68,7 @@ const GROUPES = [
     titre: "Administration",
     liens: [
       { href: "/admin/equipe", libelle: "Équipe & journal", Ico: IcoEtablissement, roles: ["superadmin", "admin", "moderateur"] },
+      { href: "/admin/exports", libelle: "Exports & rapports", Ico: IcoDocumentLignes, roles: ["superadmin", "admin", "moderateur"] },
       { href: "/admin/reglages", libelle: "Réglages", Ico: IcoReglages, roles: ["superadmin", "admin", "moderateur"] },
     ],
   },
