@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>ASM — Présentation fonctionnelle complète de la plateforme</title>
+<style>
+  :root{
+    --vert:#0E6B3F; --vert-fonce:#0A5230; --creme:#F4F9F6; --or:#C9A24B;
+    --encre:#22332C; --gris:#6B7A72; --ligne:#E6EEE9;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:'Nunito Sans','Segoe UI',Arial,sans-serif;color:var(--encre);font-size:10.5pt;line-height:1.55}
+  h1,h2,h3,h4{color:var(--vert-fonce);line-height:1.2}
+  h2{font-size:17pt;border-bottom:2.5px solid var(--vert);padding-bottom:4mm;margin:0 0 6mm}
+  h2 .num{color:var(--or)}
+  h3{font-size:12.5pt;margin:6mm 0 3mm}
+  p{margin:0 0 3mm}
+  ul{margin:0 0 3mm 6mm}
+  li{margin-bottom:1.2mm}
+  .page{page-break-after:always;padding:2mm 0}
+  .section{page-break-before:always}
+  em.leg{display:block;color:var(--gris);font-size:8.5pt;margin:1.5mm 0 5mm;font-style:italic}
+
+  /* ---- Couverture ---- */
+  .couv{height:255mm;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;background:linear-gradient(180deg,#fff 0%,var(--creme) 100%);border:1px solid var(--ligne);border-radius:6mm;padding:20mm}
+  .couv img{width:34mm;height:34mm;border-radius:50%;margin-bottom:8mm}
+  .couv h1{font-size:24pt;margin-bottom:4mm}
+  .couv .st{font-size:13pt;color:var(--vert);font-weight:700;margin-bottom:12mm}
+  .couv .meta{color:var(--gris);font-size:10pt;margin-bottom:2mm}
+  .couv .conf{margin-top:14mm;display:inline-block;border:1.5px solid var(--or);color:#8a6d2c;border-radius:99px;padding:2mm 8mm;font-weight:700;font-size:9.5pt}
+  .avert{margin-top:8mm;background:#fff;border:1.5px solid var(--vert);border-radius:4mm;padding:5mm 7mm;font-size:9pt;color:var(--encre);max-width:150mm}
+  .avert strong{color:var(--vert-fonce)}
+
+  /* ---- Sommaire ---- */
+  .sommaire li{list-style:none;font-weight:700;font-size:11.5pt;padding:2.2mm 0;border-bottom:1px solid var(--ligne)}
+  .sommaire li small{display:block;font-weight:400;color:var(--gris);font-size:9pt}
+  .sommaire .num{color:var(--or);margin-right:3mm}
+
+  /* ---- Captures ---- */
+  .cap{display:block;max-width:100%;max-height:225mm;border:1px solid var(--ligne);border-radius:3mm;box-shadow:0 1mm 4mm rgba(34,51,44,.10);margin:2mm auto}
+  .g2{display:grid;grid-template-columns:1fr 1fr;gap:6mm;align-items:start}
+  .g2 .cap{max-height:190mm}
+  figure{page-break-inside:avoid;margin:0 0 5mm;text-align:center}
+  figcaption{font-size:8.5pt;color:var(--gris);margin-top:1.5mm}
+  figcaption b{color:var(--vert-fonce)}
+
+  /* ---- Fiches fonctionnelles ---- */
+  .fiche{page-break-inside:avoid;border:1px solid var(--ligne);border-left:2mm solid var(--vert);border-radius:3mm;padding:5mm 6mm;margin-bottom:6mm;background:#fff}
+  .fiche h4{font-size:11.5pt;margin-bottom:1mm}
+  .fiche .esp{font-size:8.5pt;font-weight:800;color:var(--vert);text-transform:uppercase;letter-spacing:.05em}
+  .fiche .bloc{margin-top:2.5mm}
+  .fiche .bloc b{color:var(--vert-fonce)}
+  .etat{display:inline-block;border-radius:99px;padding:.8mm 4mm;font-weight:800;font-size:8.5pt;margin-top:2mm}
+  .etat.op{background:#E7F3EC;color:var(--vert-fonce);border:1px solid var(--vert)}
+  .etat.ext{background:#FBF3E1;color:#8a6d2c;border:1px solid var(--or)}
+
+  /* ---- Tableaux ---- */
+  table{border-collapse:collapse;width:100%;font-size:8.8pt;page-break-inside:auto}
+  th,td{border:1px solid var(--ligne);padding:1.8mm 2.5mm;text-align:left;vertical-align:top}
+  thead th{background:var(--vert-fonce);color:#fff;font-size:8.6pt}
+  tbody tr:nth-child(even){background:var(--creme)}
+  td.c{text-align:center}
+
+  /* ---- Architecture ---- */
+  .archi{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4mm;margin:4mm 0}
+  .archi div{border:1.5px solid var(--vert);border-radius:3mm;padding:3.5mm;background:var(--creme);text-align:center;font-size:9pt}
+  .archi div b{display:block;color:var(--vert-fonce);font-size:10pt;margin-bottom:1mm}
+  .fleche{ text-align:center;color:var(--or);font-size:14pt;font-weight:800;margin:1mm 0}
+
+  .parcours{background:var(--creme);border:1px solid var(--ligne);border-radius:3mm;padding:4mm 6mm;margin-bottom:4mm;font-size:9.5pt}
+  .parcours b{color:var(--vert-fonce)}
+  .parcours .fl{color:var(--or);font-weight:800}
+</style>
+</head>
+<body>
+
+<!-- ================= COUVERTURE ================= -->
+<div class="page couv">
+  <img src="../public/logo-asm.jpg" alt="ASM">
+  <h1>ASM — Présentation fonctionnelle<br>complète de la plateforme</h1>
+  <div class="st">Parcours Patient, Établissement et Administration</div>
+  <div class="meta">Assistance Santé Médical · asm-sante.com</div>
+  <div class="meta">Version 1.0 — Juillet 2026</div>
+  <div class="conf">Document confidentiel — dossier de présentation</div>
+  <div class="avert">
+    <strong>Avertissement.</strong> Toutes les captures d'écran de ce dossier sont réalisées sur un
+    environnement de démonstration : les noms, numéros de téléphone, comptes et rendez-vous affichés
+    sont <strong>fictifs</strong> et servent uniquement à illustrer les fonctionnalités réellement
+    développées de la plateforme. Aucune donnée personnelle ou médicale réelle n'apparaît dans ce document.
+  </div>
+</div>
+
+<!-- ================= SOMMAIRE ================= -->
+<div class="page">
+  <h2><span class="num">◆</span> Sommaire</h2>
+  <ul class="sommaire">
+    <li><span class="num">1.</span> La plateforme ASM en un coup d'œil<small>Trois prestations, deux langues, cinq espaces selon le rôle</small></li>
+    <li><span class="num">2.</span> Espace Patient<small>Connexion multicanale, réservation en temps réel, suivi en direct, messagerie, procurations</small></li>
+    <li><span class="num">3.</span> Espace Établissement<small>Patients rattachés, procurations, réservation pour le compte d'un patient</small></li>
+    <li><span class="num">4.</span> Espace Modérateur<small>Régulation quotidienne avec des droits volontairement limités</small></li>
+    <li><span class="num">5.</span> Espace Administrateur — Centre de gestion<small>Tableau de bord, planning de régulation, demandes, fiches clients</small></li>
+    <li><span class="num">6.</span> Espace Super administrateur<small>Équipe, privilèges, validations de suppression, exports et paie</small></li>
+    <li><span class="num">7.</span> Parcours utilisateurs illustrés<small>Patient · Établissement · Administration</small></li>
+    <li><span class="num">8.</span> Tableau synthétique des fonctionnalités<small>Qui peut faire quoi, et l'état d'avancement réel de chaque brique</small></li>
+    <li><span class="num">9.</span> Architecture technique<small>Hébergement, données, authentification, SMS national et international, e-mail, push</small></li>
+    <li><span class="num">10.</span> Sécurité et confidentialité<small>Rôles, contrôles serveur, journalisation, mots de passe jamais visibles</small></li>
+  </ul>
+</div>
+
+<!-- ================= 1. PRESENTATION ================= -->
+<div class="section">
+  <h2><span class="num">1.</span> La plateforme ASM en un coup d'œil</h2>
+  <p><b>ASM (Assistance Santé Médical)</b> est une plateforme web de coordination de soins et de
+  transport sanitaire en Algérie. Elle permet à un patient — ou à un établissement de santé agissant
+  pour lui — de réserver en quelques minutes trois prestations :</p>
+  <ul>
+    <li><b>Transport médical</b> : trajets vers un centre de soins (dialyse, consultations, hospitalisations), aller simple ou aller-retour, avec véhicule adapté ;</li>
+    <li><b>Aide à domicile</b> : interventions d'aides-soignantes et d'infirmiers sur des créneaux calculés en temps réel selon les disponibilités réelles de l'équipe ;</li>
+    <li><b>Livraison de médicaments</b> : ordonnance transmise, livraison sur des fenêtres horaires à capacité maîtrisée.</li>
+  </ul>
+  <p>L'interface est entièrement <b>bilingue français / arabe</b> (avec affichage droite-à-gauche),
+  pensée d'abord pour le téléphone, et reliée à un <b>centre de gestion</b> professionnel pour l'équipe ASM.
+  Cinq niveaux d'accès coexistent, chacun strictement cloisonné côté serveur : Patient, Établissement,
+  Modérateur, Administrateur et Super administrateur.</p>
+  <p>Chaque réservation suit un cycle complet et traçable : demande → confirmation → affectation d'un
+  intervenant (manuelle ou automatique, avec contrôle anti-conflit) → exécution suivie en direct par le
+  patient → clôture → avis. Toutes les actions sensibles sont journalisées.</p>
+
+  <div class="g2">
+    <figure>
+      <img class="cap" src="../business-plan-assets/02-patient/patient-01-accueil.png" alt="">
+      <figcaption><b>Fig. 1</b> — Accueil public : les trois prestations, l'appel direct 7j/7 et le passage FR/AR.</figcaption>
+    </figure>
+    <figure>
+      <img class="cap" src="../business-plan-assets/02-patient/patient-02-choix-espace.png" alt="">
+      <figcaption><b>Fig. 2</b> — Choix de l'espace : patient ou professionnel de santé.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<!-- ================= 2. ESPACE PATIENT ================= -->
+<div class="section">
+  <h2><span class="num">2.</span> Espace Patient</h2>
+
+  <div class="fiche">
+    <div class="esp">Patient</div>
+    <h4>Connexion multicanale : code SMS ou WhatsApp, connexions rapides Google · Facebook · Apple</h4>
+    <div class="bloc"><b>Description.</b> L'écran de connexion propose plusieurs chemins adaptés à tous les
+    publics : réception d'un code à usage unique par <b>SMS</b> ou par <b>WhatsApp</b> (au choix de
+    l'utilisateur), connexion classique par identifiant / mot de passe, et connexions rapides
+    <b>Google, Facebook et Apple</b> en un geste. Un lien « Problème de connexion ? » mène vers la
+    récupération par e-mail (code envoyé via Brevo) et le contact d'un conseiller.</div>
+    <div class="bloc"><b>Fonctionnement.</b> Le code de connexion est généré et vérifié par le serveur
+    d'authentification ; la plateforme l'achemine par le canal choisi. L'envoi des SMS est routé
+    automatiquement selon le numéro : <b>Elite SMS pour les numéros algériens (réseau national)</b> et
+    <b>Twilio pour les numéros internationaux</b> (diaspora, famille à l'étranger). En cas d'échec d'un
+    envoi WhatsApp, le système bascule automatiquement sur le SMS : l'utilisateur n'est jamais bloqué.</div>
+    <div class="bloc"><b>Intérêt pour l'utilisateur.</b> Aucun mot de passe à retenir pour les personnes
+    âgées (code reçu sur le téléphone) ; connexion en deux secondes via Google/Facebook/Apple pour les
+    aidants et les familles ; WhatsApp très répandu en Algérie.</div>
+    <div class="bloc"><b>Intérêt pour ASM.</b> Moins d'appels « je n'arrive pas à me connecter », meilleur
+    taux d'activation des comptes, identité vérifiée par le téléphone dès l'inscription.</div>
+    <span class="etat op">Interfaces et logique développées et intégrées</span>
+    <span class="etat ext">Mise en service des canaux liée aux comptes opérateurs (Elite SMS / Twilio / Meta / fournisseurs OAuth)</span>
+  </div>
+
+  <div class="g2">
+    <figure>
+      <img class="cap" src="../business-plan-assets/02-patient/patient-03-connexion-rapide.png" alt="">
+      <figcaption><b>Fig. 3</b> — Connexion : code par SMS ou WhatsApp, puis « Ou continuer avec » Google · Facebook · Apple.</figcaption>
+    </figure>
+    <figure>
+      <img class="cap" src="../business-plan-assets/02-patient/patient-04-connexion-identifiant.png" alt="">
+      <figcaption><b>Fig. 4</b> — Connexion par identifiant / mot de passe (comptes créés par l'équipe ou finalisés par le client).</figcaption>
+    </figure>
+  </div>
+
+  <div class="fiche">
+    <div class="esp">Patient</div>
+    <h4>Tableau de bord personnel</h4>
+    <div class="bloc"><b>Description.</b> Dès la connexion, le patient retrouve ses prochains rendez-vous,
+    l'historique de ses demandes avec leur statut, ses notifications (cloche avec compteur) et l'accès
+    en un geste à une nouvelle réservation (bouton central « + »).</div>
+    <div class="bloc"><b>Intérêt.</b> Cette centralisation réduit les appels téléphoniques entrants,
+    améliore la visibilité du patient sur son parcours de soins et donne à ASM un canal direct de
+    communication (notifications et messages officiels).</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+
+  <figure>
+    <img class="cap" style="max-height:150mm" src="../business-plan-assets/02-patient/patient-05-tableau-de-bord.png" alt="">
+    <figcaption><b>Fig. 5</b> — Tableau de bord patient : rendez-vous, statuts, raccourcis.</figcaption>
+  </figure>
+</div>
+
+<div class="section">
+  <div class="fiche">
+    <div class="esp">Patient · Établissement</div>
+    <h4>Réservation en temps réel des trois prestations</h4>
+    <div class="bloc"><b>Description.</b> Le patient choisit la prestation, renseigne le lieu et la commune,
+    puis la plateforme lui propose <b>uniquement des créneaux réellement disponibles</b> : le moteur de
+    réservation croise les plannings des intervenants (horaires, jours de repos, congés, absences), leurs
+    zones de couverture, la durée de l'acte, les temps de trajet et les temps tampons. Les livraisons de
+    médicaments utilisent des fenêtres horaires (matin / après-midi / soir) à capacité limitée, avec
+    affichage « complet » ou « bientôt complet ».</div>
+    <div class="bloc"><b>Fonctionnement.</b> À la confirmation, une double vérification transactionnelle
+    empêche toute double réservation du même créneau. Selon le réglage choisi par ASM, l'intervenant le
+    moins chargé peut être affecté automatiquement, avec notification immédiate.</div>
+    <div class="bloc"><b>Intérêt pour l'utilisateur.</b> Réserver comme sur les grandes plateformes de
+    rendez-vous médicaux, sans appel ni attente, avec la certitude que le créneau est tenable.</div>
+    <div class="bloc"><b>Intérêt pour ASM.</b> Zéro surréservation, plannings remplis intelligemment,
+    montée en charge possible sans multiplier les standardistes.</div>
+    <span class="etat op">Opérationnelle (moteur testé, capacité et anti-conflit vérifiés)</span>
+  </div>
+
+  <div class="g2">
+    <figure>
+      <img class="cap" src="../business-plan-assets/09-reservations/patient-06-transport-medical.png" alt="">
+      <figcaption><b>Fig. 6</b> — Transport médical : départ, destination, date, type de trajet.</figcaption>
+    </figure>
+    <figure>
+      <img class="cap" src="../business-plan-assets/09-reservations/patient-07-aide-domicile.png" alt="">
+      <figcaption><b>Fig. 7</b> — Aide à domicile : actes, durées et créneaux calculés en temps réel.</figcaption>
+    </figure>
+  </div>
+  <figure>
+    <img class="cap" style="max-height:170mm" src="../business-plan-assets/09-reservations/patient-08-livraison-medicaments.png" alt="">
+    <figcaption><b>Fig. 8</b> — Livraison de médicaments : fenêtres horaires avec capacité maîtrisée.</figcaption>
+  </figure>
+</div>
+
+<div class="section">
+  <div class="fiche">
+    <div class="esp">Patient</div>
+    <h4>Suivi en direct — intervenant et véhicule identifiés</h4>
+    <div class="bloc"><b>Description.</b> Pour chaque demande, le patient suit l'avancement en direct :
+    demande reçue, confirmée, intervenant assigné, en route, arrivé, en cours, terminée. Pour un
+    transport, il voit <b>le nom du chauffeur, le modèle du véhicule, sa couleur et sa plaque
+    d'immatriculation</b>, ainsi qu'un bouton d'appel direct.</div>
+    <div class="bloc"><b>Fonctionnement.</b> Les étapes sont horodatées par l'intervenant depuis son espace
+    mission ; le patient reçoit une notification (et une notification push sur téléphone) à chaque étape
+    clé. À la fin de l'intervention, il peut laisser un avis (1 à 5 étoiles).</div>
+    <div class="bloc"><b>Intérêt.</b> Confiance et sécurité (« je sais qui vient et avec quel véhicule »),
+    moins d'appels au standard, qualité mesurée en continu par les avis.</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+
+  <div class="g2">
+    <figure>
+      <img class="cap" src="../business-plan-assets/02-patient/patient-09-suivi-vehicule.png" alt="">
+      <figcaption><b>Fig. 9</b> — Suivi en direct : « votre intervenant est en route », véhicule, couleur et plaque.</figcaption>
+    </figure>
+    <figure>
+      <img class="cap" src="../business-plan-assets/07-messagerie/patient-10-messagerie.png" alt="">
+      <figcaption><b>Fig. 10</b> — Messagerie : échange direct et sécurisé avec l'équipe ASM.</figcaption>
+    </figure>
+  </div>
+
+  <div class="fiche">
+    <div class="esp">Patient</div>
+    <h4>Procurations : le patient garde la main</h4>
+    <div class="bloc"><b>Description.</b> Le patient voit la liste des établissements autorisés à réserver
+    pour lui, avec les services couverts et la date de fin éventuelle. Il accepte les invitations, génère
+    des codes temporaires et peut <b>révoquer un accès à tout moment</b> ; il est notifié à chaque changement.</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+  <figure>
+    <img class="cap" style="max-height:150mm" src="../business-plan-assets/02-patient/patient-11-procurations.png" alt="">
+    <figcaption><b>Fig. 11</b> — Autorisations du patient : qui peut réserver pour lui, et la révocation en un geste.</figcaption>
+  </figure>
+</div>
+
+<!-- ================= 3. ETABLISSEMENT ================= -->
+<div class="section">
+  <h2><span class="num">3.</span> Espace Établissement</h2>
+
+  <div class="fiche">
+    <div class="esp">Établissement</div>
+    <h4>Patients rattachés et réservation pour le compte d'un patient</h4>
+    <div class="bloc"><b>Description.</b> Un centre de dialyse, une clinique ou un cabinet dispose de son
+    propre espace : ses patients rattachés, ses réservations passées et à venir, et la possibilité de
+    réserver un transport, une aide à domicile ou une livraison <b>au nom d'un patient</b> — uniquement
+    si une procuration valide le permet.</div>
+    <div class="bloc"><b>Fonctionnement.</b> Quatre méthodes de rattachement : invitation acceptée par le
+    patient, code temporaire, rattachement direct par le staff ASM (vérifié), ou justificatif. Chaque
+    réservation « pour un patient » contrôle la procuration côté serveur (service couvert, non expirée,
+    non révoquée) ; le patient est notifié et l'origine de la réservation est tracée sur la demande.</div>
+    <div class="bloc"><b>Intérêt pour l'établissement.</b> Organiser les transports de ses patients
+    (dialyse, chimiothérapie) sans standard téléphonique, avec un historique propre.</div>
+    <div class="bloc"><b>Intérêt pour ASM.</b> Un canal B2B récurrent et prévisible (transports réguliers),
+    tout en gardant le consentement du patient au centre.</div>
+    <span class="etat op">Opérationnelle (contrôles de procuration testés)</span>
+  </div>
+
+  <figure>
+    <img class="cap" style="max-height:165mm" src="../business-plan-assets/03-etablissement/etablissement-01-tableau-de-bord.png" alt="">
+    <figcaption><b>Fig. 12</b> — Espace établissement : patients rattachés et réservations pour leurs comptes.</figcaption>
+  </figure>
+  <figure>
+    <img class="cap" style="max-height:150mm" src="../business-plan-assets/03-etablissement/admin-05-fiche-etablissement.png" alt="">
+    <figcaption><b>Fig. 13</b> — Côté centre de gestion : fiche établissement complète (patients rattachés, procurations, réservations, rattachement direct par le staff).</figcaption>
+  </figure>
+</div>
+
+<!-- ================= 4. MODERATEUR ================= -->
+<div class="section">
+  <h2><span class="num">4.</span> Espace Modérateur</h2>
+  <div class="fiche">
+    <div class="esp">Modérateur</div>
+    <h4>La régulation au quotidien, avec des droits volontairement limités</h4>
+    <div class="bloc"><b>Description.</b> Le modérateur traite le flux quotidien : rendez-vous du jour,
+    demandes à confirmer ou non affectées, retards, problèmes signalés, messages. Il crée et modifie les
+    rendez-vous, affecte les intervenants (avec contrôle anti-conflit automatique), notifie les patients
+    et demande des documents.</div>
+    <div class="bloc"><b>Limites du rôle (appliquées côté serveur).</b> Le modérateur ne gère pas l'équipe
+    interne ni les rôles, ne voit pas les données de paie, et <b>ne peut pas supprimer un compte</b> :
+    il soumet une demande de suppression motivée, que seul le Super administrateur peut valider ou
+    refuser. Chaque action est journalisée à son nom.</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+  <figure>
+    <img class="cap" src="../business-plan-assets/04-moderateur/moderateur-01-tableau-de-bord.png" alt="">
+    <figcaption><b>Fig. 14</b> — Le même centre de gestion, vu par un modérateur : l'essentiel du pilotage, sans les sections réservées.</figcaption>
+  </figure>
+</div>
+
+<!-- ================= 5. ADMIN ================= -->
+<div class="section">
+  <h2><span class="num">5.</span> Espace Administrateur — le Centre de gestion</h2>
+
+  <div class="fiche">
+    <div class="esp">Administrateur</div>
+    <h4>Tableau de bord : les priorités d'abord</h4>
+    <div class="bloc"><b>Description.</b> La page d'accueil du centre de gestion hiérarchise l'information :
+    d'abord « À traiter » (demandes non confirmées, retards, problèmes signalés, intervenants à valider,
+    messages non lus, suppressions à valider), puis l'activité du jour, puis la vue d'ensemble. Une
+    recherche globale interroge en une saisie les patients, établissements, intervenants et demandes ;
+    le menu « + Créer » lance les actions courantes.</div>
+    <div class="bloc"><b>Intérêt pour ASM.</b> Un coordinateur voit en dix secondes ce qui requiert une
+    action ; rien ne se perd, tout est daté et attribué.</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+  <figure>
+    <img class="cap" src="../business-plan-assets/05-administrateur/admin-01-tableau-de-bord.png" alt="">
+    <figcaption><b>Fig. 15</b> — Centre de gestion : alertes à traiter, activité du jour, dernières demandes.</figcaption>
+  </figure>
+
+  <div class="fiche">
+    <div class="esp">Administrateur</div>
+    <h4>Planning de régulation : la journée en un coup d'œil</h4>
+    <div class="bloc"><b>Description.</b> Vue calendrier jour / semaine : une colonne par soignant et par
+    chauffeur, les rendez-vous positionnés à leur heure avec leur durée, une colonne « Non affecté » en
+    tête pour repérer immédiatement ce qui reste à répartir. Jours de repos, congés et absences
+    apparaissent hachurés ; les heures hors planning de chaque intervenant sont grisées ; un clic ouvre
+    la demande.</div>
+    <div class="bloc"><b>Intérêt pour ASM.</b> Les trous et surcharges se voient d'un coup d'œil ;
+    l'affectation devient un geste visuel, appuyé par le contrôle anti-conflit du serveur (congés,
+    horaires, chevauchements, temps de trajet).</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+  <figure>
+    <img class="cap" src="../business-plan-assets/05-administrateur/admin-02-planning-regulation.png" alt="">
+    <figcaption><b>Fig. 16</b> — Planning : colonnes par intervenant, « Non affecté » en tête, couleurs par prestation.</figcaption>
+  </figure>
+</div>
+
+<div class="section">
+  <div class="fiche">
+    <div class="esp">Administrateur</div>
+    <h4>Demandes &amp; rendez-vous : le flux complet</h4>
+    <div class="bloc"><b>Description.</b> Toutes les demandes avec filtres (statut, service, jour,
+    supervision : en retard / non confirmées / problèmes), fiche détaillée, changement de statut,
+    reprogrammation, priorité, affectation d'un intervenant avec <b>refus motivé en cas de conflit</b>
+    (« déjà en mission à cette heure », « en congé ce jour-là »…), notifications automatiques au patient
+    et à l'intervenant à chaque étape.</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+  <figure>
+    <img class="cap" src="../business-plan-assets/05-administrateur/admin-03-demandes.png" alt="">
+    <figcaption><b>Fig. 17</b> — Demandes : filtres de supervision et détail de chaque dossier.</figcaption>
+  </figure>
+
+  <div class="fiche">
+    <div class="esp">Administrateur</div>
+    <h4>Fiche patient complète</h4>
+    <div class="bloc"><b>Description.</b> Une fiche à onglets par client : vue d'ensemble (coordonnées,
+    contact famille, compteurs réels), rendez-vous avec avis, établissements autorisés (procurations avec
+    validation / révocation), documents, notifications envoyées, notes internes, historique des actions.
+    L'équipe peut créer un compte client (le client définit son mot de passe à sa première connexion),
+    corriger email / téléphone (synchronisés avec le compte de connexion) et rattacher le patient à un
+    établissement.</div>
+    <div class="bloc"><b>Règle de gouvernance.</b> La suppression d'un compte par un administrateur ou un
+    modérateur passe par une <b>demande validée par le Super administrateur</b> ; l'historique est
+    toujours conservé.</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+  <figure>
+    <img class="cap" style="max-height:170mm" src="../business-plan-assets/05-administrateur/admin-04-fiche-patient.png" alt="">
+    <figcaption><b>Fig. 18</b> — Fiche patient : onglets, procurations, actions d'équipe, zone de suppression encadrée.</figcaption>
+  </figure>
+</div>
+
+<!-- ================= 6. SUPER ADMIN ================= -->
+<div class="section">
+  <h2><span class="num">6.</span> Espace Super administrateur</h2>
+
+  <div class="fiche">
+    <div class="esp">Super administrateur</div>
+    <h4>Équipe, privilèges et validations</h4>
+    <div class="bloc"><b>Description.</b> Le Super administrateur est le seul à nommer les rôles internes
+    (administrateur, modérateur, standardiste), à valider ou refuser les <b>demandes de suppression</b>
+    de comptes, et à consulter la matrice des rôles &amp; privilèges — celle-ci reflète les droits
+    réellement appliqués par le serveur, pas un simple affichage. Le journal d'activité horodate chaque
+    action sensible avec son auteur.</div>
+    <div class="bloc"><b>Règles clés.</b> Un administrateur ne peut créer que des comptes employés ; aucun
+    rôle ne permet de voir un mot de passe existant ; les accès employés se réinitialisent par mot de
+    passe temporaire à changement obligatoire.</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+  <figure>
+    <img class="cap" style="max-height:165mm" src="../business-plan-assets/06-super-admin/superadmin-01-equipe-privileges.png" alt="">
+    <figcaption><b>Fig. 19</b> — Équipe &amp; journal : demandes de suppression à valider, matrice des privilèges, traçabilité.</figcaption>
+  </figure>
+
+  <div class="fiche">
+    <div class="esp">Super administrateur · Administrateur</div>
+    <h4>Exports &amp; rapports (comptabilité et pilotage)</h4>
+    <div class="bloc"><b>Description.</b> Exports CSV compatibles Excel : demandes de la période (avec
+    intervenant, durée, origine établissement, avis), annuaires patients et établissements, et — réservé
+    au Super administrateur — la <b>paie des intervenants</b> (missions terminées, heures, montant estimé
+    selon le mode de rémunération). Chaque export est journalisé.</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+  <figure>
+    <img class="cap" src="../business-plan-assets/06-super-admin/superadmin-02-exports.png" alt="">
+    <figcaption><b>Fig. 20</b> — Exports : période au choix, demandes / clients / établissements / paie.</figcaption>
+  </figure>
+</div>
+
+<!-- ================= LOGISTIQUE ================= -->
+<div class="section">
+  <h2><span class="num">6 bis.</span> Côté terrain — l'espace Employé</h2>
+  <div class="fiche">
+    <div class="esp">Employé (chauffeur, aide-soignante, infirmier, coursier)</div>
+    <h4>Missions du jour et progression horodatée</h4>
+    <div class="bloc"><b>Description.</b> Chaque intervenant dispose d'un espace dédié : ses missions ou sa
+    tournée du jour, la fiche mission complète (client, adresses, consignes utiles — jamais les notes
+    internes), et des boutons de progression : accepter → en route → arrivé → commencé → terminé, avec
+    signalement de problème. Chaque appui horodate l'étape et alimente le suivi en direct du patient et
+    la supervision de l'admin. Le chauffeur voit aussi son véhicule (modèle, couleur, plaque) tel qu'il
+    apparaît aux patients.</div>
+    <div class="bloc"><b>Intérêt pour ASM.</b> La donnée terrain remonte en temps réel sans appel
+    téléphonique ; retards et problèmes deviennent visibles et mesurables.</div>
+    <span class="etat op">Opérationnelle</span>
+  </div>
+  <div class="g2">
+    <figure>
+      <img class="cap" src="../business-plan-assets/10-logistique/employe-01-espace-chauffeur.png" alt="">
+      <figcaption><b>Fig. 21</b> — Espace chauffeur : tournée du jour et véhicule attitré.</figcaption>
+    </figure>
+    <figure>
+      <img class="cap" src="../business-plan-assets/10-logistique/employe-02-fiche-mission.png" alt="">
+      <figcaption><b>Fig. 22</b> — Fiche mission : informations utiles et progression en un geste.</figcaption>
+    </figure>
+  </div>
+</div>
+
+<!-- ================= 7. PARCOURS ================= -->
+<div class="section">
+  <h2><span class="num">7.</span> Parcours utilisateurs illustrés</h2>
+  <div class="parcours">
+    <b>Parcours Patient.</b> Accueil (Fig. 1) <span class="fl">→</span> Connexion par code ou compte
+    Google/Facebook/Apple (Fig. 3) <span class="fl">→</span> Choix du service et du créneau réellement
+    disponible (Fig. 6–8) <span class="fl">→</span> Confirmation et notification
+    <span class="fl">→</span> Suivi en direct, véhicule identifié (Fig. 9) <span class="fl">→</span>
+    Avis en fin d'intervention <span class="fl">→</span> Messagerie si besoin (Fig. 10).
+  </div>
+  <div class="parcours">
+    <b>Parcours Établissement.</b> Connexion espace pro <span class="fl">→</span> Rattachement du patient
+    (invitation, code, staff — Fig. 12–13) <span class="fl">→</span> Procuration validée, patient notifié
+    <span class="fl">→</span> Réservation au nom du patient, contrôlée par le serveur
+    <span class="fl">→</span> Suivi et historique tracés « réservé par l'établissement ».
+  </div>
+  <div class="parcours">
+    <b>Parcours Administration.</b> Connexion sécurisée <span class="fl">→</span> Tableau de bord :
+    priorités du jour (Fig. 15) <span class="fl">→</span> Planning de régulation (Fig. 16)
+    <span class="fl">→</span> Affectation avec contrôle anti-conflit (Fig. 17) <span class="fl">→</span>
+    Notifications automatiques patient + intervenant <span class="fl">→</span> Clôture, avis, exports
+    (Fig. 20) <span class="fl">→</span> Journal d'audit (Fig. 19).
+  </div>
+</div>
+
+<!-- ================= 8. TABLEAU ================= -->
+<div class="section">
+  <h2><span class="num">8.</span> Tableau synthétique des fonctionnalités</h2>
+  <table>
+    <thead><tr><th>Fonctionnalité</th><th class="c">Patient</th><th class="c">Établis.</th><th class="c">Modér.</th><th class="c">Admin</th><th class="c">Super</th><th>Statut</th></tr></thead>
+    <tbody>
+      <tr><td>Réserver un transport médical</td><td class="c">Oui</td><td class="c">Oui*</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Aide à domicile — créneaux temps réel</td><td class="c">Oui</td><td class="c">Oui*</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Livraison médicaments — fenêtres à capacité</td><td class="c">Oui</td><td class="c">Oui*</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Anti-double réservation &amp; anti-conflit d'affectation</td><td class="c">—</td><td class="c">—</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle (testée)</td></tr>
+      <tr><td>Affectation automatique (option)</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Suivi en direct + véhicule (modèle, couleur, plaque)</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Avis patients (1–5 étoiles)</td><td class="c">Oui</td><td class="c">—</td><td class="c">Lecture</td><td class="c">Lecture</td><td class="c">Lecture</td><td>Opérationnelle</td></tr>
+      <tr><td>Messagerie patient ↔ équipe + diffusion aux employés</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Notifications internes + push téléphone</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle (iOS : via installation écran d'accueil)</td></tr>
+      <tr><td>Connexion par code SMS (Elite SMS national / Twilio international)</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Développée — mise en service liée au compte opérateur</td></tr>
+      <tr><td>Code de connexion par WhatsApp (repli SMS automatique)</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td>Développée — compte WhatsApp Business (Meta) à activer</td></tr>
+      <tr><td>Connexions rapides Google · Facebook · Apple</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td>Développée — paramétrage des fournisseurs</td></tr>
+      <tr><td>Connexion identifiant / mot de passe + récupération par e-mail (Brevo)</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Création de compte client par l'équipe (mot de passe à la 1ʳᵉ connexion)</td><td class="c">—</td><td class="c">—</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Procurations patient ↔ établissement (4 méthodes, révocation)</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle (testée)</td></tr>
+      <tr><td>Planning de régulation jour / semaine par intervenant</td><td class="c">—</td><td class="c">—</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Fiches employés RH (9 onglets : compte, planning, paie, documents…)</td><td class="c">—</td><td class="c">—</td><td class="c">Partiel</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Espace employé : missions, progression horodatée, documents</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td>Opérationnelle (rôles employés)</td></tr>
+      <tr><td>Suppression de comptes soumise à validation du Super admin</td><td class="c">—</td><td class="c">—</td><td class="c">Demande</td><td class="c">Demande</td><td class="c">Valide</td><td>Opérationnelle</td></tr>
+      <tr><td>Exports CSV (demandes, clients, établissements, paie)</td><td class="c">—</td><td class="c">—</td><td class="c">Partiel</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
+      <tr><td>Journal d'audit de toutes les actions sensibles</td><td class="c">—</td><td class="c">—</td><td class="c">Écrit</td><td class="c">Écrit</td><td class="c">Lit tout</td><td>Opérationnelle</td></tr>
+      <tr><td>Application mobile native / GPS embarqué</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td>Prévue, non développée</td></tr>
+    </tbody>
+  </table>
+  <p style="font-size:8.5pt;color:var(--gris);margin-top:2mm">* Pour un établissement : uniquement pour ses patients rattachés, procuration valide contrôlée par le serveur à chaque réservation.</p>
+</div>
+
+<!-- ================= 9. ARCHITECTURE ================= -->
+<div class="section">
+  <h2><span class="num">9.</span> Architecture technique</h2>
+  <p>La plateforme s'appuie sur des services éprouvés, choisis pour leur fiabilité et leur coût maîtrisé,
+  sans serveur à administrer :</p>
+  <div class="archi">
+    <div><b>Vercel</b>Hébergement du site (Next.js), déploiement continu depuis GitHub, HTTPS</div>
+    <div><b>Supabase</b>Comptes &amp; authentification (SMS, e-mail, Google / Facebook / Apple), stockage privé des documents</div>
+    <div><b>Railway · PostgreSQL</b>Base de données métier (demandes, plannings, procurations, journal)</div>
+    <div><b>Elite SMS</b>Envoi des SMS vers les numéros algériens (routage national automatique)</div>
+    <div><b>Twilio</b>Envoi des SMS vers les numéros internationaux (diaspora, familles à l'étranger)</div>
+    <div><b>WhatsApp Cloud API</b>Acheminement du code de connexion sur WhatsApp, repli SMS automatique</div>
+    <div><b>Brevo</b>E-mails transactionnels : récupération de compte, invitations, notifications</div>
+    <div><b>Web Push</b>Notifications sur le téléphone (patients et employés), y compris iPhone</div>
+    <div><b>GitHub</b>Code source versionné, historique complet des évolutions</div>
+  </div>
+  <p><b>Flux d'une réservation :</b></p>
+  <div class="parcours" style="text-align:center">
+    Patient / Établissement <span class="fl">→</span> Site ASM (Vercel) <span class="fl">→</span>
+    Moteur de disponibilités (PostgreSQL) <span class="fl">→</span> Confirmation transactionnelle
+    <span class="fl">→</span> Notifications (interne + push + e-mail) <span class="fl">→</span>
+    Espace mission de l'intervenant <span class="fl">→</span> Suivi en direct du patient
+  </div>
+  <p>Évolutions prévues : application mobile, géolocalisation des véhicules en temps réel (GPS/OBD),
+  statistiques avancées.</p>
+</div>
+
+<!-- ================= 10. SECURITE ================= -->
+<div class="section">
+  <h2><span class="num">10.</span> Sécurité et confidentialité</h2>
+  <ul>
+    <li><b>Séparation stricte des rôles</b> : patient, établissement, employé, modérateur, administrateur,
+    super administrateur — chaque droit est vérifié <b>côté serveur</b> à chaque appel, jamais par un simple
+    masquage de bouton.</li>
+    <li><b>Cloisonnement des données</b> : un patient ne voit que ses demandes, messages, notifications et
+    documents ; un établissement ne voit que ses patients rattachés ; un intervenant n'accède qu'aux
+    missions qui lui sont affectées.</li>
+    <li><b>Mots de passe</b> : jamais stockés en clair, jamais visibles — même par le super administrateur.
+    Réinitialisation par mot de passe temporaire à changement obligatoire, ou par code e-mail.</li>
+    <li><b>Procurations</b> : aucun établissement ne peut agir pour un patient sans autorisation valide,
+    contrôlée par le serveur à chaque réservation, révocable par le patient à tout moment, avec
+    notification systématique.</li>
+    <li><b>Suppressions encadrées</b> : demande motivée + validation du super administrateur ; l'historique
+    des prestations est conservé.</li>
+    <li><b>Documents</b> : stockage privé, accès par liens signés à durée limitée.</li>
+    <li><b>Journalisation</b> : chaque action sensible (création, modification, affectation, export,
+    suppression) est horodatée avec son auteur et consultable dans le journal d'audit.</li>
+    <li><b>Protections techniques</b> : limitation de débit sur les points sensibles, vérification de
+    signature des webhooks, secrets uniquement en variables d'environnement (jamais dans le code),
+    en-têtes de sécurité, prévention des doubles réservations par transaction.</li>
+  </ul>
+  <p style="margin-top:6mm;font-size:9pt;color:var(--gris)">
+    Document établi à partir de l'audit du code et de tests fonctionnels réalisés sur un environnement de
+    démonstration. Les captures présentent des écrans réels de la plateforme, renseignés avec des données
+    fictives. Les briques signalées « mise en service liée au compte opérateur / fournisseur » sont
+    développées et intégrées dans le produit ; leur activation dépend de démarches externes (comptes
+    opérateurs SMS, WhatsApp Business, fournisseurs de connexion) en cours de finalisation.
+  </p>
+</div>
+
+</body>
+</html>

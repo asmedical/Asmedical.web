@@ -1,0 +1,23 @@
+﻿Fichier;Espace;Écran illustré;Figure
+02-patient/patient-01-accueil.png;Public;Accueil : trois prestations, FR/AR;Fig. 1
+02-patient/patient-02-choix-espace.png;Public;Choix espace patient / professionnel;Fig. 2
+02-patient/patient-03-connexion-rapide.png;Patient;Connexion : SMS/WhatsApp + Google·Facebook·Apple;Fig. 3
+02-patient/patient-04-connexion-identifiant.png;Patient;Connexion identifiant / mot de passe;Fig. 4
+02-patient/patient-05-tableau-de-bord.png;Patient;Tableau de bord patient;Fig. 5
+09-reservations/patient-06-transport-medical.png;Patient;Réservation transport;Fig. 6
+09-reservations/patient-07-aide-domicile.png;Patient;Réservation aide à domicile (créneaux réels);Fig. 7
+09-reservations/patient-08-livraison-medicaments.png;Patient;Livraison médicaments (fenêtres);Fig. 8
+02-patient/patient-09-suivi-vehicule.png;Patient;Suivi en direct + véhicule (modèle, couleur, plaque);Fig. 9
+07-messagerie/patient-10-messagerie.png;Patient;Messagerie patient ↔ équipe;Fig. 10
+02-patient/patient-11-procurations.png;Patient;Autorisations / procurations;Fig. 11
+03-etablissement/etablissement-01-tableau-de-bord.png;Établissement;Espace établissement;Fig. 12
+03-etablissement/admin-05-fiche-etablissement.png;Admin;Fiche établissement (procurations, patients);Fig. 13
+04-moderateur/moderateur-01-tableau-de-bord.png;Modérateur;Centre de gestion vu modérateur;Fig. 14
+05-administrateur/admin-01-tableau-de-bord.png;Admin;Tableau de bord centre de gestion;Fig. 15
+05-administrateur/admin-02-planning-regulation.png;Admin;Planning de régulation;Fig. 16
+05-administrateur/admin-03-demandes.png;Admin;Demandes & rendez-vous;Fig. 17
+05-administrateur/admin-04-fiche-patient.png;Admin;Fiche patient complète;Fig. 18
+06-super-admin/superadmin-01-equipe-privileges.png;Super admin;Équipe, privilèges, suppressions;Fig. 19
+06-super-admin/superadmin-02-exports.png;Super admin;Exports & rapports;Fig. 20
+10-logistique/employe-01-espace-chauffeur.png;Employé;Espace chauffeur + véhicule;Fig. 21
+10-logistique/employe-02-fiche-mission.png;Employé;Fiche mission (progression);Fig. 22

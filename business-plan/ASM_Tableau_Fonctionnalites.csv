@@ -1,0 +1,23 @@
+﻿Fonctionnalité;Patient;Établissement;Modérateur;Admin;Super Admin;Statut
+Réserver un transport médical;Oui;Oui (procuration);Oui;Oui;Oui;Opérationnelle
+Aide à domicile — créneaux temps réel;Oui;Oui (procuration);Oui;Oui;Oui;Opérationnelle
+Livraison médicaments — fenêtres à capacité;Oui;Oui (procuration);Oui;Oui;Oui;Opérationnelle
+Anti-double réservation / anti-conflit;—;—;Oui;Oui;Oui;Opérationnelle (testée)
+Affectation automatique (option);—;—;—;Oui;Oui;Opérationnelle
+Suivi en direct + véhicule (modèle, couleur, plaque);Oui;Oui;Oui;Oui;Oui;Opérationnelle
+Avis patients (1–5 étoiles);Oui;—;Lecture;Lecture;Lecture;Opérationnelle
+Messagerie + diffusion employés;Oui;Oui;Oui;Oui;Oui;Opérationnelle
+Notifications internes + push téléphone;Oui;Oui;Oui;Oui;Oui;Opérationnelle (iOS via écran d'accueil)
+Connexion par code SMS (Elite SMS national / Twilio international);Oui;Oui;Oui;Oui;Oui;Développée — mise en service liée au compte opérateur
+Code de connexion par WhatsApp (repli SMS auto);Oui;Oui;—;—;—;Développée — compte WhatsApp Business (Meta) à activer
+Connexions rapides Google / Facebook / Apple;Oui;Oui;—;—;—;Développée — paramétrage des fournisseurs
+Identifiant / mot de passe + récupération e-mail (Brevo);Oui;Oui;Oui;Oui;Oui;Opérationnelle
+Création compte client par l'équipe (mdp à la 1re connexion);—;—;Oui;Oui;Oui;Opérationnelle
+Procurations patient-établissement (4 méthodes, révocation);Oui;Oui;Oui;Oui;Oui;Opérationnelle (testée)
+Planning de régulation jour/semaine;—;—;Oui;Oui;Oui;Opérationnelle
+Fiches employés RH (9 onglets);—;—;Partiel;Oui;Oui;Opérationnelle
+Espace employé : missions, progression horodatée;—;—;—;—;—;Opérationnelle (rôles employés)
+Suppression de comptes soumise à validation;—;—;Demande;Demande;Valide;Opérationnelle
+Exports CSV (demandes, clients, établissements, paie);—;—;Partiel;Oui;Oui;Opérationnelle
+Journal d'audit;—;—;Écrit;Écrit;Lit tout;Opérationnelle
+Application mobile native / GPS embarqué;—;—;—;—;—;Prévue, non développée

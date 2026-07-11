@@ -1,0 +1,90 @@
+[
+  {
+    "fichier": "02-patient/patient-01-accueil.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "02-patient/patient-02-choix-espace.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "02-patient/patient-03-connexion-rapide.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "02-patient/patient-04-connexion-identifiant.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "02-patient/patient-05-tableau-de-bord.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "09-reservations/patient-06-transport-medical.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "09-reservations/patient-07-aide-domicile.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "09-reservations/patient-08-livraison-medicaments.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "02-patient/patient-09-suivi-vehicule.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "07-messagerie/patient-10-messagerie.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "02-patient/patient-11-procurations.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "03-etablissement/etablissement-01-tableau-de-bord.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "10-logistique/employe-01-espace-chauffeur.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "10-logistique/employe-02-fiche-mission.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "05-administrateur/admin-01-tableau-de-bord.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "05-administrateur/admin-02-planning-regulation.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "05-administrateur/admin-03-demandes.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "05-administrateur/admin-04-fiche-patient.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "03-etablissement/admin-05-fiche-etablissement.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "06-super-admin/superadmin-01-equipe-privileges.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "06-super-admin/superadmin-02-exports.png",
+    "statut": "OK"
+  },
+  {
+    "fichier": "04-moderateur/moderateur-01-tableau-de-bord.png",
+    "statut": "OK"
+  }
+]
