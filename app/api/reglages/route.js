@@ -28,12 +28,16 @@ export async function PATCH(req) {
       "capaciteTransport",
       "capaciteDomicile",
       "capaciteMedicaments",
+      "tamponMin",
+      "trajetDefautMin",
+      "capaciteFenetre",
     ];
     const data = {};
     for (const k of champs) {
       const v = parseInt(c[k], 10);
       if (Number.isFinite(v) && v >= 0 && v <= 1000) data[k] = v;
     }
+    if (c.affectationAuto !== undefined) data.affectationAuto = Boolean(c.affectationAuto);
     const maj = await prisma.reglage.update({ where: { id: 1 }, data });
     return NextResponse.json({ ok: true, reglage: maj });
   } catch {

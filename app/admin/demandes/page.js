@@ -50,8 +50,8 @@ function PageDemandes() {
       await fetchAdmin("/api/admin/demandes", { method: "PATCH", body: JSON.stringify({ id, ...champs }) });
       setMsg("Enregistré ✓");
       await charger();
-    } catch {
-      setMsg("Erreur : modification impossible.");
+    } catch (e) {
+      setMsg(e?.data?.raison ? `⛔ Affectation impossible : ${e.data.raison}` : "Erreur : modification impossible.");
     }
   }
 

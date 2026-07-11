@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { notifierEquipe } from "@/lib/notifier";
-import { getReglage, capacitePour } from "@/lib/creneaux";
+import { getReglage } from "@/lib/creneaux";
+import { capaciteCreneau, choisirIntervenant } from "@/lib/disponibilites";
 import { logErreur } from "@/lib/log";
 import { autorise } from "@/lib/ratelimit";
 
@@ -29,21 +30,51 @@ export async function POST(req) {
     const SOUS_MODES = ["ponctuel", "urgent", "abonnement", "fenetre"];
     const sousMode = SOUS_MODES.includes(corps.sousMode) ? corps.sousMode : null;
 
-    // Contrôle anti-double-réservation : si un créneau précis est choisi,
-    // on vérifie que la capacité n'est pas atteinte, dans une transaction.
     const serviceNorm = String(service).slice(0, 30);
+    const duree = Math.min(Math.max(parseInt(corps.duree, 10) || 60, 15), 480);
+    const commune = texte(corps.commune, 80);
+    const reglage = await getReglage();
+
+    // Capacité RÉELLE du créneau (ressources éligibles et libres — ou
+    // capacité globale de repli si aucune ressource n'est configurée).
+    let capacite = null;
+    if (dateSlot.includes("T") && serviceNorm !== "medicaments") {
+      const res = await capaciteCreneau(serviceNorm, dateSlot, {
+        duree, commune, typeTrajet: corps.typeTrajet || undefined,
+      });
+      capacite = res.capacite;
+      if (capacite <= 0) return NextResponse.json({ erreur: "creneau_pris" }, { status: 409 });
+    }
+
+    // Contrôle anti-double-réservation dans une transaction : le nombre de
+    // demandes déjà posées sur ce créneau (ou cette fenêtre de livraison)
+    // ne doit pas dépasser la capacité calculée.
     let demande;
     try {
       demande = await prisma.$transaction(async (tx) => {
-        if (dateSlot.includes("T")) {
-          const reglage = await getReglage();
-          const capacite = capacitePour(reglage, serviceNorm);
+        if (capacite !== null) {
           const pris = await tx.demande.count({
             where: { service: serviceNorm, date: dateSlot, statut: { not: "ANNULEE" } },
           });
           if (pris >= capacite) {
             const err = new Error("creneau_pris");
             err.code = "CRENEAU_PRIS";
+            throw err;
+          }
+        }
+        // Livraison : la fenêtre choisie a une capacité maximale.
+        if (serviceNorm === "medicaments" && corps.fenetre && dateSlot) {
+          const prisFenetre = await tx.demande.count({
+            where: {
+              service: "medicaments",
+              date: { startsWith: dateSlot.slice(0, 10) },
+              fenetre: String(corps.fenetre).slice(0, 60),
+              statut: { not: "ANNULEE" },
+            },
+          });
+          if (prisFenetre >= reglage.capaciteFenetre) {
+            const err = new Error("fenetre_pleine");
+            err.code = "FENETRE_PLEINE";
             throw err;
           }
         }
@@ -64,6 +95,8 @@ export async function POST(req) {
             prioritaire: sousMode === "urgent",
             fenetre: texte(corps.fenetre, 60),
             pharmacie: texte(corps.pharmacie, 200),
+            dureeMin: duree,
+            commune,
           },
         });
       });
@@ -71,8 +104,46 @@ export async function POST(req) {
       if (e.code === "CRENEAU_PRIS") {
         return NextResponse.json({ erreur: "creneau_pris" }, { status: 409 });
       }
+      if (e.code === "FENETRE_PLEINE") {
+        return NextResponse.json({ erreur: "fenetre_pleine" }, { status: 409 });
+      }
       throw e;
     }
+
+    // Affectation automatique (option réglable) : l'intervenant éligible le
+    // moins chargé du jour est assigné immédiatement, sinon « à rappeler ».
+    if (reglage.affectationAuto && dateSlot.includes("T") && serviceNorm !== "medicaments") {
+      try {
+        const choisi = await choisirIntervenant(serviceNorm, dateSlot, {
+          duree, commune, typeTrajet: corps.typeTrajet || undefined,
+        });
+        if (choisi) {
+          const champ = serviceNorm === "domicile" ? "soignantId" : "transporteurId";
+          demande = await prisma.demande.update({
+            where: { id: demande.id },
+            data: { [champ]: choisi.id, statut: "AFFECTEE" },
+          });
+          if (choisi.userId) {
+            await prisma.notification.create({
+              data: {
+                userId: choisi.userId, type: "rdv",
+                titre: serviceNorm === "domicile" ? "Nouvelle intervention" : "Nouvelle course / tournée",
+                corps: `${dateSlot.replace("T", " à ")}${demande.destination ? ` · ${demande.destination}` : ""}`,
+                auteur: "Affectation automatique", statut: "NON_LU",
+                lienType: "intervention", lienId: String(demande.id),
+              },
+            });
+            const { envoyerPush } = await import("@/lib/pushEnvoi");
+            await envoyerPush(choisi.userId, {
+              titre: "Nouvelle intervention",
+              corps: dateSlot.replace("T", " à "),
+              url: `/employe/interventions/${demande.id}`,
+            });
+          }
+        }
+      } catch {}
+    }
+
     await notifierEquipe(demande);
     return NextResponse.json({ ok: true, id: demande.id }, { status: 201 });
   } catch (e) {

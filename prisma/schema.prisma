@@ -27,6 +27,8 @@ model Demande {
   sousMode       String?  // transport : abonnement | ponctuel | urgent — medicaments : fenetre | urgent
   fenetre        String?  // fenêtre souhaitée (livraison) ex. "14h-17h" ou "au plus tôt"
   pharmacie      String?  // adresse / nom de la pharmacie (livraison)
+  dureeMin       Int      @default(60) // durée de la prestation (minutes) — sert au calcul des chevauchements
+  commune        String?  // commune du patient (filtre de zone du moteur de disponibilités)
   soignantId     Int?
   soignant       Soignant?     @relation(fields: [soignantId], references: [id])
   transporteurId Int?
@@ -266,4 +268,9 @@ model Reglage {
   capaciteTransport   Int @default(3)   // 3 transports en parallèle
   capaciteDomicile    Int @default(2)
   capaciteMedicaments Int @default(3)
+  // --- Moteur de disponibilités par ressources ---
+  tamponMin           Int     @default(15)    // temps tampon après chaque intervention (min)
+  trajetDefautMin     Int     @default(20)    // déplacement estimé entre deux interventions (min)
+  capaciteFenetre     Int     @default(8)     // livraisons max par fenêtre (matin/midi/soir)
+  affectationAuto     Boolean @default(false) // affecter automatiquement l'intervenant le moins chargé
 }

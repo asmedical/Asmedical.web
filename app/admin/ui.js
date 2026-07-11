@@ -53,7 +53,10 @@ export async function fetchAdmin(chemin, options = {}) {
       ...(options.headers || {}),
     },
   });
-  if (!r.ok) throw Object.assign(new Error("api"), { status: r.status });
+  if (!r.ok) {
+    const corps = await r.json().catch(() => ({}));
+    throw Object.assign(new Error(corps.erreur || "api"), { status: r.status, data: corps });
+  }
   return r.json();
 }
 

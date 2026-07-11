@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { verifierAdmin, journaliser, refus } from "@/lib/adminAuth";
 import { notifierPatient } from "@/lib/notifier";
+import { conflitAffectation } from "@/lib/disponibilites";
 
 export const dynamic = "force-dynamic";
 
@@ -132,11 +133,21 @@ export async function PATCH(req) {
       actions.push(`reprogrammée ${data.date}`);
     }
 
-    // État précédent (pour ne notifier qu'un changement réel d'affectation).
-    const avant = await prisma.demande.findUnique({
-      where: { id },
-      select: { soignantId: true, transporteurId: true },
-    });
+    // État précédent (notifications + contrôle de conflit d'affectation).
+    const avant = await prisma.demande.findUnique({ where: { id } });
+    if (!avant) return NextResponse.json({ erreur: "introuvable" }, { status: 404 });
+
+    // Anti double-réservation d'un intervenant : on refuse une affectation
+    // qui chevauche son planning (congé, repos, horaires, autre mission).
+    const cible = { ...avant, date: data.date || avant.date, id };
+    if (data.soignantId && data.soignantId !== avant.soignantId) {
+      const raison = await conflitAffectation("soignant", data.soignantId, cible);
+      if (raison) return NextResponse.json({ erreur: "conflit", raison }, { status: 409 });
+    }
+    if (data.transporteurId && data.transporteurId !== avant.transporteurId) {
+      const raison = await conflitAffectation("transporteur", data.transporteurId, cible);
+      if (raison) return NextResponse.json({ erreur: "conflit", raison }, { status: 409 });
+    }
 
     const maj = await prisma.demande.update({ where: { id }, data });
     await journaliser(acces.nomAffiche, "demande.maj", "demande", id, actions.join(", "));

@@ -7,9 +7,12 @@ const CHAMPS = [
   ["heureDebut", "Heure d'ouverture (ex. 7)"],
   ["heureFin", "Heure de fermeture (ex. 19)"],
   ["joursHorizon", "Jours réservables à l'avance"],
-  ["capaciteTransport", "Transports en parallèle"],
-  ["capaciteDomicile", "Aides à domicile en parallèle"],
-  ["capaciteMedicaments", "Livraisons en parallèle"],
+  ["capaciteTransport", "Transports en parallèle (repli)"],
+  ["capaciteDomicile", "Aides à domicile en parallèle (repli)"],
+  ["capaciteMedicaments", "Livraisons en parallèle (repli)"],
+  ["tamponMin", "Tampon après intervention (min)"],
+  ["trajetDefautMin", "Trajet estimé entre 2 missions (min)"],
+  ["capaciteFenetre", "Livraisons max par fenêtre"],
 ];
 
 export default function PageReglages() {
@@ -61,6 +64,18 @@ export default function PageReglages() {
             </label>
           ))}
         </div>
+        <label className="case-ligne" style={{ marginTop: 14 }}>
+          <input
+            type="checkbox"
+            checked={!!reglage.affectationAuto}
+            onChange={(e) => setReglage({ ...reglage, affectationAuto: e.target.checked })}
+          />
+          Affectation automatique : assigner l&apos;intervenant éligible le moins chargé dès la réservation
+        </label>
+        <p className="fe-aide" style={{ marginTop: 4 }}>
+          Décoché : les nouvelles demandes restent « à affecter » et l&apos;équipe choisit l&apos;intervenant.
+          Les capacités « repli » ne servent que si aucun soignant/transporteur validé n&apos;est configuré.
+        </p>
         <button className="adm-btn" style={{ marginTop: 12 }} onClick={enregistrer} disabled={occupe}>
           {occupe ? "Enregistrement…" : "Enregistrer"}
         </button>

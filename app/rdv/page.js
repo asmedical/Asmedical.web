@@ -71,10 +71,13 @@ export default function PriseRdv() {
   // --- Commun ---
   const [telephone, setTelephone] = useState("");
   const [notes, setNotes] = useState("");
+  const [commune, setCommune] = useState(""); // filtre de zone du moteur
+  const [communeFiltre, setCommuneFiltre] = useState(""); // appliqué au blur
   const [jours, setJours] = useState([]);
   const [jourChoisi, setJourChoisi] = useState("");
   const [creneaux, setCreneaux] = useState(null);
   const [slotChoisi, setSlotChoisi] = useState("");
+  const [fenetres, setFenetres] = useState(null); // livraison : capacité réelle
 
   // Précisions structurées
   const [besoins, setBesoins] = useState([]);
@@ -115,20 +118,45 @@ export default function PriseRdv() {
     };
   }, []);
 
-  // Créneaux du jour choisi (uniquement pour les modes à créneaux)
+  // Durée réelle de la prestation (Mode A : durée du soin choisi).
+  const dureeActuelle =
+    service === "domicile"
+      ? (actes?.[acteChoisi]?.dureeMin ?? ACTES_DEFAUT[acteChoisi]?.dureeMin ?? 60)
+      : 60;
+
+  // Créneaux du jour choisi — calculés par le moteur de ressources
+  // (durée du soin, commune, type de véhicule).
   useEffect(() => {
     if (!jourChoisi || !besoinCreneau) return;
     let annule = false;
     setCreneaux(null);
     setSlotChoisi("");
-    fetch(`/api/creneaux?service=${service}&jour=${jourChoisi}`)
+    const u = new URLSearchParams({ service, jour: jourChoisi, duree: String(dureeActuelle) });
+    if (communeFiltre.trim()) u.set("commune", communeFiltre.trim());
+    if (service === "transport") u.set("typeTrajet", typeTrajet);
+    fetch(`/api/creneaux?${u}`)
       .then((r) => r.json())
       .then((d) => !annule && setCreneaux(d.creneaux || []))
       .catch(() => !annule && setCreneaux([]));
     return () => {
       annule = true;
     };
-  }, [jourChoisi, service, besoinCreneau]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jourChoisi, service, besoinCreneau, dureeActuelle, communeFiltre, typeTrajet]);
+
+  // Fenêtres de livraison du jour, avec capacité restante.
+  useEffect(() => {
+    if (service !== "medicaments" || !jourChoisi) return;
+    let annule = false;
+    setFenetres(null);
+    fetch(`/api/creneaux?service=medicaments&jour=${jourChoisi}`)
+      .then((r) => r.json())
+      .then((d) => !annule && setFenetres(d.fenetres || null))
+      .catch(() => !annule && setFenetres(null));
+    return () => {
+      annule = true;
+    };
+  }, [service, jourChoisi]);
 
   // Types d'actes (Mode A) : ceux du back-office, sinon la liste par défaut.
   useEffect(() => {
@@ -241,11 +269,23 @@ export default function PriseRdv() {
           sousMode: urgent ? "urgent" : livraison ? "fenetre" : "ponctuel",
           fenetre: livraison ? FENETRES.find((f) => f.id === fenetre)?.fr : undefined,
           pharmacie: livraison ? pharmacie.trim() || undefined : undefined,
+          duree: dureeActuelle,
+          commune: commune.trim() || undefined,
         }),
       });
       if (r.status === 409) {
+        const dErr = await r.json().catch(() => ({}));
+        if (dErr.erreur === "fenetre_pleine") {
+          setErreur(t("err_fenetre_pleine"));
+          const rf = await fetch(`/api/creneaux?service=medicaments&jour=${jourChoisi}`);
+          const df = await rf.json().catch(() => ({}));
+          setFenetres(df.fenetres || null);
+          return;
+        }
         setErreur(t("err_creneau_pris"));
-        const rc = await fetch(`/api/creneaux?service=${service}&jour=${jourChoisi}`);
+        const u = new URLSearchParams({ service, jour: jourChoisi, duree: String(dureeActuelle) });
+        if (communeFiltre.trim()) u.set("commune", communeFiltre.trim());
+        const rc = await fetch(`/api/creneaux?${u}`);
         const dc = await rc.json();
         setCreneaux(dc.creneaux || []);
         setSlotChoisi("");
@@ -375,6 +415,20 @@ export default function PriseRdv() {
           </div>
         )}
 
+        {/* Commune : filtre de zone du moteur (domicile + transport) */}
+        {service !== "medicaments" && (
+          <div className="champ">
+            <label>{t("commune_l")}</label>
+            <input
+              type="text"
+              placeholder={t("commune_ph")}
+              value={commune}
+              onChange={(e) => setCommune(e.target.value)}
+              onBlur={() => setCommuneFiltre(commune)}
+            />
+          </div>
+        )}
+
         {/* ---- Mode C : pharmacie + jour + fenêtre ---- */}
         {service === "medicaments" && (
           <>
@@ -399,17 +453,23 @@ export default function PriseRdv() {
             <div className="champ">
               <label>{t("liv_fenetre_l")}</label>
               <div className="chips">
-                {FENETRES.map((f) => (
-                  <button
-                    type="button"
-                    key={f.id}
-                    className={"chip" + (fenetre === f.id ? " actif" : "")}
-                    aria-pressed={fenetre === f.id}
-                    onClick={() => setFenetre(f.id)}
-                  >
-                    {t(f.cle)}
-                  </button>
-                ))}
+                {FENETRES.map((f) => {
+                  const info = fenetres?.find((x) => x.id === f.id);
+                  const complet = Boolean(info?.complet);
+                  return (
+                    <button
+                      type="button"
+                      key={f.id}
+                      disabled={complet}
+                      className={"chip" + (fenetre === f.id ? " actif" : "") + (complet ? " pris" : "")}
+                      aria-pressed={fenetre === f.id}
+                      onClick={() => setFenetre(f.id)}
+                    >
+                      {t(f.cle)}
+                      {complet ? ` — ${t("complet")}` : info?.presqueComplet ? ` — ${t("presque_complet")}` : ""}
+                    </button>
+                  );
+                })}
               </div>
             </div>
             <p className="precisions-aide">{t("ordonnance_info")}</p>
