@@ -814,3 +814,59 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .adm-matrice td{padding:8px 10px;border-bottom:1px solid var(--ligne)}
 .adm-matrice td.centre{text-align:center}
 .adm-regles-ext{margin:14px 0 4px;padding-inline-start:18px;color:var(--gris);font-size:13px;line-height:1.6}
+
+/* ============ ASM Centre de gestion — mise en page DESKTOP ============ */
+/* Mobile (<1024px) : en-tête + barre du bas actuels, rien ne change.    */
+.adm-entete-desktop{display:none}
+.adm-sidebar{display:none}
+
+@media(min-width:1024px){
+  .adm-mobile-seul{display:none}
+  .adm-tabbar{display:none}
+  .adm-page.avec-tabbar{padding-bottom:0}
+
+  .adm-entete-desktop{position:sticky;top:0;z-index:80;display:flex;align-items:center;gap:18px;background:var(--vert-fonce);color:#fff;padding:10px 22px}
+  .adm-marque{display:flex;align-items:center;gap:10px;color:#fff;text-decoration:none;font-weight:800;font-size:15.5px;white-space:nowrap}
+  .adm-entete-droite{display:flex;align-items:center;gap:16px;margin-inline-start:auto}
+  .adm-qui{text-align:end;line-height:1.15}
+  .adm-qui strong{display:block;font-size:13.5px}
+  .adm-qui small{color:rgba(255,255,255,.75);font-size:11.5px}
+  .adm-lien-site{color:#fff;text-decoration:none;font-size:13px;font-weight:700;background:rgba(255,255,255,.14);padding:8px 14px;border-radius:999px;white-space:nowrap}
+  .adm-lien-site:hover{background:rgba(255,255,255,.24)}
+  .adm-deco-btn{background:none;border:none;cursor:pointer;padding:6px}
+  .adm-deco-btn svg{width:20px;height:20px;stroke:#fff;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+
+  /* Recherche globale */
+  .adm-recherche{position:relative;flex:1;max-width:520px}
+  .adm-recherche input{width:100%;padding:10px 16px;border:none;border-radius:999px;font-family:inherit;font-size:13.5px;background:rgba(255,255,255,.16);color:#fff}
+  .adm-recherche input::placeholder{color:rgba(255,255,255,.65)}
+  .adm-recherche input:focus{outline:none;background:#fff;color:var(--encre)}
+  .adm-recherche-resultats{position:absolute;top:calc(100% + 8px);left:0;right:0;background:var(--blanc);border:1px solid var(--ligne);border-radius:14px;box-shadow:0 12px 34px rgba(14,60,40,.18);max-height:70vh;overflow-y:auto;padding:6px;z-index:90}
+  .adm-rech-groupe{font-size:11.5px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--gris);padding:10px 12px 4px}
+  .adm-recherche-resultats button{display:block;width:100%;text-align:start;background:none;border:none;font-family:inherit;padding:9px 12px;border-radius:10px;cursor:pointer;color:var(--encre)}
+  .adm-recherche-resultats button:hover{background:var(--vert-pale)}
+  .adm-recherche-resultats strong{display:block;font-size:14px}
+  .adm-recherche-resultats small{display:block;color:var(--gris);font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+
+  /* Menu Créer */
+  .adm-creer{position:relative}
+  .adm-creer>.adm-btn{display:flex;align-items:center;gap:7px;padding:9px 16px;white-space:nowrap}
+  .adm-creer>.adm-btn svg{width:16px;height:16px;stroke:#fff;fill:none;stroke-width:2.2;stroke-linecap:round}
+  .adm-creer-menu{position:absolute;top:calc(100% + 8px);inset-inline-end:0;min-width:230px;background:var(--blanc);border:1px solid var(--ligne);border-radius:12px;box-shadow:0 10px 28px rgba(14,60,40,.16);padding:6px;z-index:90}
+  .adm-creer-menu button{display:block;width:100%;text-align:start;background:none;border:none;font-family:inherit;font-size:14px;font-weight:600;color:var(--encre);padding:10px 12px;border-radius:9px;cursor:pointer}
+  .adm-creer-menu button:hover{background:var(--vert-pale)}
+
+  /* Corps : sidebar + contenu */
+  .adm-corps{display:flex;align-items:stretch;min-height:calc(100vh - 54px)}
+  .adm-sidebar{display:block;flex:0 0 235px;background:var(--blanc);border-inline-end:1px solid var(--ligne);padding:16px 10px 40px;position:sticky;top:54px;height:calc(100vh - 54px);overflow-y:auto}
+  .adm-side-groupe{margin-bottom:18px}
+  .adm-side-titre{font-size:11px;font-weight:800;text-transform:uppercase;letter-spacing:.07em;color:var(--gris-clair);padding:0 12px 6px}
+  .adm-sidebar a{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:10px;text-decoration:none;color:var(--encre);font-size:13.5px;font-weight:600;margin-bottom:1px}
+  .adm-sidebar a svg{width:17px;height:17px;stroke:var(--gris);fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round;flex-shrink:0}
+  .adm-sidebar a:hover{background:var(--vert-pale)}
+  .adm-sidebar a.actif{background:var(--vert-pale);color:var(--vert-fonce);font-weight:800}
+  .adm-sidebar a.actif svg{stroke:var(--vert)}
+  .adm-side-puce{width:5px;height:5px;border-radius:50%;background:var(--gris-clair);flex-shrink:0;margin:0 6px}
+
+  .adm-corps .adm-contenu{flex:1;max-width:1160px;padding:26px 30px 60px;min-width:0}
+}

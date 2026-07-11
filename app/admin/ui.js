@@ -169,9 +169,9 @@ export async function postFichierAdmin(chemin, formData) {
 }
 
 // Garde d'accès : vérifie la session + le rôle interne. Retourne
-// { pret, autorise, role }. Redirection gérée par l'appelant.
+// { pret, autorise, role, nom }. Redirection gérée par l'appelant.
 export function useGardeAdmin() {
-  const [etat, setEtat] = useState({ pret: false, autorise: false, role: "" });
+  const [etat, setEtat] = useState({ pret: false, autorise: false, role: "", nom: "" });
   useEffect(() => {
     let annule = false;
     (async () => {
@@ -181,12 +181,17 @@ export function useGardeAdmin() {
           data: { user },
         } = await supabase.auth.getUser();
         if (!user) throw new Error();
-        const { data: p } = await supabase.from("profil").select("role").eq("id", user.id).maybeSingle();
+        const { data: p } = await supabase.from("profil").select("role, prenom, nom").eq("id", user.id).maybeSingle();
         if (annule) return;
         const ok = p && ROLES_ADMIN.includes(p.role);
-        setEtat({ pret: true, autorise: !!ok, role: p?.role || "" });
+        setEtat({
+          pret: true,
+          autorise: !!ok,
+          role: p?.role || "",
+          nom: [p?.prenom, p?.nom].filter(Boolean).join(" "),
+        });
       } catch {
-        if (!annule) setEtat({ pret: true, autorise: false, role: "" });
+        if (!annule) setEtat({ pret: true, autorise: false, role: "", nom: "" });
       }
     })();
     return () => {
