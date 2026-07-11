@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAsm } from "@/app/providers";
 import { chargerMesDemandes } from "@/lib/supabase";
 import { IcoVehicule, IcoMaison, IcoMedicaments } from "@/app/components/icones";
+import PatientsRattaches from "./rattaches";
 
 const ICONES = { transport: IcoVehicule, domicile: IcoMaison, medicaments: IcoMedicaments };
 const CLE_SERVICE = { transport: "s_transport", domicile: "s_domicile", medicaments: "s_medic" };
@@ -177,6 +178,8 @@ export default function EspacePro() {
               );
             })
           ))}
+
+        <PatientsRattaches />
 
         <p className="lien-bas">
           <Link href="/admin">Accès équipe ASM →</Link>

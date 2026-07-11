@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { fetchAdmin, LIBELLE_ROLE, ROLES_ADMIN, Avatar } from "../ui";
+import { MATRICE, ROLES_MATRICE, REGLES_EXTERNES } from "@/lib/permissions";
 
 // Gestion des comptes internes + journal d'activité.
 // Un membre est un compte NORMAL du site (créé par SMS comme un patient),
@@ -119,6 +120,39 @@ export default function PageEquipe() {
                 </select>
               </div>
             ))}
+          </div>
+        </>
+      )}
+
+      {superadmin && (
+        <>
+          <h2 className="adm-sous-titre">Rôles & privilèges</h2>
+          <p className="adm-vide" style={{ textAlign: "start" }}>
+            Matrice des droits réellement appliqués par le serveur. Chaque action sensible est
+            vérifiée côté serveur (jamais un simple masquage de bouton) et journalisée ci-dessous.
+          </p>
+          <div className="adm-fiche" style={{ overflowX: "auto" }}>
+            <table className="adm-matrice">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  {ROLES_MATRICE.map((r) => <th key={r}>{LIBELLE_ROLE[r] || r}</th>)}
+                </tr>
+              </thead>
+              <tbody>
+                {MATRICE.map(([action, roles]) => (
+                  <tr key={action}>
+                    <td>{action}</td>
+                    {ROLES_MATRICE.map((r) => (
+                      <td key={r} className="centre">{roles.includes(r) ? "✅" : "—"}</td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <ul className="adm-regles-ext">
+              {REGLES_EXTERNES.map((r) => <li key={r}>{r}</li>)}
+            </ul>
           </div>
         </>
       )}

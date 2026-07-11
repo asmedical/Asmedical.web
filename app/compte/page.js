@@ -291,6 +291,17 @@ export default function MonCompte() {
               <strong>{t("nav_doc")}</strong>
             </span>
           </Link>
+          {!estPro && (
+            <Link className="item-liste lien-compte" href="/autorisations">
+              <span className="ico-service">
+                <IcoDocument />
+              </span>
+              <span>
+                <strong>{t("aut_t")}</strong>
+                <small>{t("aut_lien_s")}</small>
+              </span>
+            </Link>
+          )}
         </div>
 
         {/* ---- Déconnexion ---- */}

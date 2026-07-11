@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifierAdmin, journaliser, refus, ROLES_GESTION_EQUIPE, ROLES_EMPLOYE } from "@/lib/adminAuth";
+import { verifierAdmin, journaliser, refus, ROLES_GESTION_EQUIPE, ROLES_EMPLOYE, peutCreerRole } from "@/lib/adminAuth";
 import { envoyerEmail, emailConfigure, emailInvitation } from "@/lib/email";
 
 export const dynamic = "force-dynamic";
@@ -43,11 +43,17 @@ export async function GET(req) {
 
 // POST /api/admin/compte → crée un compte de connexion pour un employé et,
 // si demandé, le rattache à une fiche soignant / transporteur existante.
+// Hiérarchie : un ADMIN peut créer des comptes EMPLOYÉS ; seul le
+// SUPER ADMIN peut créer des comptes admin / modérateur / standardiste.
 export async function POST(req) {
-  const acces = await verifierAdmin(req, ROLES_GESTION_EQUIPE);
+  const acces = await verifierAdmin(req, ["superadmin", "admin"]);
   if (!acces) return refus();
   try {
     const c = await req.json();
+    if (!peutCreerRole(acces.profil.role, c.role)) {
+      await journaliser(acces.nomAffiche, "compte.refus", "compte", c.email || "", `tentative de création ${c.role} par ${acces.profil.role}`);
+      return NextResponse.json({ erreur: "Seul le super admin peut créer ce type de compte." }, { status: 403 });
+    }
     const email = String(c.email || "").trim().toLowerCase();
     const telephone = c.telephone ? String(c.telephone).trim() : null;
     const motDePasse = String(c.motDePasse || "");

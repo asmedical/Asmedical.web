@@ -16,10 +16,37 @@ export async function POST(req) {
     }
 
     const corps = await req.json();
-    const { service, telephone } = corps;
+    const { service } = corps;
+    let { telephone } = corps;
 
     if (!service || !telephone || telephone.trim().length < 9) {
       return NextResponse.json({ erreur: "Données invalides" }, { status: 400 });
+    }
+
+    // ---- Réservation par un ÉTABLISSEMENT au nom d'un patient rattaché ----
+    // Vérifiée côté serveur : procuration ACCEPTE, non expirée, couvrant le
+    // service. Sans procuration valide → refus explicite.
+    let parEtablissement = null;
+    let parEtabUserId = null;
+    if (corps.pourPatient) {
+      const { identite, autorisationEtablissement, notifierPatientTel } = await import("@/lib/rattachements");
+      const id = await identite(req);
+      if (!id || id.profil?.role !== "pro") {
+        return NextResponse.json({ erreur: "procuration_requise" }, { status: 403 });
+      }
+      const verdict = await autorisationEtablissement(id.user.id, corps.pourPatient, String(service));
+      if (!verdict.ok) {
+        return NextResponse.json({ erreur: verdict.raison }, { status: 403 });
+      }
+      telephone = verdict.lien.patientTel; // la demande appartient au PATIENT
+      parEtablissement = verdict.lien.etabNom || id.profil?.etablissement || "Établissement";
+      parEtabUserId = id.user.id;
+      // Le patient est prévenu qu'une réservation a été faite pour lui.
+      notifierPatientTel(id.admin, telephone, {
+        titre: "Réservation faite pour vous",
+        corps: `${parEtablissement} a réservé une prestation ASM pour vous. Retrouvez-la dans votre suivi.`,
+        type: "rdv",
+      }).catch(() => {});
     }
 
     const texte = (v, max) => (v ? String(v).slice(0, max) : null);
@@ -97,6 +124,8 @@ export async function POST(req) {
             pharmacie: texte(corps.pharmacie, 200),
             dureeMin: duree,
             commune,
+            parEtablissement,
+            parEtabUserId,
           },
         });
       });

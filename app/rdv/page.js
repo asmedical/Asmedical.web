@@ -90,6 +90,25 @@ export default function PriseRdv() {
   const [erreur, setErreur] = useState("");
   const [confirme, setConfirme] = useState(""); // "" | standard | urgent | abonnement | livraison
 
+  // Réservation AU NOM d'un patient rattaché (établissement) : posée par
+  // l'espace pro via sessionStorage, vérifiée côté serveur (procuration).
+  const [pourPatient, setPourPatient] = useState(null);
+  useEffect(() => {
+    try {
+      const v = sessionStorage.getItem("asm_pour_patient");
+      if (v) {
+        const p = JSON.parse(v);
+        setPourPatient(p);
+        if (p.tel) setTelephone(p.tel);
+      }
+    } catch {}
+  }, []);
+  function annulerPourPatient() {
+    try { sessionStorage.removeItem("asm_pour_patient"); } catch {}
+    setPourPatient(null);
+    setTelephone("");
+  }
+
   const besoinCreneau =
     (service === "transport" && sousMode === "ponctuel") || service === "domicile";
 
@@ -251,11 +270,19 @@ export default function PriseRdv() {
 
     setEnvoi(true);
     try {
+      // Réservation au nom d'un patient : jeton requis (contrôle procuration).
+      const entetes = { "Content-Type": "application/json" };
+      if (pourPatient?.tel) {
+        const { supabase } = await import("@/lib/supabase");
+        const { data: { session } } = await supabase.auth.getSession();
+        if (session?.access_token) entetes.Authorization = `Bearer ${session.access_token}`;
+      }
       const r = await fetch("/api/demandes", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: entetes,
         body: JSON.stringify({
           service,
+          pourPatient: pourPatient?.tel || undefined,
           typeTrajet: service === "transport" ? typeTrajet : null,
           depart,
           destination,
@@ -291,7 +318,19 @@ export default function PriseRdv() {
         setSlotChoisi("");
         return;
       }
+      if (r.status === 403) {
+        const dErr = await r.json().catch(() => ({}));
+        setErreur(
+          dErr.erreur === "service_hors_perimetre" ? t("pp_hors_perimetre")
+          : dErr.erreur === "procuration_expiree" ? t("pp_expiree")
+          : t("pp_refus")
+        );
+        return;
+      }
       if (!r.ok) throw new Error();
+      if (pourPatient) {
+        try { sessionStorage.removeItem("asm_pour_patient"); } catch {}
+      }
       setConfirme(urgent ? "urgent" : livraison ? "livraison" : "standard");
     } catch {
       setErreur(`${t("err_serveur")} ${TEL_AFFICHE}.`);
@@ -344,6 +383,13 @@ export default function PriseRdv() {
         </Link>
         <h2 className="titre-page">{t("rdv_t")}</h2>
         <p className="sous-page">{t(CLES_SERVICE[service])}</p>
+
+        {pourPatient && (
+          <div className="pour-patient">
+            <span>👤 {t("pp_bandeau")} <strong>{pourPatient.nom}</strong></span>
+            <button type="button" onClick={annulerPourPatient}>{t("annuler")}</button>
+          </div>
+        )}
 
         {/* ---- Mode B : choix du type de demande de transport ---- */}
         {service === "transport" && (

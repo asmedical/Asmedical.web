@@ -29,6 +29,8 @@ model Demande {
   pharmacie      String?  // adresse / nom de la pharmacie (livraison)
   dureeMin       Int      @default(60) // durée de la prestation (minutes) — sert au calcul des chevauchements
   commune        String?  // commune du patient (filtre de zone du moteur de disponibilités)
+  parEtablissement String? // réservé AU NOM du patient par cet établissement (nom affiché)
+  parEtabUserId  String?  // compte établissement ayant créé la réservation
   soignantId     Int?
   soignant       Soignant?     @relation(fields: [soignantId], references: [id])
   transporteurId Int?
@@ -183,6 +185,30 @@ model Notification {
   creeLe  DateTime  @default(now())
 
   @@index([userId, creeLe])
+}
+
+// Procuration / rattachement d'un patient à un établissement partenaire.
+// L'établissement ne peut agir POUR un patient que si un rattachement
+// ACCEPTE, non expiré et couvrant le service existe.
+model Rattachement {
+  id           Int       @id @default(autoincrement())
+  patientTel   String    // téléphone du patient (identité de réservation)
+  patientNom   String?   // nom saisi par l'établissement (affichage)
+  etabUserId   String?   // compte Supabase de l'établissement (null tant que code non réclamé)
+  etabNom      String?   // nom d'affichage de l'établissement
+  statut       String    @default("EN_ATTENTE") // EN_ATTENTE | ACCEPTE | REFUSE | REVOQUE | CODE_ATTENTE
+  source       String    @default("invitation") // invitation | code | staff | document
+  scopes       String    @default("transport,domicile,medicaments") // services autorisés
+  code         String?   @unique // code de rattachement généré par le patient
+  codeExpire   DateTime? // expiration du code (usage unique)
+  expiration   String?   // fin d'autorisation AAAA-MM-JJ (vide = jusqu'à révocation)
+  decideLe     DateTime? // acceptation / refus par le patient
+  revoqueLe    DateTime?
+  creeLe       DateTime  @default(now())
+  majLe        DateTime  @updatedAt @default(now())
+
+  @@index([patientTel])
+  @@index([etabUserId])
 }
 
 // Abonnement aux notifications push (Web Push) d'un appareil.

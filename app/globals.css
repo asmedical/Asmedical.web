@@ -802,3 +802,15 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .push-banniere p{color:var(--gris);font-size:13.5px;line-height:1.5;margin-bottom:10px}
 .push-banniere .btn-action{margin-top:0}
 .push-actif{color:var(--vert-fonce);font-weight:700;font-size:13.5px;margin-bottom:14px}
+
+/* ============ Procurations / rattachements ============ */
+.aut-code{font-family:monospace;font-size:26px;font-weight:800;letter-spacing:3px;color:var(--vert-fonce);background:var(--vert-pale);border:1px dashed var(--vert);border-radius:10px;padding:12px 16px;text-align:center;margin-top:10px}
+.pour-patient{display:flex;align-items:center;justify-content:space-between;gap:10px;background:#EAF4FB;border:1px solid #B7D8F0;border-radius:12px;padding:12px 14px;margin-bottom:16px;font-size:14px}
+.pour-patient strong{color:#12557F}
+.pour-patient button{background:none;border:none;color:#1B77B3;font-weight:800;font-family:inherit;font-size:13px;cursor:pointer;text-decoration:underline;flex-shrink:0}
+/* Matrice des privilèges (équipe, superadmin) */
+.adm-matrice{width:100%;border-collapse:collapse;font-size:13px;min-width:520px}
+.adm-matrice th{text-align:start;padding:8px 10px;border-bottom:2px solid var(--ligne);color:var(--vert-fonce);white-space:nowrap}
+.adm-matrice td{padding:8px 10px;border-bottom:1px solid var(--ligne)}
+.adm-matrice td.centre{text-align:center}
+.adm-regles-ext{margin:14px 0 4px;padding-inline-start:18px;color:var(--gris);font-size:13px;line-height:1.6}
