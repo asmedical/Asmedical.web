@@ -26,6 +26,54 @@ export async function GET(req) {
   }
 }
 
+// POST { patientTel, patientNom?, etabUserId, scopes?, expiration? }
+// Rattachement créé DIRECTEMENT par le staff (vérifié avec le patient) :
+// ACCEPTE immédiatement, source « staff », patient notifié.
+export async function POST(req) {
+  const acces = await verifierAdmin(req, ROLES_GESTION_INTERVENANTS);
+  if (!acces) return refus();
+  try {
+    const c = await req.json();
+    const patientTel = String(c.patientTel || "").trim().slice(0, 20);
+    if (norm(patientTel).length < 8) return NextResponse.json({ erreur: "téléphone patient invalide" }, { status: 400 });
+    if (!c.etabUserId) return NextResponse.json({ erreur: "établissement manquant" }, { status: 400 });
+
+    const { data: etab } = await acces.admin
+      .from("profil")
+      .select("id, role, etablissement, prenom, nom")
+      .eq("id", c.etabUserId)
+      .maybeSingle();
+    if (!etab || etab.role !== "pro") return NextResponse.json({ erreur: "établissement introuvable" }, { status: 404 });
+    const etabNom = etab.etablissement || [etab.prenom, etab.nom].filter(Boolean).join(" ") || "Établissement";
+
+    const scopes = String(c.scopes || "transport,domicile,medicaments")
+      .split(",").map((s) => s.trim()).filter((s) => ["transport", "domicile", "medicaments"].includes(s)).join(",")
+      || "transport,domicile,medicaments";
+
+    const r = await prisma.rattachement.create({
+      data: {
+        patientTel,
+        patientNom: c.patientNom ? String(c.patientNom).slice(0, 120) : null,
+        etabUserId: etab.id,
+        etabNom,
+        statut: "ACCEPTE",
+        source: "staff",
+        scopes,
+        expiration: c.expiration ? String(c.expiration).slice(0, 10) : null,
+        decideLe: new Date(),
+      },
+    });
+    await journaliser(acces.nomAffiche, "rattachement.staff", "rattachement", r.id, `${etabNom} ↔ ${r.patientNom || patientTel}`);
+    await notifierPatientTel(acces.admin, patientTel, {
+      titre: "Établissement autorisé",
+      corps: `L'équipe ASM a autorisé ${etabNom} à réserver pour vous. Vous pouvez révoquer cette autorisation à tout moment dans « Établissements autorisés ».`,
+    });
+    return NextResponse.json({ ok: true, rattachement: r }, { status: 201 });
+  } catch {
+    return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
+  }
+}
+
 // PATCH { id, action: "valider" | "revoquer" } — validation par le staff
 // (méthode 3 : demande vérifiée avec le patient/justificatif) ou révocation.
 export async function PATCH(req) {

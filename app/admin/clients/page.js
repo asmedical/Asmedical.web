@@ -11,6 +11,32 @@ export default function PageClients() {
   const [edition, setEdition] = useState(false);
   const [champs, setChamps] = useState({});
   const [msg, setMsg] = useState("");
+  const [creation, setCreation] = useState(false);
+  const VIDE_CLIENT = { role: "patient", prenom: "", nom: "", etablissement: "", telephone: "", email: "", commune: "", contact: "" };
+  const [neuf, setNeuf] = useState(VIDE_CLIENT);
+
+  async function creerClient() {
+    setMsg("");
+    if (neuf.telephone.replace(/\D/g, "").length < 9) {
+      setMsg("Téléphone obligatoire (9 chiffres minimum).");
+      return;
+    }
+    if (neuf.role === "pro" && !neuf.etablissement.trim()) {
+      setMsg("Nom de l'établissement obligatoire.");
+      return;
+    }
+    try {
+      const d = await fetchAdmin("/api/admin/clients", { method: "POST", body: JSON.stringify(neuf) });
+      setNeuf(VIDE_CLIENT);
+      setCreation(false);
+      setMsg("Compte créé ✓ — le client peut se connecter avec son numéro.");
+      setType(neuf.role === "pro" ? "pro" : "patient");
+      await charger();
+      await ouvrir(d.id);
+    } catch (e) {
+      setMsg(e?.status === 409 ? "Un compte existe déjà avec ce téléphone ou cet email." : e?.message || "Création impossible.");
+    }
+  }
 
   async function charger() {
     try {
@@ -54,7 +80,38 @@ export default function PageClients() {
 
   return (
     <>
-      <h1 className="adm-titre">Clients</h1>
+      <div className="adm-barre-titre">
+        <h1 className="adm-titre">Clients</h1>
+        <button className="adm-btn" onClick={() => setCreation((c) => !c)}>{creation ? "Fermer" : "+ Créer un client"}</button>
+      </div>
+
+      {creation && (
+        <div className="adm-fiche">
+          <strong>Nouveau compte client</strong>
+          <p className="fe-aide" style={{ marginTop: 4 }}>
+            Le client se connectera avec son numéro de téléphone (code SMS). Téléphone obligatoire.
+          </p>
+          <div className="chips" style={{ margin: "10px 0" }}>
+            <button type="button" className={"chip" + (neuf.role === "patient" ? " actif" : "")} onClick={() => setNeuf({ ...neuf, role: "patient" })}>👤 Patient</button>
+            <button type="button" className={"chip" + (neuf.role === "pro" ? " actif" : "")} onClick={() => setNeuf({ ...neuf, role: "pro" })}>🏥 Établissement</button>
+          </div>
+          <div className="adm-grille-form">
+            {neuf.role === "pro" ? (
+              <input placeholder="Nom de l'établissement *" value={neuf.etablissement} onChange={(e) => setNeuf({ ...neuf, etablissement: e.target.value })} />
+            ) : (
+              <>
+                <input placeholder="Prénom" value={neuf.prenom} onChange={(e) => setNeuf({ ...neuf, prenom: e.target.value })} />
+                <input placeholder="Nom" value={neuf.nom} onChange={(e) => setNeuf({ ...neuf, nom: e.target.value })} />
+              </>
+            )}
+            <input placeholder="Téléphone *" value={neuf.telephone} onChange={(e) => setNeuf({ ...neuf, telephone: e.target.value })} />
+            <input placeholder="Email (facultatif)" value={neuf.email} onChange={(e) => setNeuf({ ...neuf, email: e.target.value })} />
+            <input placeholder="Commune" value={neuf.commune} onChange={(e) => setNeuf({ ...neuf, commune: e.target.value })} />
+            <input placeholder={neuf.role === "pro" ? "Contact (responsable)" : "Contact famille / proche"} value={neuf.contact} onChange={(e) => setNeuf({ ...neuf, contact: e.target.value })} />
+          </div>
+          <button className="adm-btn" style={{ marginTop: 10 }} onClick={creerClient}>Créer le compte</button>
+        </div>
+      )}
       {/* Uniquement les CLIENTS : patients ou établissements. Les employés
           sont dans Soignants / Transport, l'équipe interne dans Équipe. */}
       <div className="adm-supervision">

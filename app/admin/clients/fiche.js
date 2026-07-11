@@ -1,7 +1,8 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import { fetchAdmin, Pastille, NotesInternes, Avatar, SERVICES, LIBELLE_ROLE } from "../ui";
+import { useRouter } from "next/navigation";
+import { fetchAdmin, Pastille, NotesInternes, Avatar, SERVICES, LIBELLE_ROLE, useGardeAdmin } from "../ui";
 
 const ONGLETS = [
   ["resume", "Vue d'ensemble"],
@@ -30,6 +31,8 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
   const p = fiche.profil;
   const estPro = p.role === "pro";
   const nom = p.etablissement || [p.prenom, p.nom].filter(Boolean).join(" ") || "Client";
+  const { role: monRole } = useGardeAdmin();
+  const routeur = useRouter();
 
   const [onglet, setOnglet] = useState("resume");
   const [edition, setEdition] = useState(false);
@@ -134,6 +137,7 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
                 <Ligne label="Téléphone">{p.telephone && <a href={`tel:${p.telephone}`}>{p.telephone}</a>}</Ligne>
                 <Ligne label="Email">{p.email}</Ligne>
                 <Ligne label="Commune">{p.commune}</Ligne>
+                {!estPro && <Ligne label="Contact famille / proche">{p.contact}</Ligne>}
                 <Ligne label="Rendez-vous au total">{String(fiche.demandes.length)}</Ligne>
                 <Ligne label="Annulations">{String(annulees)}</Ligne>
                 <Ligne label="Établissements autorisés">{String(rattachesActifs)}</Ligne>
@@ -144,8 +148,8 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
                     onClick={() => {
                       setChamps({
                         prenom: p.prenom || "", nom: p.nom || "", telephone: p.telephone || "",
-                        email: p.email || "", commune: p.commune || "",
-                        ...(estPro ? { etablissement: p.etablissement || "", contact: p.contact || "" } : {}),
+                        email: p.email || "", commune: p.commune || "", contact: p.contact || "",
+                        ...(estPro ? { etablissement: p.etablissement || "" } : {}),
                       });
                       setEdition(true);
                     }}
@@ -158,8 +162,10 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
               <div className="fe-carte">
                 <div className="adm-grille-form" style={{ paddingTop: 12 }}>
                   {Object.entries({
-                    ...(estPro ? { etablissement: "Établissement", contact: "Contact" } : { prenom: "Prénom", nom: "Nom" }),
-                    telephone: "Téléphone", email: "Email", commune: "Commune",
+                    ...(estPro ? { etablissement: "Établissement" } : { prenom: "Prénom", nom: "Nom" }),
+                    telephone: "Téléphone (identifiant de connexion)", email: "Email",
+                    commune: "Commune",
+                    contact: estPro ? "Contact" : "Contact famille / proche (nom + tél.)",
                   }).map(([k, l]) => (
                     <input key={k} placeholder={l} value={champs[k] ?? ""} onChange={(e) => setChamps({ ...champs, [k]: e.target.value })} />
                   ))}
@@ -201,6 +207,8 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
               Établissements autorisés à réserver pour ce patient. « Valider » confirme une demande
               vérifiée avec le patient (méthode staff) ; « Révoquer » coupe l&apos;accès immédiatement.
             </p>
+            {!estPro && <RattacherEtablissement patient={p} onFait={onRecharger} />}
+
             {(fiche.rattachements || []).length === 0 && <p className="adm-vide">Aucun rattachement pour ce patient.</p>}
             {(fiche.rattachements || []).map((r) => (
               <div className="fe-carte doc-emp" key={r.id}>
@@ -275,6 +283,122 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
           </>
         )}
       </div>
+
+      {/* Zone super admin : suppression du compte (historique conservé). */}
+      {monRole === "superadmin" && (
+        <div className="fe-zone-danger">
+          <span>Zone super admin</span>
+          <button
+            className="btn-danger"
+            onClick={async () => {
+              if (!window.confirm(`SUPPRIMER le compte de « ${nom} » ?\n\nLe compte de connexion et la fiche disparaissent. L'historique des demandes est conservé.\n\nCette action est irréversible.`)) return;
+              try {
+                await fetchAdmin(`/api/admin/clients?id=${p.id}`, { method: "DELETE" });
+                onFermer?.();
+                routeur.refresh();
+              } catch {
+                setMsg("Suppression impossible.");
+              }
+            }}
+          >
+            Supprimer ce compte
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// Rattachement DIRECT par le staff : sélection d'un établissement + services
+// autorisés (procuration ACCEPTE, source « staff », patient notifié).
+function RattacherEtablissement({ patient, onFait }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [etabs, setEtabs] = useState(null);
+  const [etabId, setEtabId] = useState("");
+  const [scopes, setScopes] = useState(["transport", "domicile", "medicaments"]);
+  const [expiration, setExpiration] = useState("");
+  const [occupe, setOccupe] = useState(false);
+  const [retour, setRetour] = useState("");
+
+  useEffect(() => {
+    if (!ouvert || etabs !== null) return;
+    fetchAdmin("/api/admin/clients?type=pro")
+      .then((d) => {
+        setEtabs(d.clients || []);
+        if (d.clients?.[0]) setEtabId(d.clients[0].id);
+      })
+      .catch(() => setEtabs([]));
+  }, [ouvert, etabs]);
+
+  const basculer = (s) =>
+    setScopes((l) => (l.includes(s) ? l.filter((x) => x !== s) : [...l, s]));
+
+  async function valider() {
+    if (!etabId || scopes.length === 0) return;
+    setOccupe(true);
+    setRetour("");
+    try {
+      await fetchAdmin("/api/admin/rattachements", {
+        method: "POST",
+        body: JSON.stringify({
+          patientTel: patient.telephone,
+          patientNom: [patient.prenom, patient.nom].filter(Boolean).join(" "),
+          etabUserId: etabId,
+          scopes: scopes.join(","),
+          expiration: expiration || undefined,
+        }),
+      });
+      setRetour("Rattachement créé ✓ — le patient a été notifié.");
+      setOuvert(false);
+      onFait?.();
+    } catch {
+      setRetour("Création impossible.");
+    }
+    setOccupe(false);
+  }
+
+  if (!patient.telephone) return null;
+
+  return (
+    <div style={{ marginBottom: 14 }}>
+      {!ouvert ? (
+        <button className="adm-btn" onClick={() => setOuvert(true)}>+ Rattacher à un établissement</button>
+      ) : (
+        <div className="fe-carte">
+          <strong>Rattacher {[patient.prenom, patient.nom].filter(Boolean).join(" ") || "ce patient"} à un établissement</strong>
+          {etabs === null && <p className="adm-vide">Chargement des établissements…</p>}
+          {etabs?.length === 0 && <p className="adm-vide">Aucun compte établissement. Créez-le d&apos;abord (bouton « + Créer un client » → Établissement).</p>}
+          {etabs?.length > 0 && (
+            <>
+              <label className="fe-champ" style={{ marginTop: 10 }}>
+                <span>Établissement</span>
+                <select value={etabId} onChange={(e) => setEtabId(e.target.value)}>
+                  {etabs.map((e) => (
+                    <option value={e.id} key={e.id}>{e.etablissement || [e.prenom, e.nom].filter(Boolean).join(" ") || e.telephone}</option>
+                  ))}
+                </select>
+              </label>
+              <div className="fe-champ" style={{ marginTop: 10 }}>
+                <span>Services autorisés</span>
+                <div className="chips" style={{ marginTop: 6 }}>
+                  {[["transport", "Transport"], ["domicile", "Aide à domicile"], ["medicaments", "Médicaments"]].map(([s, l]) => (
+                    <button type="button" key={s} className={"chip" + (scopes.includes(s) ? " actif" : "")} onClick={() => basculer(s)}>{l}</button>
+                  ))}
+                </div>
+              </div>
+              <label className="fe-champ" style={{ marginTop: 10, maxWidth: 220 }}>
+                <span>Fin d&apos;autorisation (facultatif)</span>
+                <input type="date" value={expiration} onChange={(e) => setExpiration(e.target.value)} />
+              </label>
+              <div style={{ display: "flex", gap: 8, marginTop: 12 }}>
+                <button className={"adm-btn" + (occupe ? " btn-charge" : "")} disabled={occupe || !scopes.length} onClick={valider}>Créer le rattachement</button>
+                <button className="adm-btn secondaire" onClick={() => setOuvert(false)}>Annuler</button>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+      {retour && <p className="adm-msg">{retour}</p>}
     </div>
   );
 }

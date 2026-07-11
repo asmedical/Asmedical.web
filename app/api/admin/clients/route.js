@@ -1,8 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { verifierAdmin, journaliser, refus } from "@/lib/adminAuth";
+import { verifierAdmin, journaliser, refus, ROLES_GESTION_INTERVENANTS, ROLES_GESTION_EQUIPE } from "@/lib/adminAuth";
 
 export const dynamic = "force-dynamic";
+
+// Numéro local → format international (+213 par défaut).
+function e164(tel) {
+  let s = String(tel || "").replace(/[\s.\-()]/g, "");
+  if (s.startsWith("+")) return s;
+  if (s.startsWith("00")) return "+" + s.slice(2);
+  if (s.startsWith("0")) return "+213" + s.slice(1);
+  return "+213" + s;
+}
 
 // GET /api/admin/clients?q=&id= — liste/recherche des comptes clients
 // (table profil Supabase, lue avec la clé service_role côté serveur).
@@ -81,9 +90,58 @@ export async function GET(req) {
   }
 }
 
-// PATCH : corriger la fiche d'un client (nom, commune, téléphone…)
+// POST : créer un compte client (patient ou établissement) depuis l'admin.
+// Le client se connecte ensuite avec son numéro (SMS / code) — téléphone
+// déjà confirmé. Réservé à superadmin / admin / modérateur.
+export async function POST(req) {
+  const acces = await verifierAdmin(req, ROLES_GESTION_INTERVENANTS);
+  if (!acces) return refus();
+  try {
+    const c = await req.json();
+    const telephone = String(c.telephone || "").trim();
+    if (telephone.replace(/\D/g, "").length < 9) {
+      return NextResponse.json({ erreur: "Téléphone obligatoire (9 chiffres min.)." }, { status: 400 });
+    }
+    const role = c.role === "pro" ? "pro" : "patient";
+    const email = c.email ? String(c.email).trim().toLowerCase() : null;
+
+    const { data: cree, error } = await acces.admin.auth.admin.createUser({
+      phone: e164(telephone),
+      phone_confirm: true,
+      ...(email ? { email, email_confirm: true } : {}),
+    });
+    if (error) {
+      const m = String(error.message || "");
+      if (/registered|exists|already/i.test(m)) {
+        return NextResponse.json({ erreur: "Un compte existe déjà avec ce téléphone ou cet email." }, { status: 409 });
+      }
+      return NextResponse.json({ erreur: "Création impossible : " + m }, { status: 400 });
+    }
+
+    const t = (v, m) => (v ? String(v).slice(0, m) : null);
+    await acces.admin.from("profil").upsert({
+      id: cree.user.id,
+      role,
+      prenom: t(c.prenom, 60),
+      nom: t(c.nom, 60),
+      telephone,
+      email,
+      commune: t(c.commune, 80),
+      contact: t(c.contact, 160),
+      etablissement: role === "pro" ? t(c.etablissement, 160) : null,
+      maj_le: new Date().toISOString(),
+    });
+    await journaliser(acces.nomAffiche, "client.cree", "client", cree.user.id, `${role} · ${telephone}`);
+    return NextResponse.json({ ok: true, id: cree.user.id }, { status: 201 });
+  } catch {
+    return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
+  }
+}
+
+// PATCH : corriger la fiche d'un client. Email et téléphone sont aussi
+// synchronisés sur le COMPTE DE CONNEXION (confirmés, sans email envoyé).
 export async function PATCH(req) {
-  const acces = await verifierAdmin(req);
+  const acces = await verifierAdmin(req, ROLES_GESTION_INTERVENANTS);
   if (!acces) return refus();
   try {
     const c = await req.json();
@@ -94,7 +152,49 @@ export async function PATCH(req) {
     data.maj_le = new Date().toISOString();
     const { error } = await acces.admin.from("profil").update(data).eq("id", c.id);
     if (error) throw error;
+
+    // Synchronisation du compte de connexion (identifiants réels).
+    const majAuth = {};
+    if (c.email !== undefined && String(c.email || "").includes("@")) {
+      majAuth.email = String(c.email).trim().toLowerCase();
+      majAuth.email_confirm = true;
+    }
+    if (c.telephone !== undefined && String(c.telephone || "").replace(/\D/g, "").length >= 9) {
+      majAuth.phone = e164(c.telephone);
+      majAuth.phone_confirm = true;
+    }
+    if (Object.keys(majAuth).length) {
+      const { error: eAuth } = await acces.admin.auth.admin.updateUserById(c.id, majAuth);
+      if (eAuth && /registered|exists|already/i.test(String(eAuth.message || ""))) {
+        return NextResponse.json({ erreur: "Cet email ou ce téléphone est déjà utilisé par un autre compte." }, { status: 409 });
+      }
+    }
+
     await journaliser(acces.nomAffiche, "client.maj", "client", c.id, Object.keys(data).join(","));
+    return NextResponse.json({ ok: true });
+  } catch {
+    return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
+  }
+}
+
+// DELETE ?id= : suppression du COMPTE client — SUPER ADMIN uniquement.
+// Suppression « propre » : le compte de connexion et le profil partent,
+// mais l'historique (demandes, journal, avis) est conservé.
+export async function DELETE(req) {
+  const acces = await verifierAdmin(req, ROLES_GESTION_EQUIPE);
+  if (!acces) return refus();
+  try {
+    const id = new URL(req.url).searchParams.get("id");
+    if (!id) return NextResponse.json({ erreur: "id manquant" }, { status: 400 });
+    const { data: profil } = await acces.admin.from("profil").select("prenom, nom, telephone, etablissement").eq("id", id).maybeSingle();
+    await acces.admin.from("profil").delete().eq("id", id);
+    try {
+      await acces.admin.auth.admin.deleteUser(id);
+    } catch {}
+    await journaliser(
+      acces.nomAffiche, "client.supprime", "client", id,
+      profil ? (profil.etablissement || [profil.prenom, profil.nom].filter(Boolean).join(" ") || profil.telephone) : ""
+    );
     return NextResponse.json({ ok: true });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
