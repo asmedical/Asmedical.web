@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { fetchAdmin, Pastille, NotesInternes, SERVICES, LIBELLE_ROLE, Avatar } from "../ui";
+import FichePatient from "./fiche";
 
 export default function PageClients() {
   const [q, setQ] = useState("");
@@ -36,23 +37,20 @@ export default function PageClients() {
     }
   }
 
-  async function enregistrer() {
-    setMsg("");
-    try {
-      await fetchAdmin("/api/admin/clients", {
-        method: "PATCH",
-        body: JSON.stringify({ id: fiche.profil.id, ...champs }),
-      });
-      setMsg("Fiche mise à jour ✓");
-      setEdition(false);
-      await ouvrir(fiche.profil.id);
-      await charger();
-    } catch {
-      setMsg("Erreur : enregistrement impossible.");
-    }
+  // Fiche complète à onglets : elle remplace la liste tant qu'elle est ouverte.
+  if (fiche) {
+    return (
+      <FichePatient
+        fiche={fiche}
+        NotifierClient={NotifierClient}
+        onFermer={() => setFiche(null)}
+        onRecharger={async () => {
+          await ouvrir(fiche.profil.id);
+          await charger();
+        }}
+      />
+    );
   }
-
-  const p = fiche?.profil;
 
   return (
     <>
@@ -96,57 +94,6 @@ export default function PageClients() {
         ))}
       </div>
 
-      {p && (
-        <div className="adm-fiche">
-          <strong>{p.etablissement || [p.prenom, p.nom].filter(Boolean).join(" ") || "Client"}</strong>
-
-          {!edition ? (
-            <div className="adm-detail">
-              <p><b>Type :</b> {LIBELLE_ROLE[p.role] || p.role}</p>
-              <p><b>Téléphone :</b> {p.telephone ? <a href={`tel:${p.telephone}`}>{p.telephone}</a> : "—"} · <b>Email :</b> {p.email || "—"}</p>
-              <p><b>Commune :</b> {p.commune || "—"} {p.contact ? `· Contact : ${p.contact}` : ""}</p>
-              <p><b>Inscrit le :</b> {(p.cree_le || "").slice(0, 10)}</p>
-              <button
-                className="adm-btn secondaire"
-                onClick={() => {
-                  setChamps({ prenom: p.prenom || "", nom: p.nom || "", telephone: p.telephone || "", commune: p.commune || "" });
-                  setEdition(true);
-                }}
-              >
-                Modifier la fiche
-              </button>
-            </div>
-          ) : (
-            <div className="adm-detail">
-              <div className="adm-grille-form">
-                {Object.entries({ prenom: "Prénom", nom: "Nom", telephone: "Téléphone", commune: "Commune" }).map(([k, l]) => (
-                  <input key={k} placeholder={l} value={champs[k] ?? ""} onChange={(e) => setChamps({ ...champs, [k]: e.target.value })} />
-                ))}
-              </div>
-              <button className="adm-btn" style={{ marginTop: 10 }} onClick={enregistrer}>Enregistrer</button>
-              <button className="adm-btn secondaire" style={{ marginTop: 10, marginInlineStart: 8 }} onClick={() => setEdition(false)}>Annuler</button>
-            </div>
-          )}
-
-          <strong style={{ display: "block", marginTop: 16 }}>Ses demandes ({fiche.demandes.length})</strong>
-          {fiche.demandes.length === 0 && <p className="adm-vide">Aucune demande.</p>}
-          <div className="adm-liste">
-            {fiche.demandes.map((d) => (
-              <div className="adm-ligne" key={d.id}>
-                <span>
-                  <strong>n°{d.id} · {SERVICES[d.service] || d.service}</strong>
-                  <small>{d.date?.replace("T", " à ")}</small>
-                </span>
-                <Pastille statut={d.statut} />
-              </div>
-            ))}
-          </div>
-
-          <NotifierClient userId={p.id} />
-
-          <NotesInternes entite="client" entiteId={p.id} />
-        </div>
-      )}
     </>
   );
 }

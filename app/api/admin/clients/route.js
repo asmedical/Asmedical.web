@@ -17,18 +17,43 @@ export async function GET(req) {
     if (id) {
       const { data: profil } = await acces.admin.from("profil").select("*").eq("id", id).maybeSingle();
       if (!profil) return NextResponse.json({ erreur: "introuvable" }, { status: 404 });
-      let demandes = [];
-      if (profil.telephone) {
-        const tel8 = String(profil.telephone).replace(/\D/g, "").slice(-8);
-        demandes = tel8
-          ? await prisma.demande.findMany({
+
+      const tel8 = String(profil.telephone || "").replace(/\D/g, "").slice(-8);
+      const [demandes, rattachementsTous] = await Promise.all([
+        tel8
+          ? prisma.demande.findMany({
               where: { telephone: { contains: tel8 } },
               orderBy: { creeLe: "desc" },
               take: 50,
+              include: { avis: { select: { note: true } } },
             })
-          : [];
-      }
-      return NextResponse.json({ profil, demandes });
+          : Promise.resolve([]),
+        tel8
+          ? prisma.rattachement.findMany({ where: { statut: { not: "CODE_ATTENTE" } }, orderBy: { creeLe: "desc" }, take: 300 })
+          : Promise.resolve([]),
+      ]);
+      const rattachements = rattachementsTous.filter(
+        (r) => String(r.patientTel || "").replace(/\D/g, "").slice(-8) === tel8
+      );
+
+      // Documents déposés par le patient (bucket privé → URL signées).
+      let documents = [];
+      try {
+        const { data: docs } = await acces.admin
+          .from("document")
+          .select("*")
+          .eq("patient_id", id)
+          .order("cree_le", { ascending: false })
+          .limit(50);
+        if (docs?.length) {
+          const { data: urls } = await acces.admin.storage
+            .from("documents")
+            .createSignedUrls(docs.map((d) => d.chemin), 3600);
+          documents = docs.map((d, i) => ({ ...d, url: urls?.[i]?.signedUrl || null }));
+        }
+      } catch {}
+
+      return NextResponse.json({ profil, demandes, rattachements, documents });
     }
 
     const q = (p.get("q") || "").trim();
