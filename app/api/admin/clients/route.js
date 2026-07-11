@@ -109,6 +109,8 @@ export async function POST(req) {
       phone: e164(telephone),
       phone_confirm: true,
       ...(email ? { email, email_confirm: true } : {}),
+      // À sa 1re connexion, le client devra créer son mot de passe.
+      user_metadata: { must_create_password: true },
     });
     if (error) {
       const m = String(error.message || "");

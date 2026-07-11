@@ -461,11 +461,35 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
         </div>
       )}
 
-      {/* Zone super admin : suppression définitive */}
+      {/* Suppression : directe pour le SUPER ADMIN ; les admins/modérateurs
+          soumettent une DEMANDE que le super admin devra valider. */}
       {mode === "voir" && superadmin && (
         <div className="fe-zone-danger">
           <span>Zone super admin</span>
           <button className="btn-danger" onClick={supprimer}>Supprimer définitivement</button>
+        </div>
+      )}
+      {mode === "voir" && !superadmin && ["admin", "moderateur"].includes(role) && (
+        <div className="fe-zone-danger" style={{ borderColor: "var(--ligne)", background: "var(--vert-pale)" }}>
+          <span style={{ color: "var(--vert-fonce)" }}>Suppression soumise à validation</span>
+          <button
+            className="adm-btn secondaire"
+            onClick={async () => {
+              const motif = window.prompt(`Demander la suppression de « ${nomComplet} » ?\n\nMotif (transmis au super admin) :`, "");
+              if (motif === null) return;
+              try {
+                await fetchAdmin("/api/admin/suppressions", {
+                  method: "POST",
+                  body: JSON.stringify({ cibleType: emploi, cibleId: String(data.id), cibleNom: nomComplet, motif }),
+                });
+                setMsg("Demande de suppression envoyée au super admin ✓");
+              } catch (e) {
+                setErr(e?.status === 409 ? "Une demande de suppression est déjà en attente pour cette fiche." : "Envoi impossible.");
+              }
+            }}
+          >
+            Demander la suppression
+          </button>
         </div>
       )}
     </div>

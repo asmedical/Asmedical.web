@@ -3,6 +3,80 @@ import { useEffect, useState } from "react";
 import { fetchAdmin, LIBELLE_ROLE, ROLES_ADMIN, Avatar } from "../ui";
 import { MATRICE, ROLES_MATRICE, REGLES_EXTERNES } from "@/lib/permissions";
 
+const LIB_CIBLE = { client: "Compte client", soignant: "Soignant", transporteur: "Transporteur" };
+
+// Demandes de suppression soumises par les admins/modérateurs :
+// le super admin valide (exécute) ou refuse.
+function DemandesSuppression() {
+  const [liste, setListe] = useState(null);
+  const [msg, setMsg] = useState("");
+
+  async function charger() {
+    try {
+      const d = await fetchAdmin("/api/admin/suppressions");
+      setListe(d.demandes);
+    } catch {
+      setListe([]);
+    }
+  }
+  useEffect(() => {
+    charger();
+  }, []);
+
+  async function decider(id, action, nom) {
+    const conf = action === "valider"
+      ? `VALIDER la suppression de « ${nom} » ?\n\nLe compte/la fiche sera supprimé définitivement (historique conservé).`
+      : `Refuser la demande de suppression de « ${nom} » ?`;
+    if (!window.confirm(conf)) return;
+    setMsg("");
+    try {
+      await fetchAdmin("/api/admin/suppressions", { method: "PATCH", body: JSON.stringify({ id, action }) });
+      setMsg(action === "valider" ? "Suppression exécutée ✓" : "Demande refusée ✓");
+      await charger();
+    } catch {
+      setMsg("Action impossible.");
+    }
+  }
+
+  const enAttente = liste?.filter((d) => d.statut === "EN_ATTENTE") || [];
+  const traitees = liste?.filter((d) => d.statut !== "EN_ATTENTE").slice(0, 5) || [];
+  if (liste !== null && liste.length === 0) return null;
+
+  return (
+    <>
+      <h2 className="adm-sous-titre">Demandes de suppression {enAttente.length > 0 ? `(${enAttente.length} à traiter)` : ""}</h2>
+      {msg && <p className="adm-msg">{msg}</p>}
+      {liste === null && <p className="adm-vide">Chargement…</p>}
+      {liste !== null && enAttente.length === 0 && <p className="adm-vide">Aucune demande en attente.</p>}
+      <div className="adm-liste">
+        {enAttente.map((d) => (
+          <div className="adm-ligne signale" key={d.id}>
+            <span className="adm-ligne-texte">
+              <strong>{LIB_CIBLE[d.cibleType] || d.cibleType} · {d.cibleNom || d.cibleId}</strong>
+              <small>
+                Demandé par {d.demandePar} · {new Date(d.creeLe).toLocaleString("fr-FR")}
+                {d.motif ? ` · Motif : ${d.motif}` : ""}
+              </small>
+            </span>
+            <span style={{ display: "flex", gap: 8, flexShrink: 0 }}>
+              <button className="adm-btn secondaire" onClick={() => decider(d.id, "refuser", d.cibleNom || d.cibleId)}>Refuser</button>
+              <button className="btn-danger" style={{ padding: "9px 14px", fontSize: 13 }} onClick={() => decider(d.id, "valider", d.cibleNom || d.cibleId)}>Valider</button>
+            </span>
+          </div>
+        ))}
+        {traitees.map((d) => (
+          <div className="adm-ligne" key={d.id} style={{ opacity: 0.65 }}>
+            <span className="adm-ligne-texte">
+              <strong>{LIB_CIBLE[d.cibleType] || d.cibleType} · {d.cibleNom || d.cibleId}</strong>
+              <small>{d.statut === "VALIDEE" ? "Validée" : "Refusée"} par {d.decidePar} · demandée par {d.demandePar}</small>
+            </span>
+          </div>
+        ))}
+      </div>
+    </>
+  );
+}
+
 // Gestion des comptes internes + journal d'activité.
 // Un membre est un compte NORMAL du site (créé par SMS comme un patient),
 // que le superadmin promeut ici. Seul le superadmin peut changer les rôles.
@@ -123,6 +197,8 @@ export default function PageEquipe() {
           </div>
         </>
       )}
+
+      {superadmin && <DemandesSuppression />}
 
       {superadmin && (
         <>

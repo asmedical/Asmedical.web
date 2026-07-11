@@ -262,6 +262,23 @@ model DocumentEmploye {
   @@index([userId])
 }
 
+// Demande de suppression d'un compte : un admin/modérateur la soumet,
+// SEUL le super admin l'exécute (valide) ou la refuse.
+model DemandeSuppression {
+  id         Int      @id @default(autoincrement())
+  cibleType  String   // client | soignant | transporteur
+  cibleId    String   // uuid profil ou id numérique
+  cibleNom   String?
+  motif      String?
+  demandePar String   // nom affiché du demandeur
+  statut     String   @default("EN_ATTENTE") // EN_ATTENTE | VALIDEE | REFUSEE
+  decidePar  String?
+  decideLe   DateTime?
+  creeLe     DateTime @default(now())
+
+  @@index([statut])
+}
+
 // Note interne (jamais visible côté patient)
 model NoteInterne {
   id       Int      @id @default(autoincrement())

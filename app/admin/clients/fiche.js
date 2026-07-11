@@ -284,8 +284,9 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
         )}
       </div>
 
-      {/* Zone super admin : suppression du compte (historique conservé). */}
-      {monRole === "superadmin" && (
+      {/* Suppression : directe pour le SUPER ADMIN ; les admins/modérateurs
+          soumettent une DEMANDE que le super admin devra valider. */}
+      {monRole === "superadmin" ? (
         <div className="fe-zone-danger">
           <span>Zone super admin</span>
           <button
@@ -304,6 +305,30 @@ export default function FichePatient({ fiche, onFermer, onRecharger, NotifierCli
             Supprimer ce compte
           </button>
         </div>
+      ) : (
+        ["admin", "moderateur"].includes(monRole) && (
+          <div className="fe-zone-danger" style={{ borderColor: "var(--ligne)", background: "var(--vert-pale)" }}>
+            <span style={{ color: "var(--vert-fonce)" }}>Suppression soumise à validation</span>
+            <button
+              className="adm-btn secondaire"
+              onClick={async () => {
+                const motif = window.prompt(`Demander la suppression du compte « ${nom} » ?\n\nMotif (transmis au super admin) :`, "");
+                if (motif === null) return;
+                try {
+                  await fetchAdmin("/api/admin/suppressions", {
+                    method: "POST",
+                    body: JSON.stringify({ cibleType: "client", cibleId: p.id, cibleNom: nom, motif }),
+                  });
+                  setMsg("Demande de suppression envoyée au super admin ✓");
+                } catch (e) {
+                  setMsg(e?.status === 409 ? "Une demande de suppression est déjà en attente pour ce compte." : "Envoi impossible.");
+                }
+              }}
+            >
+              Demander la suppression
+            </button>
+          </div>
+        )
       )}
     </div>
   );

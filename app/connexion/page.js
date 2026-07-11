@@ -78,6 +78,11 @@ function FormulaireConnexion() {
     }
     const type = profil.role === "pro" ? "pro" : "patient";
     seConnecter(type);
+    // Compte créé par l'équipe : création du mot de passe à la 1re connexion.
+    if (user?.user_metadata?.must_create_password) {
+      routeur.push("/premiere-connexion");
+      return;
+    }
     if (type === "pro") routeur.push("/pro");
     else if (serviceEnCours) routeur.push("/rdv");
     else routeur.push("/tableau");

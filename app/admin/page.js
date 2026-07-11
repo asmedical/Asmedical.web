@@ -32,6 +32,7 @@ export default function TableauDeBordAdmin() {
     { l: "Soignants à valider", v: stats.soignantsAttente, href: "/admin/soignants" },
     { l: "Transporteurs à valider", v: stats.transporteursAttente, href: "/admin/transporteurs" },
     { l: "Messages non lus", v: stats.messagesNonLus ?? 0, href: "/admin/messages" },
+    { l: "Suppressions à valider", v: stats.suppressionsAttente ?? 0, href: "/admin/equipe" },
   ].filter((c) => c.v > 0);
 
   const jour = [

@@ -34,6 +34,7 @@ export async function GET(req) {
       prisma.message.count({ where: { deEquipe: false, luParEquipe: false } }),
       prisma.demande.findMany({ orderBy: { creeLe: "desc" }, take: 5 }),
     ]);
+    const suppressionsAttente = await prisma.demandeSuppression.count({ where: { statut: "EN_ATTENTE" } });
 
     // Nombre de clients PATIENTS (les employés/internes/établissements
     // ont leurs propres sections et ne sont pas des « clients »).
@@ -61,6 +62,7 @@ export async function GET(req) {
       comptesEmployes: comptesSoignants + comptesTransporteurs,
       abonnementsActifs,
       messagesNonLus,
+      suppressionsAttente,
       clients,
       dernieres,
     });
