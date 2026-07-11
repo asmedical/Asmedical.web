@@ -14,7 +14,9 @@ export async function GET(req) {
     const brut = (new URL(req.url).searchParams.get("q") || "").trim().slice(0, 80);
     if (brut.length < 2) return NextResponse.json({ resultats: null });
 
-    const q = brut;
+    // Neutralise les caractères spéciaux du filtre PostgREST (séparateurs
+    // de conditions) pour que la saisie ne puisse pas modifier la requête.
+    const q = brut.replace(/[,()]/g, " ").trim();
     const chiffres = brut.replace(/[\s.\-()]/g, "").replace(/^\+/, "");
     const estNumero = /^\d{2,}$/.test(chiffres);
     const numDemande = /^#?(\d{1,8})$/.exec(brut.replace("n°", "").trim());

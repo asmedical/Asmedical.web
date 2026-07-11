@@ -77,7 +77,8 @@ export async function GET(req) {
       return NextResponse.json({ profil, demandes, rattachements, documents });
     }
 
-    const q = (p.get("q") || "").trim();
+    // « , ( ) » neutralisés : séparateurs de conditions du filtre PostgREST.
+    const q = (p.get("q") || "").trim().replace(/[,()]/g, " ").trim();
     // L'onglet Clients ne montre que les CLIENTS : patients par défaut
     // (?type=pro pour les établissements). Les comptes employés et
     // internes ont leurs propres sections (Soignants, Transport, Équipe).
