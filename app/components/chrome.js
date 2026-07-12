@@ -330,6 +330,8 @@ export function PiedDePage() {
   return (
     <footer>
       ASM — Bir Mourad Raïs, Alger · <a href={TEL_LIEN}>{TEL_AFFICHE}</a>
+      <br />
+      <a href="/confidentialite" style={{ fontSize: 12, color: "inherit", opacity: 0.75 }}>Confidentialité</a>
     </footer>
   );
 }

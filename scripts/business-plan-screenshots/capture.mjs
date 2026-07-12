@@ -19,7 +19,7 @@ process.env.DATABASE_URL = process.env.DATABASE_URL || "postgresql://asm:asm@loc
 const prisma = new PrismaClient();
 
 const BASE = process.env.CAPTURE_BASE || "http://localhost:3100";
-const SORTIE = "business-plan-assets";
+const SORTIE = process.env.CAPTURE_SORTIE || "business-plan-assets";
 const CHROME = "/opt/pw-browsers/chromium-1194/chrome-linux/chrome";
 
 const MENTION =
@@ -233,11 +233,13 @@ const PLAN = [
 ];
 
 async function main() {
+  const filtre = (process.env.CAPTURE_FILTRE || "").split(",").map((x) => x.trim()).filter(Boolean);
+  const plan = filtre.length ? PLAN.filter((e) => filtre.some((f) => e.fichier.includes(f))) : PLAN;
   const D = await chargerDonnees();
   const navigateur = await chromium.launch({ executablePath: CHROME, headless: true });
   const rapport = [];
 
-  for (const etape of PLAN) {
+  for (const etape of plan) {
     const mobile = !!etape.mobile;
     const contexte = await navigateur.newContext({
       viewport: mobile ? { width: 390, height: 844 } : { width: 1440, height: 1000 },
@@ -313,7 +315,7 @@ async function main() {
         await page.waitForTimeout(1600);
       }
       // Mention centrale : données fictives (exigence du dossier).
-      await page.evaluate(({ txt, haut }) => {
+      if (!process.env.CAPTURE_SANS_MENTION) await page.evaluate(({ txt, haut }) => {
         const d = document.createElement("div");
         d.textContent = txt;
         Object.assign(d.style, {
@@ -327,7 +329,7 @@ async function main() {
         document.body.appendChild(d);
       }, { txt: MENTION, haut: etape.mentionHaut });
       await page.waitForTimeout(250);
-      await page.screenshot({ path: dest, fullPage: !!etape.pleinePage });
+      await page.screenshot({ path: dest, fullPage: !!etape.pleinePage && !process.env.CAPTURE_VIEWPORT });
       rapport.push({ fichier: etape.fichier, statut: "OK" });
       console.log("✓", etape.fichier);
     } catch (e) {
