@@ -1,9 +1,35 @@
-// Service worker ASM — réception des notifications push (Web Push).
-// Affiche la notification même quand le site est fermé, et ouvre la
-// bonne page au clic.
+// Service worker ASM — notifications push + secours hors-ligne.
+// 1. Push : affiche la notification même app fermée, ouvre la bonne page.
+// 2. Hors-ligne : les pages passent toujours par le réseau (données à jour) ;
+//    si le réseau est coupé, une page de secours s'affiche au lieu de
+//    l'erreur du navigateur.
 
-self.addEventListener("install", () => self.skipWaiting());
-self.addEventListener("activate", (e) => e.waitUntil(self.clients.claim()));
+const CACHE = "asm-v1";
+const SECOURS = "/hors-ligne";
+
+self.addEventListener("install", (e) => {
+  e.waitUntil(
+    caches.open(CACHE).then((c) => c.addAll([SECOURS, "/icone-192.png", "/logo-asm.jpg"])).catch(() => {})
+  );
+  self.skipWaiting();
+});
+
+self.addEventListener("activate", (e) =>
+  e.waitUntil(
+    caches.keys()
+      .then((noms) => Promise.all(noms.filter((n) => n !== CACHE).map((n) => caches.delete(n))))
+      .then(() => self.clients.claim())
+  )
+);
+
+// Réseau d'abord (jamais de données périmées) ; page de secours si coupure.
+self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  if (req.method !== "GET") return;
+  if (req.mode === "navigate") {
+    event.respondWith(fetch(req).catch(() => caches.match(SECOURS)));
+  }
+});
 
 self.addEventListener("push", (event) => {
   let d = {};

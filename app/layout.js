@@ -2,6 +2,7 @@ import "./globals.css";
 import { AsmProvider } from "./providers";
 import { Habillage } from "./components/chrome";
 import { Assistant } from "./components/assistant";
+import { InstallerApp } from "./components/installer";
 
 export const metadata = {
   title: "ASM — Assistance Santé Médical",
@@ -14,6 +15,16 @@ export const metadata = {
     "aide à domicile Alger",
     "transport médicalisé",
   ],
+  // Application installée (écran d'accueil) : plein écran, titre et icône ASM.
+  appleWebApp: {
+    capable: true,
+    title: "ASM",
+    statusBarStyle: "default",
+  },
+  icons: {
+    icon: "/icone-192.png",
+    apple: "/icone-180.png",
+  },
 };
 
 export const viewport = {
@@ -38,6 +49,7 @@ export default function RootLayout({ children }) {
       <body>
         <AsmProvider>
           <Habillage assistant={<Assistant />}>{children}</Habillage>
+          <InstallerApp />
         </AsmProvider>
       </body>
     </html>

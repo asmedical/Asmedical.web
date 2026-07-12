@@ -954,3 +954,18 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .btn-oauth{flex:1;display:flex;align-items:center;justify-content:center;gap:8px;border:1.5px solid var(--ligne);border-radius:12px;background:var(--blanc);font-family:inherit;font-size:14px;font-weight:700;color:var(--encre);padding:11px 8px;cursor:pointer}
 .btn-oauth:hover{background:var(--vert-pale);border-color:var(--vert)}
 @media (max-width:380px){.oauth-liste{flex-direction:column}}
+
+/* ---------- APPLICATION : bannière d'installation ---------- */
+.pwa-bandeau{position:fixed;inset-inline:12px;bottom:calc(var(--h-nav) + 12px);z-index:180;display:flex;align-items:center;gap:12px;background:var(--blanc);border:1px solid var(--ligne);border-radius:16px;box-shadow:0 10px 32px rgba(14,60,40,.22);padding:12px 14px;animation:pwaMonte .3s ease}
+@keyframes pwaMonte{from{transform:translateY(16px);opacity:0}to{transform:none;opacity:1}}
+.pwa-bandeau img{border-radius:12px;flex-shrink:0}
+.pwa-txt{flex:1;min-width:0}
+.pwa-txt strong{display:block;font-size:14.5px;line-height:1.25;color:var(--vert-fonce)}
+.pwa-txt small{display:block;font-size:12px;color:var(--gris);line-height:1.35;margin-top:2px}
+.pwa-actions{display:flex;align-items:center;gap:8px;flex-shrink:0}
+.pwa-btn{border:none;background:var(--vert);color:#fff;font-family:inherit;font-weight:800;font-size:13.5px;border-radius:11px;padding:10px 16px;cursor:pointer}
+.pwa-fermer{border:none;background:none;color:var(--gris-clair);font-size:15px;cursor:pointer;padding:6px}
+.pwa-guide{background:var(--blanc);border-radius:20px 20px 0 0;padding:22px 20px calc(20px + env(safe-area-inset-bottom));width:100%;max-width:480px}
+.pwa-guide strong{display:block;font-size:17px;color:var(--vert-fonce);margin-bottom:10px}
+.pwa-guide ol{margin:0 0 16px 20px;font-size:14.5px;line-height:1.6}
+.pwa-guide li{margin-bottom:8px}

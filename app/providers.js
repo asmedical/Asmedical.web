@@ -83,6 +83,14 @@ export function AsmProvider({ children }) {
     };
   }, [connecte]);
 
+  // Application (PWA) : service worker actif dès la première visite
+  // (page de secours hors-ligne + réception des notifications push).
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
+
   // Restauration après rechargement
   useEffect(() => {
     try {
