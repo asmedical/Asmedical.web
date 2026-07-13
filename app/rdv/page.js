@@ -650,6 +650,18 @@ export default function PriseRdv() {
           </div>
         </div>
 
+        {/* Prix estimé AVANT confirmation — mêmes règles que la facturation */}
+        <EstimationPrix
+          t={t}
+          service={service}
+          jour={jourChoisi}
+          heure={service === "transport" && sousMode === "urgent" ? "" : slotChoisi}
+          duree={dureeActuelle}
+          typeTrajet={service === "transport" ? typeTrajet : undefined}
+          prioritaire={service === "transport" && sousMode === "urgent"}
+          visible={sousMode !== "abonnement"}
+        />
+
         {/* Message urgence vitale (rassurant, non anxiogène) */}
         <p className="note-urgence">{t("urgence_vitale")}</p>
 
@@ -658,6 +670,65 @@ export default function PriseRdv() {
         </button>
         {erreur && <p className="erreur">{erreur}</p>}
       </div>
+    </div>
+  );
+}
+
+// ---- Prix estimé avant réservation ----
+// Interroge les tarifs en vigueur (mêmes règles que la facture finale) et la
+// remise du client connecté. N'affiche RIEN tant que la grille tarifaire
+// n'est pas configurée, ni pendant la saisie incomplète.
+function EstimationPrix({ t, service, jour, heure, duree, typeTrajet, prioritaire, visible }) {
+  const [est, setEst] = useState(null);
+
+  useEffect(() => {
+    let annule = false;
+    setEst(null);
+    if (!visible || !jour) return;
+    (async () => {
+      try {
+        const u = new URLSearchParams({ service, duree: String(duree || 60) });
+        u.set("date", `${jour}T${heure || "09:00"}`);
+        if (typeTrajet) u.set("typeTrajet", typeTrajet);
+        if (prioritaire) u.set("prioritaire", "1");
+        let token = "";
+        try {
+          const { supabase } = await import("@/lib/supabase");
+          const { data: { session } } = await supabase.auth.getSession();
+          token = session?.access_token || "";
+        } catch {}
+        const r = await fetch(`/api/finances/estimation?${u.toString()}`, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        const d = await r.json();
+        if (!annule && r.ok && d.disponible) setEst(d);
+      } catch {}
+    })();
+    return () => { annule = true; };
+  }, [visible, service, jour, heure, duree, typeTrajet, prioritaire]);
+
+  if (!est) return null;
+  return (
+    <div className="estimation">
+      <div className="estimation-tete">
+        <strong>{t("est_t")}</strong>
+        <strong className="estimation-total">{est.total.toLocaleString("fr-FR")} {est.devise}</strong>
+      </div>
+      <ul>
+        {est.lignes.map((l, i) => (
+          <li key={i}>
+            <span>{l.libelle}{l.quantite > 1 ? ` × ${l.quantite}` : ""}</span>
+            <span>{l.montant.toLocaleString("fr-FR")}</span>
+          </li>
+        ))}
+        {est.remiseTotal > 0 && (
+          <li className="estimation-remise">
+            <span>{est.remiseDetail || t("est_remise")}</span>
+            <span>-{est.remiseTotal.toLocaleString("fr-FR")}</span>
+          </li>
+        )}
+      </ul>
+      <small>{t("est_note")}</small>
     </div>
   );
 }

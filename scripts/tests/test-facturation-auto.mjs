@@ -11,7 +11,7 @@ fs.writeFileSync(".test-fin/finances.js",
     .replace('await import("@/lib/pushEnvoi")', 'await import("./pushEnvoi.js")'));
 fs.writeFileSync(".test-fin/pushEnvoi.js", "export async function envoyerPush() {}\n");
 
-const { facturerDemande, installerTarifsDefaut, compteFinancierPour } = await import(process.cwd() + "/.test-fin/finances.js");
+const { facturerDemande, installerTarifsDefaut, compteFinancierPour, estimerPrestation } = await import(process.cwd() + "/.test-fin/finances.js");
 const { prisma } = await import(process.cwd() + "/.test-fin/prisma.js");
 
 let ok = 0, ko = 0;
@@ -96,6 +96,11 @@ const d7 = await prisma.demande.create({
 const r8 = await facturerDemande(d7);
 verif("réservation d'établissement → facturée à l'ÉTABLISSEMENT (pas au patient)", r8.ok && r8.facture.compteId === compteEtab.id);
 verif("mention « Réservé par » sur la facture", r8.facture.notes?.includes("Centre TEST-FA"));
+
+// 9. PARITÉ estimation ↔ facture : mêmes paramètres, même total
+const est = await estimerPrestation({ service: "transport", date: "2026-07-18T09:00", dureeMin: 60, typeTrajet: "aller_retour", prioritaire: true, compteId: compte.id });
+const factD1 = await prisma.facture.findFirst({ where: { demandeId: d1.id } });
+verif("estimation avant réservation = facture finale (mêmes règles)", est.total === factD1.total);
 
 // Nettoyage
 await prisma.demande.deleteMany({ where: { nom: { contains: "TEST-FA" } } });

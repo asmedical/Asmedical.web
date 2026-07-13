@@ -45,6 +45,7 @@ export default function Reservation({ route, navigation }) {
   const [heure, setHeure] = useState("");
   const [fenetres, setFenetres] = useState(null);
   const [fenetre, setFenetre] = useState("asap");
+  const [estimation, setEstimation] = useState(null);
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
   const [fait, setFait] = useState(null);
@@ -68,6 +69,20 @@ export default function Reservation({ route, navigation }) {
     }
     return () => { annule = true; };
   }, [service, jour, commune, typeTrajet, livraison]);
+
+  // Prix estimé (mêmes règles que la facturation, remise du client incluse).
+  useEffect(() => {
+    let annule = false;
+    setEstimation(null);
+    if (livraison ? !fenetre : !heure) return;
+    const u = new URLSearchParams({ service, duree: "60" });
+    u.set("date", `${jour}T${livraison ? "09:00" : heure}`);
+    if (service === "transport") u.set("typeTrajet", typeTrajet);
+    apiGet(`/api/finances/estimation?${u.toString()}`)
+      .then((d) => !annule && d?.disponible && setEstimation(d))
+      .catch(() => {});
+    return () => { annule = true; };
+  }, [service, jour, heure, fenetre, typeTrajet, livraison]);
 
   async function confirmer() {
     setErreur("");
@@ -177,6 +192,30 @@ export default function Reservation({ route, navigation }) {
         placeholder="Ex. fauteuil roulant, 2e étage sans ascenseur…"
         placeholderTextColor={C.grisClair}
       />
+
+      {estimation && (
+        <View style={[S.cartePale, { borderColor: C.vert }]}>
+          <View style={{ flexDirection: "row", justifyContent: "space-between", marginBottom: 6 }}>
+            <Text style={{ fontWeight: "800", color: C.vertFonce, fontSize: 15 }}>{t("est_t")}</Text>
+            <Text style={{ fontWeight: "800", color: C.vertFonce, fontSize: 17 }}>
+              {estimation.total.toLocaleString("fr-FR")} {estimation.devise}
+            </Text>
+          </View>
+          {estimation.lignes.map((l, i) => (
+            <View key={i} style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 2 }}>
+              <Text style={{ color: C.encre, fontSize: 13, flex: 1 }}>{l.libelle}{l.quantite > 1 ? ` × ${l.quantite}` : ""}</Text>
+              <Text style={{ color: C.encre, fontSize: 13 }}>{l.montant.toLocaleString("fr-FR")}</Text>
+            </View>
+          ))}
+          {estimation.remiseTotal > 0 && (
+            <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 2 }}>
+              <Text style={{ color: C.vertFonce, fontWeight: "800", fontSize: 13 }}>{estimation.remiseDetail || t("est_remise")}</Text>
+              <Text style={{ color: C.vertFonce, fontWeight: "800", fontSize: 13 }}>-{estimation.remiseTotal.toLocaleString("fr-FR")}</Text>
+            </View>
+          )}
+          <Text style={{ color: C.gris, fontSize: 11.5, marginTop: 6, lineHeight: 16 }}>{t("est_note")}</Text>
+        </View>
+      )}
 
       {!!erreur && <Text style={S.erreur}>{erreur}</Text>}
       <Bouton
