@@ -350,6 +350,7 @@ model CompteFinancier {
   emailFacturation String?
   telFacturation   String?
   statut           String   @default("ACTIF")
+  modeFacturation  String   @default("prestation") // prestation (auto à la clôture) | mensuel (groupée fin de mois)
   factures         Facture[]
   remises          RemiseClient[]
   souscriptions    Souscription[]
@@ -415,6 +416,7 @@ model LigneFacture {
   prixUnitaire Int
   montant      Int
   tarifId      Int?    // version de tarif utilisée (traçabilité)
+  demandeId    Int?    // prestation facturée par cette ligne (factures groupées)
 }
 
 model Paiement {

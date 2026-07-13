@@ -146,6 +146,30 @@ ${points.map((pt) => `<tr><td>${pt.nom}</td><td>${[pt.adresse, pt.commune].filte
       return new NextResponse(page(`Ticket ${t.reference}`, corps), { headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
 
+    if (type === "releve") {
+      // Relevé de compte : id = compte financier, période du/au facultative
+      // (année en cours par défaut). Accessible au titulaire et au staff.
+      if (!possede(id)) return NextResponse.json({ erreur: "introuvable" }, { status: 404 });
+      const { releveCompte } = await import("@/lib/finances");
+      const r = await releveCompte(id, { du: p.get("du") || undefined, au: p.get("au") || undefined });
+      if (!r) return NextResponse.json({ erreur: "introuvable" }, { status: 404 });
+      const lignes = r.lignes.map((l) =>
+        `<tr><td>${l.date}</td><td>${l.libelle}</td><td>${l.debit ? DA(l.debit) : ""}</td><td>${l.credit ? DA(l.credit) : ""}</td><td>${DA(l.solde)}</td></tr>`).join("");
+      const corps = `
+<h2>Relevé de compte — ${r.compte.nom || "—"} (${r.compte.numero})</h2>
+<div class="grille">
+  <span><b>Période :</b> du ${r.du} au ${r.au}</span>
+  <span><b>Solde antérieur :</b> ${DA(r.soldeAnterieur)}</span>
+</div>
+<table><thead><tr><th>Date</th><th>Opération</th><th>Débit</th><th>Crédit</th><th>Solde</th></tr></thead>
+<tbody>${lignes || `<tr><td colspan="5">Aucun mouvement sur la période.</td></tr>`}
+<tr class="tot"><td colspan="2">Totaux de la période</td><td>${DA(r.totalDebit)}</td><td>${DA(r.totalCredit)}</td><td>${DA(r.solde)}</td></tr>
+</tbody></table>
+<p><b>Solde au ${r.au} : ${DA(r.solde)}</b> ${r.solde > 0 ? "(restant dû)" : r.solde < 0 ? "(en votre faveur)" : "(compte soldé)"}.</p>
+<p>Les factures mensuelles détaillent chaque prestation par patient : ouvrez la facture correspondante pour ce détail.</p>`;
+      return new NextResponse(page(`Relevé ${r.compte.numero}`, corps), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    }
+
     return NextResponse.json({ erreur: "type inconnu" }, { status: 400 });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });

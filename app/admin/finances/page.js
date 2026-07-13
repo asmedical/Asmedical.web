@@ -2,6 +2,7 @@
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { fetchAdmin, useGardeAdmin } from "../ui";
+import { supabase } from "@/lib/supabase";
 
 // Centre financier ASM : tableau de bord, factures, paiements & tickets
 // espèces, tarifs versionnés, remises, plans, points de paiement, relances,
@@ -10,8 +11,8 @@ import { fetchAdmin, useGardeAdmin } from "../ui";
 const DA = (n) => `${Number(n || 0).toLocaleString("fr-FR")} DZD`;
 const ONGLTS = [
   ["bord", "Tableau de bord"], ["factures", "Factures"], ["paiements", "Paiements & tickets"],
-  ["tarifs", "Tarifs"], ["remises", "Remises"], ["plans", "Abonnements"],
-  ["points", "Points de paiement"], ["evenements", "Événements"],
+  ["mensuel", "Établissements"], ["tarifs", "Tarifs"], ["remises", "Remises"],
+  ["plans", "Abonnements"], ["points", "Points de paiement"], ["evenements", "Événements"],
 ];
 
 function Cartes({ bord }) {
@@ -253,6 +254,9 @@ function FinancesContenu() {
           </div>
         </>
       )}
+
+      {/* ================= ÉTABLISSEMENTS (facturation mensuelle) ================= */}
+      {onglet === "mensuel" && <SectionMensuel role={role} />}
 
       {/* ================= TARIFS ================= */}
       {onglet === "tarifs" && d?.tarifs && (
@@ -502,6 +506,120 @@ function NouvelleRemise({ action }) {
       if (!motif) return;
       action({ action: "remise.creer", compteId: compte.id, type, valeur, motif }, `Accorder -${valeur}${type === "pourcentage" ? " %" : " DZD"} à ${compte.nom || compte.numero} ?`);
     }}>+ Accorder une remise</button>
+  );
+}
+
+// Finances établissement : facturation MENSUELLE groupée (une facture par
+// mois regroupant toutes les prestations, une ligne par patient/prestation),
+// mode de facturation par compte pro, relevé de compte imprimable.
+function SectionMensuel({ role }) {
+  const gestion = ["superadmin", "admin"].includes(role);
+  const moisPrecedent = () => {
+    const d = new Date();
+    d.setDate(1);
+    d.setMonth(d.getMonth() - 1);
+    return d.toISOString().slice(0, 7);
+  };
+  const [mois, setMois] = useState(moisPrecedent);
+  const [d, setD] = useState(null);
+  const [msg, setMsg] = useState("");
+  const [occupe, setOccupe] = useState(false);
+
+  async function charger(m = mois) {
+    setD(null);
+    try {
+      setD(await fetchAdmin(`/api/admin/finances?vue=mensuel&mois=${m}`));
+    } catch {
+      setD({ erreur: true });
+    }
+  }
+  useEffect(() => { charger(mois); }, [mois]); // eslint-disable-line
+
+  async function agir(corps, confirmation) {
+    if (confirmation && !window.confirm(confirmation)) return;
+    setMsg("");
+    setOccupe(true);
+    try {
+      const r = await fetchAdmin("/api/admin/finances", { method: "POST", body: JSON.stringify(corps) });
+      if (r.vide) setMsg("Rien à facturer sur ce mois" + (r.sansTarif ? ` (${r.sansTarif} prestation(s) sans tarif — à facturer manuellement)` : "") + ".");
+      else if (r.deja) setMsg(`Facture mensuelle déjà émise : ${r.facture.numero}.`);
+      else setMsg("Action effectuée ✓");
+      await charger();
+      return r;
+    } catch (e) {
+      setMsg("⚠ " + (e?.data?.erreur || "Action impossible (droits ?)"));
+    } finally {
+      setOccupe(false);
+    }
+  }
+
+  function ouvrirDoc(type, id) {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      fetch(`/api/finances/document?type=${type}&id=${id}`, {
+        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+      })
+        .then((r) => r.text())
+        .then((html) => {
+          const f = window.open("", "_blank");
+          if (f) { f.document.write(html); f.document.close(); }
+        })
+        .catch(() => {});
+    });
+  }
+
+  return (
+    <>
+      <p className="adm-vide" style={{ textAlign: "start" }}>
+        Facturation mensuelle des établissements : leurs prestations terminées ne sont pas facturées une à une,
+        mais regroupées dans UNE facture par mois — une ligne par prestation, patient identifiable.
+        Passez un compte en mode « mensuel » pour activer ce fonctionnement.
+      </p>
+      <div className="adm-filtres">
+        <input type="month" value={mois} onChange={(e) => e.target.value && setMois(e.target.value)} max={new Date().toISOString().slice(0, 7)} />
+        {gestion && (
+          <button className="adm-btn" disabled={occupe} onClick={() =>
+            agir({ action: "etablissements.facturer.tous", mois },
+              `Générer les factures mensuelles de ${d?.moisLisible || mois} pour tous les établissements en mode mensuel ? (aucun doublon possible)`)
+          }>🧾 Facturer tous les établissements — {d?.moisLisible || mois}</button>
+        )}
+      </div>
+      {msg && <p className="adm-msg">{msg}</p>}
+      {!d && <p className="adm-vide">Chargement…</p>}
+      {d?.erreur && <p className="adm-vide">Impossible de charger.</p>}
+      {d?.etablissements?.length === 0 && <p className="adm-vide">Aucun compte financier d&apos;établissement pour l&apos;instant (créé automatiquement à sa première réservation facturée).</p>}
+      <div className="adm-liste">
+        {d?.etablissements?.map(({ compte, aFacturer, patients, facture }) => (
+          <div className="adm-ligne" key={compte.id}>
+            <span className="adm-ligne-texte">
+              <strong>{compte.nom || "—"} ({compte.numero})</strong>
+              <small>
+                Mode : {compte.modeFacturation === "mensuel" ? "mensuel (groupé)" : "à la prestation"}
+                {" · "}{d.moisLisible} : {aFacturer} prestation(s) à facturer{patients ? ` · ${patients} patient(s)` : ""}
+                {facture ? ` · facture ${facture.numero} — ${DA(facture.total)} (${facture.statut.replaceAll("_", " ")})` : ""}
+              </small>
+            </span>
+            <span style={{ display: "flex", gap: 6, flexWrap: "wrap", flexShrink: 0 }}>
+              {gestion && (
+                <button className="adm-btn secondaire" disabled={occupe} onClick={() =>
+                  agir({ action: "compte.modeFacturation", compteId: compte.id, mode: compte.modeFacturation === "mensuel" ? "prestation" : "mensuel" },
+                    compte.modeFacturation === "mensuel"
+                      ? `Repasser ${compte.nom || compte.numero} en facturation à la prestation (facture automatique à chaque clôture) ?`
+                      : `Passer ${compte.nom || compte.numero} en facturation MENSUELLE groupée ? (plus de facture à chaque clôture)`)
+                }>{compte.modeFacturation === "mensuel" ? "→ à la prestation" : "→ mensuel"}</button>
+              )}
+              {gestion && aFacturer > 0 && !facture && (
+                <button className="adm-btn" disabled={occupe} onClick={() =>
+                  agir({ action: "etablissement.facturer", compteId: compte.id, mois },
+                    `Émettre la facture ${d.moisLisible} de ${compte.nom || compte.numero} (${aFacturer} prestation(s), détail par patient) ?`)
+                }>🧾 Facturer {d.moisLisible}</button>
+              )}
+              {facture && <button className="adm-btn secondaire" onClick={() => ouvrirDoc("facture", facture.id)}>Voir la facture</button>}
+              <button className="adm-btn secondaire" onClick={() => ouvrirDoc("releve", compte.id)}>Relevé de compte</button>
+            </span>
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
 

@@ -5,6 +5,7 @@ import {
   compteFinancierPour, creerFacture, encaisserTicket, confirmerPaiement,
   rembourser, versionnerTarif, tarifsEnVigueur, installerTarifsDefaut,
   marquerRetards, prochainNumero, creerTicketEspeces,
+  demandesAFacturer, facturerMensuel, moisLisible,
 } from "@/lib/finances";
 import { envoyerEmail } from "@/lib/email";
 
@@ -145,6 +146,27 @@ export async function GET(req) {
         orderBy: { creeLe: "desc" }, take: 50,
       });
       return NextResponse.json({ comptes });
+    }
+
+    if (vue === "mensuel") {
+      // Facturation mensuelle des établissements : pour un mois donné,
+      // chaque compte pro avec le nombre de prestations restant à facturer
+      // et la facture groupée déjà émise le cas échéant.
+      const mois = /^\d{4}-\d{2}$/.test(p.get("mois") || "") ? p.get("mois") : new Date(Date.now() - 15 * 86400000).toISOString().slice(0, 7);
+      const pros = await prisma.compteFinancier.findMany({ where: { type: "pro" }, orderBy: { nom: "asc" }, take: 200 });
+      const lignes = [];
+      for (const compte of pros) {
+        const [aFacturer, groupee] = await Promise.all([
+          demandesAFacturer(compte, mois),
+          prisma.facture.findFirst({ where: { compteId: compte.id, statut: { not: "ANNULEE" }, notes: { contains: `[MENSUEL ${mois}]` } } }),
+        ]);
+        lignes.push({
+          compte, aFacturer: aFacturer.length,
+          patients: [...new Set(aFacturer.map((d) => d.nom).filter(Boolean))].length,
+          facture: groupee ? { id: groupee.id, numero: groupee.numero, total: groupee.total, statut: groupee.statut } : null,
+        });
+      }
+      return NextResponse.json({ mois, moisLisible: moisLisible(mois), etablissements: lignes });
     }
 
     return NextResponse.json({ erreur: "vue inconnue" }, { status: 400 });
@@ -471,6 +493,45 @@ export async function POST(req) {
       }
       await journaliser(acces.nomAffiche, "finance.relances", "facture", 0, `${envoyees} relances envoyées`);
       return NextResponse.json({ ok: true, envoyees });
+    }
+
+    // ---- Finances établissement (facturation mensuelle groupée) ----
+    if (action === "compte.modeFacturation") {
+      if (!["superadmin", "admin"].includes(role)) return refus();
+      const mode = ["prestation", "mensuel"].includes(c.mode) ? c.mode : null;
+      if (!mode) return NextResponse.json({ erreur: "mode invalide" }, { status: 400 });
+      const compte = await prisma.compteFinancier.update({ where: { id: Number(c.compteId) }, data: { modeFacturation: mode } });
+      await journaliser(acces.nomAffiche, "finance.compte.mode", "compte", compte.id, `${compte.numero} → ${mode}`);
+      return NextResponse.json({ ok: true, compte });
+    }
+
+    if (action === "etablissement.facturer") {
+      // Génère LA facture mensuelle groupée d'un établissement (anti-doublon
+      // par mois : relancer ne crée jamais de seconde facture).
+      if (!["superadmin", "admin"].includes(role)) return refus();
+      if (!/^\d{4}-\d{2}$/.test(c.mois || "")) return NextResponse.json({ erreur: "mois attendu (AAAA-MM)" }, { status: 400 });
+      const compte = await prisma.compteFinancier.findUnique({ where: { id: Number(c.compteId) } });
+      if (!compte) return NextResponse.json({ erreur: "compte introuvable" }, { status: 404 });
+      const r = await facturerMensuel(compte, c.mois, { auteur: acces.nomAffiche });
+      if (r.erreur) return NextResponse.json({ erreur: r.erreur }, { status: 400 });
+      if (r.deja) return NextResponse.json({ deja: true, facture: r.facture });
+      if (r.vide) return NextResponse.json({ vide: true, sansTarif: r.sansTarif || 0 });
+      return NextResponse.json({ ok: true, facture: r.facture, prestations: r.prestations }, { status: 201 });
+    }
+
+    if (action === "etablissements.facturer.tous") {
+      // Toutes les factures mensuelles du mois en un clic (comptes pro en
+      // mode mensuel) — chaque établissement reste protégé par l'anti-doublon.
+      if (!["superadmin", "admin"].includes(role)) return refus();
+      if (!/^\d{4}-\d{2}$/.test(c.mois || "")) return NextResponse.json({ erreur: "mois attendu (AAAA-MM)" }, { status: 400 });
+      const pros = await prisma.compteFinancier.findMany({ where: { type: "pro", modeFacturation: "mensuel" } });
+      let creees = 0, montant = 0;
+      for (const compte of pros) {
+        const r = await facturerMensuel(compte, c.mois, { auteur: acces.nomAffiche });
+        if (r.ok) { creees++; montant += r.facture.total; }
+      }
+      await journaliser(acces.nomAffiche, "finance.mensuel.tous", "facture", 0, `${c.mois} · ${creees} facture(s) · ${montant} DZD`);
+      return NextResponse.json({ ok: true, creees, montant });
     }
 
     if (action === "reglage.facturationAuto") {

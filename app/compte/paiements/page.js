@@ -157,7 +157,11 @@ export default function PaiementsFactures() {
       <div className="contenu-page" style={{ maxWidth: 640 }}>
         <Link className="btn-retour" href="/compte">{t("retour")}</Link>
         <h2 className="titre-page">{t("pf_t")}</h2>
-        <p className="sous-page">{t("pf_s")} <strong>{d.compte.numero}</strong></p>
+        <p className="sous-page">
+          {t("pf_s")} <strong>{d.compte.numero}</strong>
+          {" · "}
+          <button className="fin-lien" onClick={() => ouvrirDocument("releve", d.compte.id)}>{t("pf_releve")}</button>
+        </p>
 
         {/* Bulle de rappel — sobre, disparaît une fois réglé */}
         {d.resume.enRetard > 0 && (
