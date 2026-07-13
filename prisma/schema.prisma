@@ -318,6 +318,7 @@ model Reglage {
   trajetDefautMin     Int     @default(20)    // déplacement estimé entre deux interventions (min)
   capaciteFenetre     Int     @default(8)     // livraisons max par fenêtre (matin/midi/soir)
   affectationAuto     Boolean @default(false) // affecter automatiquement l'intervenant le moins chargé
+  facturationAuto     Boolean @default(true)  // facturer automatiquement à la clôture d'une prestation
 }
 
 // Canal choisi par l'utilisateur pour recevoir son code de connexion

@@ -46,8 +46,10 @@ export async function GET(req) {
         where: { statut: "CONFIRME", moyen: "especes", confirmeLe: { gte: new Date(jour + "T00:00:00Z") } },
         _sum: { montant: true },
       });
+      const reglage = await prisma.reglage.findUnique({ where: { id: 1 } });
       return NextResponse.json({
         role: acces.profil.role,
+        facturationAuto: reglage ? reglage.facturationAuto !== false : true,
         bord: {
           facture: emis, encaisse, aEncaisser: emis - encaisse, impayes,
           paiementsJour: duJour._count, montantJour: duJour._sum.montant || 0,
@@ -469,6 +471,17 @@ export async function POST(req) {
       }
       await journaliser(acces.nomAffiche, "finance.relances", "facture", 0, `${envoyees} relances envoyées`);
       return NextResponse.json({ ok: true, envoyees });
+    }
+
+    if (action === "reglage.facturationAuto") {
+      if (!superadmin) return refus();
+      await prisma.reglage.upsert({
+        where: { id: 1 },
+        update: { facturationAuto: !!c.actif },
+        create: { id: 1, facturationAuto: !!c.actif },
+      });
+      await journaliser(acces.nomAffiche, "finance.facturation_auto", "reglage", 1, c.actif ? "activée" : "désactivée");
+      return NextResponse.json({ ok: true });
     }
 
     return NextResponse.json({ erreur: "action inconnue" }, { status: 400 });

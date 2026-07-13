@@ -165,6 +165,14 @@ export async function PATCH(req) {
       await notifierPatient(ctx.admin, maj, MSG_PATIENT[action]);
     }
 
+    // Facturation automatique à la clôture (jamais bloquante pour la mission).
+    if (action === "terminer") {
+      try {
+        const { facturerDemande } = await import("@/lib/finances");
+        await facturerDemande(maj);
+      } catch {}
+    }
+
     return NextResponse.json({ ok: true, intervention: vueIntervenant(maj) });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });

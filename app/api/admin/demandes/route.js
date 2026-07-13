@@ -152,6 +152,14 @@ export async function PATCH(req) {
     const maj = await prisma.demande.update({ where: { id }, data });
     await journaliser(acces.nomAffiche, "demande.maj", "demande", id, actions.join(", "));
 
+    // Facturation automatique quand la prestation vient d'être clôturée.
+    if (data.statut === "TERMINEE" && avant.statut !== "TERMINEE") {
+      try {
+        const { facturerDemande } = await import("@/lib/finances");
+        await facturerDemande(maj, { auteur: acces.nomAffiche });
+      } catch {}
+    }
+
     // Notifications automatiques dans l'espace de l'intervenant.
     try {
       if (data.soignantId && data.soignantId !== avant?.soignantId) {

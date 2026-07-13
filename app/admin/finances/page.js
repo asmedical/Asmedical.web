@@ -140,6 +140,16 @@ function FinancesContenu() {
             {["superadmin", "admin"].includes(role) && (
               <button className="adm-btn secondaire" onClick={() => action({ action: "souscriptions.facturer" }, "Générer les factures d'abonnement du mois en cours ?")}>🧾 Facturer les abonnements du mois</button>
             )}
+            {superadmin && (
+              <button className="adm-btn secondaire" onClick={() =>
+                action({ action: "reglage.facturationAuto", actif: !d.facturationAuto },
+                  d.facturationAuto
+                    ? "Désactiver la facturation automatique à la clôture des prestations ?"
+                    : "Activer la facturation automatique : chaque prestation terminée génère sa facture au tarif en vigueur. Continuer ?")
+              }>
+                {d.facturationAuto ? "🟢 Facturation auto à la clôture : ACTIVE" : "⚪ Facturation auto : désactivée"}
+              </button>
+            )}
           </div>
         </>
       )}
