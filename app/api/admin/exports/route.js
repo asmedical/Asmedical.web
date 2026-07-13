@@ -128,6 +128,109 @@ export async function GET(req) {
       return reponseCsv(`asm-paie-${debut}-${fin}.csv`, lignes);
     }
 
+    // ═══════════ Exports FINANCIERS (superadmin / admin) ═══════════
+    if (["encaissements", "impayes", "especes"].includes(type)) {
+      if (!["superadmin", "admin"].includes(acces.profil.role)) return refus();
+      const { marquerRetards } = await import("@/lib/finances");
+      await marquerRetards();
+      const comptesParId = async (ids) => {
+        const comptes = await prisma.compteFinancier.findMany({ where: { id: { in: [...new Set(ids)] } } });
+        return Object.fromEntries(comptes.map((c) => [c.id, c]));
+      };
+
+      // ---- Encaissements : tous les paiements CONFIRMÉS de la période ----
+      if (type === "encaissements") {
+        if (!periode) return NextResponse.json({ erreur: "période invalide" }, { status: 400 });
+        const where = {
+          statut: { in: ["CONFIRME", "PARTIELLEMENT_REMBOURSE", "REMBOURSE"] },
+          confirmeLe: { gte: new Date(debut + "T00:00:00"), lte: new Date(fin + "T23:59:59") },
+        };
+        if (p.get("moyen")) where.moyen = p.get("moyen");
+        const paiements = await prisma.paiement.findMany({
+          where, orderBy: { confirmeLe: "asc" }, take: 5000,
+          include: { facture: { select: { numero: true } }, remboursements: true },
+        });
+        const comptes = await comptesParId(paiements.map((pa) => pa.compteId));
+        const lignes = [["Reçu", "Date", "Heure", "Client", "N° compte", "Facture", "Moyen", "Fournisseur", "Réf. fournisseur", "Encaissé par", "Montant (DA)", "Remboursé (DA)", "Net (DA)"]];
+        let totalMontant = 0, totalRembourse = 0;
+        for (const pa of paiements) {
+          const rembourse = pa.remboursements.filter((r) => r.statut !== "REFUSE").reduce((s, r) => s + r.montant, 0);
+          totalMontant += pa.montant;
+          totalRembourse += rembourse;
+          const c = comptes[pa.compteId];
+          lignes.push([
+            pa.reference, pa.confirmeLe.toISOString().slice(0, 10), pa.confirmeLe.toISOString().slice(11, 16),
+            c?.nom || "", c?.numero || "", pa.facture?.numero || "", pa.moyen.toUpperCase(), pa.fournisseur || "",
+            pa.refFournisseur || "", pa.encaissePar || "", pa.montant, rembourse || "", pa.montant - rembourse,
+          ]);
+        }
+        lignes.push(["TOTAL", "", "", "", "", "", "", "", "", "", totalMontant, totalRembourse || "", totalMontant - totalRembourse]);
+        await journaliser(acces.nomAffiche, "export.encaissements", "export", 0, `${debut} → ${fin} (${paiements.length} paiements · ${totalMontant} DZD)`);
+        return reponseCsv(`asm-encaissements-${debut}-${fin}.csv`, lignes);
+      }
+
+      // ---- Impayés : PHOTO DU JOUR de tout le restant dû (sans période) ----
+      if (type === "impayes") {
+        const factures = await prisma.facture.findMany({
+          where: { statut: { in: ["EMISE", "PARTIELLEMENT_PAYEE", "EN_RETARD"] } },
+          orderBy: { echeance: "asc" }, take: 5000,
+          include: { relances: true },
+        });
+        const comptes = await comptesParId(factures.map((f) => f.compteId));
+        const jour = new Date().toISOString().slice(0, 10);
+        const lignes = [["Facture", "Client", "N° compte", "Téléphone", "Émise le", "Échéance", "Jours de retard", "Total (DA)", "Payé (DA)", "Restant dû (DA)", "Relances envoyées", "Statut"]];
+        let totalDu = 0;
+        for (const f of factures) {
+          const du = f.total - f.paye;
+          if (du <= 0) continue;
+          totalDu += du;
+          const retard = f.echeance < jour ? Math.round((new Date(jour) - new Date(f.echeance)) / 86400000) : 0;
+          const c = comptes[f.compteId];
+          lignes.push([
+            f.numero, c?.nom || "", c?.numero || "", c?.telFacturation || "", f.emissionLe, f.echeance,
+            retard || "", f.total, f.paye || "", du, f.relances.length || "", f.statut.replaceAll("_", " "),
+          ]);
+        }
+        lignes.push(["TOTAL", "", "", "", "", "", "", "", "", totalDu, "", ""]);
+        await journaliser(acces.nomAffiche, "export.impayes", "export", 0, `photo du ${jour} (${lignes.length - 2} factures · ${totalDu} DZD dus)`);
+        return reponseCsv(`asm-impayes-${jour}.csv`, lignes);
+      }
+
+      // ---- Espèces : journal de caisse de la période (réconciliation) ----
+      if (type === "especes") {
+        if (!periode) return NextResponse.json({ erreur: "période invalide" }, { status: 400 });
+        const paiements = await prisma.paiement.findMany({
+          where: {
+            moyen: "especes", statut: { in: ["CONFIRME", "PARTIELLEMENT_REMBOURSE", "REMBOURSE"] },
+            confirmeLe: { gte: new Date(debut + "T00:00:00"), lte: new Date(fin + "T23:59:59") },
+          },
+          orderBy: { confirmeLe: "asc" }, take: 5000,
+          include: { facture: { select: { numero: true } } },
+        });
+        const [comptes, tickets, points] = await Promise.all([
+          comptesParId(paiements.map((pa) => pa.compteId)),
+          prisma.ticketEspeces.findMany({ where: { statut: "PAYE", factureId: { in: paiements.map((pa) => pa.factureId).filter(Boolean) } } }),
+          prisma.pointPaiement.findMany({}),
+        ]);
+        const ticketParFacture = Object.fromEntries(tickets.map((t) => [t.factureId, t]));
+        const pointParId = Object.fromEntries(points.map((pt) => [pt.id, pt]));
+        const lignes = [["Date", "Heure", "Reçu", "Ticket", "Client", "N° compte", "Facture", "Encaissé par", "Point de paiement", "Montant (DA)"]];
+        let total = 0;
+        for (const pa of paiements) {
+          total += pa.montant;
+          const c = comptes[pa.compteId];
+          lignes.push([
+            pa.confirmeLe.toISOString().slice(0, 10), pa.confirmeLe.toISOString().slice(11, 16),
+            pa.reference, ticketParFacture[pa.factureId]?.reference || "", c?.nom || "", c?.numero || "",
+            pa.facture?.numero || "", pa.encaissePar || "", pointParId[pa.pointId]?.nom || "", pa.montant,
+          ]);
+        }
+        lignes.push(["TOTAL", "", "", "", "", "", "", "", "", total]);
+        await journaliser(acces.nomAffiche, "export.especes", "export", 0, `${debut} → ${fin} (${paiements.length} encaissements · ${total} DZD)`);
+        return reponseCsv(`asm-especes-${debut}-${fin}.csv`, lignes);
+      }
+    }
+
     return NextResponse.json({ erreur: "type inconnu" }, { status: 400 });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });

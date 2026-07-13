@@ -17,6 +17,7 @@ export default function PageExports() {
   const [fin, setFin] = useState(isoLocal(auj));
   const [service, setService] = useState("");
   const [statut, setStatut] = useState("");
+  const [moyen, setMoyen] = useState("");
   const [occupe, setOccupe] = useState("");
   const [msg, setMsg] = useState("");
 
@@ -136,6 +137,59 @@ export default function PageExports() {
           </button>
         </div>
       </div>
+
+      {/* ---- Finances (superadmin / admin) ---- */}
+      {["superadmin", "admin"].includes(role) && (
+        <>
+          <h2 className="adm-sous-titre">Finances</h2>
+          <div className="adm-fiche">
+            <p className="fe-aide" style={{ marginTop: 0 }}>
+              <strong>Encaissements</strong> : tous les paiements confirmés de la période (reçu, client,
+              facture, moyen, encaissé par, remboursements, net). Filtrez par moyen si besoin.
+            </p>
+            <div className="adm-filtres">
+              <select value={moyen} onChange={(e) => setMoyen(e.target.value)}>
+                <option value="">Tous les moyens</option>
+                <option value="especes">Espèces</option>
+                <option value="cib">CIB</option>
+                <option value="edahabia">EDAHABIA</option>
+                <option value="virement">Virement</option>
+              </select>
+              <button
+                className={"adm-btn" + (occupe === "encaissements" ? " btn-charge" : "")}
+                disabled={!!occupe}
+                onClick={() => telecharger("encaissements", `type=encaissements&${periode}${moyen ? `&moyen=${moyen}` : ""}`)}
+              >
+                ⬇ Encaissements (CSV)
+              </button>
+            </div>
+          </div>
+          <div className="adm-fiche">
+            <p className="fe-aide" style={{ marginTop: 0 }}>
+              <strong>Impayés</strong> : photo du jour de TOUT le restant dû (indépendant de la période) —
+              échéance, jours de retard, relances déjà envoyées. <strong>Journal des espèces</strong> :
+              chaque encaissement en espèces de la période avec son ticket, le caissier et le point de
+              paiement — pour la réconciliation de caisse.
+            </p>
+            <div className="adm-filtres">
+              <button
+                className={"adm-btn" + (occupe === "impayes" ? " btn-charge" : "")}
+                disabled={!!occupe}
+                onClick={() => telecharger("impayes", "type=impayes")}
+              >
+                ⬇ Impayés du jour (CSV)
+              </button>
+              <button
+                className={"adm-btn secondaire" + (occupe === "especes" ? " btn-charge" : "")}
+                disabled={!!occupe}
+                onClick={() => telecharger("especes", `type=especes&${periode}`)}
+              >
+                ⬇ Journal des espèces (CSV)
+              </button>
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ---- Paie (super admin) ---- */}
       {role === "superadmin" && (
