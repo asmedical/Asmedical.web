@@ -12,9 +12,23 @@ export async function GET(req) {
   const acces = await verifierAdmin(req, ROLES_GESTION_EQUIPE);
   if (!acces) return refus();
   const { nom } = choisirFournisseur("+213550000000");
+  const eliteConfigure = !!(process.env.ELITESMS_API_KEY && process.env.ELITESMS_USER_KEY);
+
+  // Crédit Elite = test d'authentification GRATUIT (aucun SMS consommé).
+  let credit = null, erreurElite = null;
+  if (eliteConfigure) {
+    try {
+      const { creditElite } = await import("@/lib/sms/elitesms");
+      credit = await creditElite();
+    } catch (e) {
+      erreurElite = String(e.message || "injoignable").slice(0, 200);
+    }
+  }
+
   return NextResponse.json({
     fournisseurAlgerie: nom, // fournisseur retenu pour un numéro algérien
-    elite: !!(process.env.ELITESMS_API_KEY && process.env.ELITESMS_USER_KEY),
+    elite: eliteConfigure,
+    credit, erreurElite,
     twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
     whatsapp: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID),
     modeTestOtp: !!process.env.OTP_TEST_CODE, // ⚠ à retirer avant le lancement

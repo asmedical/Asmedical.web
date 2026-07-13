@@ -56,10 +56,15 @@ function SectionSms() {
       <h2 className="adm-sous-titre">SMS & communications</h2>
       <div className="adm-fiche">
         <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-          <Puce on={etat.elite} libelle="Elite SMS (Algérie)" />
+          <Puce on={etat.elite && !etat.erreurElite} libelle={etat.credit != null ? `Elite SMS (Algérie) · crédit ${etat.credit} DA` : "Elite SMS (Algérie)"} />
           <Puce on={etat.twilio} libelle="Twilio (international)" />
           <Puce on={etat.whatsapp} libelle="WhatsApp" />
         </div>
+        {etat.erreurElite && (
+          <p className="adm-msg" style={{ marginTop: 10 }}>
+            ⚠ Elite SMS configuré mais l&apos;authentification échoue : {etat.erreurElite}
+          </p>
+        )}
         {etat.modeTestOtp && (
           <p className="adm-msg" style={{ marginTop: 10 }}>
             ⚠ Le mode TEST des codes de connexion est encore actif (variable OTP_TEST_CODE sur Vercel).
