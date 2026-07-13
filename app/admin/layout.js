@@ -61,6 +61,10 @@ const GROUPES = [
     ],
   },
   {
+    titre: "Finances",
+    liens: [{ href: "/admin/finances", libelle: "Finances & facturation", Ico: IcoDocumentLignes, roles: TOUS }],
+  },
+  {
     titre: "Communication",
     liens: [{ href: "/admin/messages", libelle: "Messagerie & diffusion", Ico: IcoBulle, roles: TOUS }],
   },

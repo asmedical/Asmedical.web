@@ -283,6 +283,14 @@ export default function MonCompte() {
               <strong>{t("menu_demandes")}</strong>
             </span>
           </Link>
+          <Link className="item-liste lien-compte" href="/compte/paiements">
+            <span className="ico-service">
+              <IcoDocument />
+            </span>
+            <span>
+              <strong>{t("pf_t")}</strong>
+            </span>
+          </Link>
           <Link className="item-liste lien-compte" href="/documentation">
             <span className="ico-service">
               <IcoDocument />

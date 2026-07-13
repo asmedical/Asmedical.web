@@ -3,7 +3,30 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
-import { chargerMesDemandes } from "@/lib/supabase";
+import { chargerMesDemandes, supabase } from "@/lib/supabase";
+
+// Rappel discret des paiements dus (disparaît une fois réglé).
+function BulleFinances({ t }) {
+  const [resume, setResume] = useState(null);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const r = await fetch("/api/finances/moi", { headers: { Authorization: `Bearer ${session.access_token}` } });
+        if (r.ok) setResume((await r.json()).resume);
+      } catch {}
+    })();
+  }, []);
+  if (!resume || resume.duTotal <= 0) return null;
+  const retard = resume.enRetard > 0;
+  return (
+    <Link href="/compte/paiements" className={"fin-bulle" + (retard ? " ko" : "")} style={{ display: "block", textDecoration: "none", color: "inherit" }}>
+      <strong>{retard ? t("pf_retard_t") : t("pf_du_t")}</strong>
+      <span>{(retard ? resume.enRetard : resume.duTotal).toLocaleString("fr-FR")} DZD — {t("pf_payer")} →</span>
+    </Link>
+  );
+}
 import { IcoVehicule, IcoMaison, IcoMedicaments } from "@/app/components/icones";
 
 const ICONES = { transport: IcoVehicule, domicile: IcoMaison, medicaments: IcoMedicaments };
@@ -55,6 +78,8 @@ export default function Tableau() {
           <strong>{t("bonjour")}</strong>
           <p>{t("bienvenue_p")}</p>
         </div>
+
+        <BulleFinances t={t} />
 
         {demandes === null && <p className="sous-page">{t("compte_charge")}</p>}
 

@@ -328,3 +328,222 @@ model OtpCanal {
   canal     String   @default("sms")
   majLe     DateTime @updatedAt @default(now())
 }
+
+// ═══════════════ MODULE FINANCIER ASM ═══════════════
+// Montants en DINARS ENTIERS (DZD). Aucune donnée de carte stockée.
+
+// Séquences fiables (numéros clients, factures, paiements) — jamais réutilisées.
+model SequenceFinance {
+  nom    String @id
+  valeur Int    @default(0)
+}
+
+// Compte financier unique par client (patient ou établissement).
+model CompteFinancier {
+  id               Int      @id @default(autoincrement())
+  numero           String   @unique // ASM-CL-000001
+  userId           String   @unique // compte de connexion (profil)
+  type             String   @default("patient") // patient | pro
+  nom              String?
+  devise           String   @default("DZD")
+  emailFacturation String?
+  telFacturation   String?
+  statut           String   @default("ACTIF")
+  factures         Facture[]
+  remises          RemiseClient[]
+  souscriptions    Souscription[]
+  creeLe           DateTime @default(now())
+  majLe            DateTime @updatedAt @default(now())
+}
+
+// Tarifs administrables et VERSIONNÉS (une modification clôt la version
+// courante et en crée une nouvelle ; jamais rétroactif : les factures
+// copient les montants au moment de l'émission).
+model Tarif {
+  id         Int      @id @default(autoincrement())
+  categorie  String   // transport | domicile | medicaments | supplement | penalite
+  code       String   // ex. transport_base, nuit, weekend, km_sup, annulation_tardive
+  libelle    String
+  libelleAr  String?
+  montant    Int      // DZD
+  unite      String   @default("prestation") // prestation | heure | km
+  service    String?  // service concerné (filtre)
+  zone       String?
+  clientType String?  // patient | pro | null = tous
+  debut      String   // AAAA-MM-JJ (début de validité de la version)
+  fin        String?  // null = en vigueur
+  actif      Boolean  @default(true)
+  creePar    String?
+  creeLe     DateTime @default(now())
+}
+
+model Facture {
+  id             Int      @id @default(autoincrement())
+  numero         String   @unique // ASM-2026-000001
+  compteId       Int
+  compte         CompteFinancier @relation(fields: [compteId], references: [id])
+  demandeId      Int?
+  souscriptionId Int?
+  statut         String   @default("EMISE") // BROUILLON|EMISE|PARTIELLEMENT_PAYEE|PAYEE|EN_RETARD|ANNULEE|CREDITEE
+  emissionLe     String   // AAAA-MM-JJ
+  echeance       String   // AAAA-MM-JJ
+  sousTotal      Int
+  remiseTotal    Int      @default(0)
+  remiseDetail   String?  // libellé affiché (ex. « Remise fidélité ASM : -10 % »)
+  total          Int
+  paye           Int      @default(0)
+  devise         String   @default("DZD")
+  notes          String?
+  creePar        String?
+  annuleePar     String?
+  annuleeLe      DateTime?
+  lignes         LigneFacture[]
+  paiements      Paiement[]
+  tickets        TicketEspeces[]
+  relances       RelancePaiement[]
+  creeLe         DateTime @default(now())
+  majLe          DateTime @updatedAt @default(now())
+}
+
+model LigneFacture {
+  id           Int     @id @default(autoincrement())
+  factureId    Int
+  facture      Facture @relation(fields: [factureId], references: [id], onDelete: Cascade)
+  libelle      String
+  quantite     Int     @default(1)
+  prixUnitaire Int
+  montant      Int
+  tarifId      Int?    // version de tarif utilisée (traçabilité)
+}
+
+model Paiement {
+  id             Int      @id @default(autoincrement())
+  reference      String   @unique // ASM-P-000001 (sert aussi de n° de reçu)
+  compteId       Int
+  factureId      Int?
+  facture        Facture? @relation(fields: [factureId], references: [id])
+  moyen          String   // especes | cib | edahabia | virement
+  fournisseur    String?  // interne | chargily | ...
+  refFournisseur String?  // id du checkout / référence virement
+  montant        Int
+  statut         String   @default("EN_ATTENTE") // EN_ATTENTE|CONFIRME|ECHOUE|EXPIRE|ANNULE|PARTIELLEMENT_REMBOURSE|REMBOURSE
+  encaissePar    String?  // caissier (espèces) / valideur (virement)
+  pointId        Int?
+  idem           String?  @unique // clé d'idempotence (anti double débit)
+  remboursements Remboursement[]
+  creeLe         DateTime @default(now())
+  confirmeLe     DateTime?
+}
+
+// Ticket de paiement en espèces — à usage unique, référence non devinable.
+model TicketEspeces {
+  id          Int      @id @default(autoincrement())
+  reference   String   @unique // ASM-T-XXXXXXXX
+  jeton       String   @unique // secret du QR (vérification staff)
+  compteId    Int
+  factureId   Int
+  facture     Facture  @relation(fields: [factureId], references: [id])
+  montant     Int
+  statut      String   @default("EN_ATTENTE") // EN_ATTENTE|PAYE|EXPIRE|ANNULE
+  expireLe    DateTime
+  payeLe      DateTime?
+  encaissePar String?
+  pointId     Int?
+  creeLe      DateTime @default(now())
+}
+
+model Remboursement {
+  id             Int      @id @default(autoincrement())
+  paiementId     Int
+  paiement       Paiement @relation(fields: [paiementId], references: [id])
+  montant        Int
+  motif          String
+  statut         String   @default("EFFECTUE") // EFFECTUE | EN_ATTENTE_FOURNISSEUR | REFUSE
+  validePar      String
+  refFournisseur String?
+  creeLe         DateTime @default(now())
+}
+
+// Remises personnalisées par client (jamais de prix négatif).
+model RemiseClient {
+  id       Int     @id @default(autoincrement())
+  compteId Int
+  compte   CompteFinancier @relation(fields: [compteId], references: [id], onDelete: Cascade)
+  type     String  // pourcentage | fixe
+  valeur   Int
+  service  String? // null = tous les services
+  motif    String
+  debut    String  // AAAA-MM-JJ
+  fin      String?
+  plafond  Int?    // remise max par facture (DZD)
+  auteur   String
+  creeLe   DateTime @default(now())
+}
+
+model PointPaiement {
+  id          Int     @id @default(autoincrement())
+  nom         String
+  typePoint   String  @default("agence") // agence | partenaire | autre
+  adresse     String?
+  commune     String?
+  horaires    String?
+  telephone   String?
+  responsable String?
+  plafond     Int?
+  consignes   String?
+  actif       Boolean @default(true)
+  creeLe      DateTime @default(now())
+}
+
+// Journal des webhooks fournisseurs (idempotence + retraitement).
+model EvenementPaiement {
+  id          Int      @id @default(autoincrement())
+  fournisseur String
+  evenementId String   @unique
+  type        String
+  statut      String   @default("RECU") // RECU|TRAITE|IGNORE|ERREUR
+  erreur      String?
+  creeLe      DateTime @default(now())
+}
+
+// Plans d'abonnement / forfaits (facturation périodique).
+model PlanAbonnement {
+  id              Int     @id @default(autoincrement())
+  nom             String
+  description     String?
+  prix            Int
+  devise          String  @default("DZD")
+  frequence       String  @default("mensuel")
+  service         String?
+  quantiteIncluse Int?
+  actif           Boolean @default(true)
+  souscriptions   Souscription[]
+  creeLe          DateTime @default(now())
+}
+
+model Souscription {
+  id               Int    @id @default(autoincrement())
+  compteId         Int
+  compte           CompteFinancier @relation(fields: [compteId], references: [id])
+  planId           Int
+  plan             PlanAbonnement @relation(fields: [planId], references: [id])
+  statut           String @default("ACTIF") // ACTIF|SUSPENDU|ANNULE|EXPIRE|EN_ATTENTE_PAIEMENT
+  debut            String
+  fin              String?
+  prix             Int    // copie du prix au moment de la souscription
+  derniereFacture  String? // AAAA-MM (dernier mois facturé — anti doublon)
+  creePar          String?
+  creeLe           DateTime @default(now())
+}
+
+// Relances d'impayés — une seule par facture et par niveau.
+model RelancePaiement {
+  id        Int      @id @default(autoincrement())
+  factureId Int
+  facture   Facture  @relation(fields: [factureId], references: [id], onDelete: Cascade)
+  niveau    String   // rappel | echeance | relance1 | relance2 | admin
+  canal     String   // interne | email
+  par       String?
+  envoyeLe  DateTime @default(now())
+  @@unique([factureId, niveau])
+}
