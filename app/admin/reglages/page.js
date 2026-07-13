@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { fetchAdmin } from "../ui";
+import { fetchAdmin, useGardeAdmin } from "../ui";
 
 // Réglages du moteur de créneaux — réutilise l'API /api/reglages existante.
 const CHAMPS = [
@@ -15,7 +15,73 @@ const CHAMPS = [
   ["capaciteFenetre", "Livraisons max par fenêtre"],
 ];
 
+// État des envois de SMS (Elite SMS national / Twilio international /
+// WhatsApp) + envoi d'un SMS de test réel. Super admin uniquement — le
+// serveur ne renvoie jamais les clés, seulement « configuré ou non ».
+function SectionSms() {
+  const [etat, setEtat] = useState(null);
+  const [tel, setTel] = useState("");
+  const [msg, setMsg] = useState("");
+  const [occupe, setOccupe] = useState(false);
+
+  useEffect(() => {
+    fetchAdmin("/api/admin/sms-test").then(setEtat).catch(() => setEtat({ indisponible: true }));
+  }, []);
+
+  if (!etat || etat.indisponible) return null;
+
+  async function tester() {
+    if (!tel.trim()) return;
+    setOccupe(true);
+    setMsg("");
+    try {
+      const r = await fetchAdmin("/api/admin/sms-test", { method: "POST", body: JSON.stringify({ telephone: tel.trim() }) });
+      setMsg(r.ok ? `SMS de test envoyé via ${r.fournisseur} ✓ — vérifiez la réception.` : `⚠ ${r.erreur}`);
+    } catch (e) {
+      setMsg("⚠ " + (e?.data?.erreur || "Envoi impossible."));
+    }
+    setOccupe(false);
+  }
+
+  const Puce = ({ on, libelle }) => (
+    <span className="adm-pastille" style={{ background: on ? "#E7F3EC" : "#F3F4F6", color: on ? "#0A5230" : "#6B7280" }}>
+      {on ? "🟢" : "⚪"} {libelle}
+    </span>
+  );
+
+  return (
+    <>
+      <h2 className="adm-sous-titre">SMS & communications</h2>
+      <div className="adm-fiche">
+        <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+          <Puce on={etat.elite} libelle="Elite SMS (Algérie)" />
+          <Puce on={etat.twilio} libelle="Twilio (international)" />
+          <Puce on={etat.whatsapp} libelle="WhatsApp" />
+        </div>
+        {etat.modeTestOtp && (
+          <p className="adm-msg" style={{ marginTop: 10 }}>
+            ⚠ Le mode TEST des codes de connexion est encore actif (variable OTP_TEST_CODE sur Vercel).
+            À retirer impérativement avant l&apos;ouverture au public.
+          </p>
+        )}
+        <p className="fe-aide">
+          Les clés se configurent dans Vercel (variables d&apos;environnement), jamais ici ni dans le code.
+          Numéros algériens → Elite SMS · autres pays → Twilio.
+        </p>
+        <div className="adm-filtres" style={{ marginTop: 8 }}>
+          <input placeholder="N° pour SMS de test (ex. +2135… ou 05…)" value={tel} onChange={(e) => setTel(e.target.value)} />
+          <button className="adm-btn" disabled={occupe || !tel.trim()} onClick={tester}>
+            {occupe ? "Envoi…" : "📲 Envoyer un SMS de test"}
+          </button>
+        </div>
+        {msg && <p className="adm-msg">{msg}</p>}
+      </div>
+    </>
+  );
+}
+
 export default function PageReglages() {
+  const { role } = useGardeAdmin();
   const [reglage, setReglage] = useState(null);
   const [msg, setMsg] = useState("");
   const [occupe, setOccupe] = useState(false);
@@ -81,6 +147,8 @@ export default function PageReglages() {
         </button>
         {msg && <p className="adm-msg">{msg}</p>}
       </div>
+
+      {role === "superadmin" && <SectionSms />}
     </>
   );
 }
