@@ -16,7 +16,7 @@ Tout le nécessaire est déjà prêt dans ce dossier :
 1. Allez sur **pwabuilder.com**, entrez `https://asm-sante.com`, lancez l'analyse.
 2. Cliquez **Package for stores → Android**.
 3. Options à renseigner :
-   - App name : `ASM — Assistance Santé Médical` · Short name : `ASM`
+   - App name : `ASM — Assistance Sociale Médicale` · Short name : `ASM`
    - Package ID : `com.asmsante.app`
    - Version : `1.0.0`
    - Signing key : **Create new** (PWABuilder crée la clé de signature)
@@ -41,7 +41,7 @@ l'« empreinte » de votre application. C'est déjà codé — il suffit d'une v
    séparée par une virgule : `EMPREINTE1,EMPREINTE2`.
 
 ## Étape 4 — Créer la fiche dans la Play Console (≈ 30 min)
-1. Play Console → **Créer une application** : nom `ASM — Assistance Santé Médical`,
+1. Play Console → **Créer une application** : nom `ASM — Assistance Sociale Médicale`,
    langue par défaut : Français, application **gratuite**.
 2. **Fiche du Play Store** : copiez les textes de `fiche-store.md`, ajoutez :
    - Icône : `visuels/icone-512.png`

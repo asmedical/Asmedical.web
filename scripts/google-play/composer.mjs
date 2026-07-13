@@ -100,7 +100,7 @@ const fg = await page.evaluate(async ({ logo }) => {
   x.font = "800 64px 'Segoe UI', Arial, sans-serif";
   x.fillText("ASM", 370, 205);
   x.font = "700 34px 'Segoe UI', Arial, sans-serif";
-  x.fillText("Assistance Santé Médical", 370, 258);
+  x.fillText("Assistance Sociale Médicale", 370, 258);
   x.font = "600 27px 'Segoe UI', Arial, sans-serif";
   x.fillStyle = "rgba(255,255,255,.92)";
   x.fillText("Transport sanitaire · Aide à domicile", 370, 320);

@@ -1,4 +1,4 @@
-// Application mobile ASM — Assistance Santé Médical.
+// Application mobile ASM — Assistance Sociale Médicale.
 // Même plateforme que le site asm-sante.com : mêmes comptes (Supabase),
 // mêmes API, même base de données — synchronisation immédiate.
 import React from "react";

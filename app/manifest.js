@@ -4,7 +4,7 @@
 export default function manifest() {
   return {
     id: "asm-sante",
-    name: "ASM — Assistance Santé Médical",
+    name: "ASM — Assistance Sociale Médicale",
     short_name: "ASM",
     description:
       "Transport sanitaire, aide à domicile et livraison de médicaments à Alger. Réservation en ligne et suivi en direct.",

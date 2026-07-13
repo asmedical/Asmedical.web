@@ -22,7 +22,7 @@ export default function Confidentialite() {
       <div className="contenu-page" style={{ maxWidth: 720 }}>
         <h2 className="titre-page">Politique de confidentialité</h2>
         <p className="sous-page">
-          ASM — Assistance Santé Médical · dernière mise à jour : {MAJ}
+          ASM — Assistance Sociale Médicale · dernière mise à jour : {MAJ}
           <br />
           <span dir="rtl" lang="ar">
             نحمي بياناتكم: لا نجمع إلا ما يلزم لتقديم الخدمة، ولا نبيع بياناتكم أبداً، ويمكنكم طلب حذف حسابكم في أي وقت.
@@ -31,7 +31,7 @@ export default function Confidentialite() {
 
         <Bloc titre="1. Qui sommes-nous ?">
           <p>
-            ASM (Assistance Santé Médical) exploite le site et l&apos;application asm-sante.com, qui
+            ASM (Assistance Sociale Médicale) exploite le site et l&apos;application asm-sante.com, qui
             permettent de réserver un transport sanitaire, une aide à domicile ou une livraison de
             médicaments dans la wilaya d&apos;Alger, et d&apos;en suivre l&apos;exécution.
             Contact : <a href="mailto:contact@asm-sante.com">contact@asm-sante.com</a>.

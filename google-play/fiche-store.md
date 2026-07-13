@@ -1,13 +1,13 @@
 # Fiche Google Play — textes à copier-coller
 
 ## Nom de l'application (30 caractères max)
-ASM Assistance Santé Médical
+ASM Assistance Sociale Médicale
 
 ## Description courte (80 caractères max)
 Transport sanitaire, aide à domicile et médicaments à Alger. Suivi en direct.
 
 ## Description complète (français)
-ASM — Assistance Santé Médical vous accompagne à Alger, 7 jours sur 7.
+ASM — Assistance Sociale Médicale vous accompagne à Alger, 7 jours sur 7.
 
 🚑 TRANSPORT MÉDICAL
 Réservez un transport vers l'hôpital, le centre de dialyse ou votre consultation :

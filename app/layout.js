@@ -5,7 +5,7 @@ import { Assistant } from "./components/assistant";
 import { InstallerApp } from "./components/installer";
 
 export const metadata = {
-  title: "ASM — Assistance Santé Médical",
+  title: "ASM — Assistance Sociale Médicale",
   description:
     "Transport sanitaire, aide à domicile et livraison de médicaments dans la wilaya d'Alger. Réservez en 1 minute, nous vous rappelons en moins de 30 minutes. Toujours proches de vous / دائماً قريبون منكم.",
   keywords: [
