@@ -36,7 +36,9 @@ function SectionSms() {
     setMsg("");
     try {
       const r = await fetchAdmin("/api/admin/sms-test", { method: "POST", body: JSON.stringify({ telephone: tel.trim() }) });
-      setMsg(r.ok ? `SMS de test envoyé via ${r.fournisseur} ✓ — vérifiez la réception.` : `⚠ ${r.erreur}`);
+      setMsg(r.ok
+        ? `SMS accepté par ${r.fournisseur} ✓ — vérifiez la réception. Réponse du fournisseur : ${r.detail || r.id || "—"}`
+        : `⚠ ${r.erreur}`);
     } catch (e) {
       setMsg("⚠ " + (e?.data?.erreur || "Envoi impossible."));
     }

@@ -36,10 +36,12 @@ export async function POST(req) {
       return NextResponse.json({
         ok: false,
         fournisseur: "mock",
-        erreur: "Aucun fournisseur SMS configuré : rien n'a été envoyé. Ajoutez ELITESMS_API_KEY et ELITESMS_USER_KEY dans Vercel.",
+        erreur: "Aucun fournisseur ne gère ce numéro : rien n'a été envoyé. Numéro algérien (05/06/07 ou +213…) → Elite SMS ; autre pays → Twilio (non configuré).",
       });
     }
-    return NextResponse.json({ ok: true, fournisseur: res.fournisseur, id: res.id || null });
+    // « detail » = réponse brute du fournisseur (jamais de clé dedans) —
+    // indispensable pour diagnostiquer un SMS accepté mais non reçu.
+    return NextResponse.json({ ok: true, fournisseur: res.fournisseur, id: res.id || null, detail: res.brut || null });
   } catch (e) {
     // Message d'erreur du fournisseur (jamais de clé dedans) pour diagnostiquer.
     return NextResponse.json({ ok: false, erreur: String(e.message || "envoi impossible").slice(0, 300) }, { status: 502 });
