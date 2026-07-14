@@ -81,7 +81,7 @@ export default function Confidentialite() {
             <li>Consulter et corriger vos informations depuis votre espace, ou en nous contactant.</li>
             <li>Révoquer à tout moment une autorisation donnée à un établissement.</li>
             <li>Désactiver les notifications depuis votre téléphone ou votre profil.</li>
-            <li>Demander la suppression de votre compte : écrivez-nous à <a href="mailto:contact@asm-sante.com">contact@asm-sante.com</a> ou appelez-nous ; la demande est traitée par notre équipe.</li>
+            <li>Demander la suppression de votre compte et de vos données : depuis la page dédiée <a href="/suppression-compte">asm-sante.com/suppression-compte</a>, par email à <a href="mailto:contact@asm-sante.com">contact@asm-sante.com</a> ou par téléphone ; la demande est traitée sous 30 jours.</li>
           </ul>
         </Bloc>
 
