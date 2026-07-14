@@ -9,7 +9,12 @@
     "scheme": "asmsante",
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.asmsante.app"
+      "bundleIdentifier": "com.asmsante.app",
+      "buildNumber": "1",
+      "infoPlist": {
+        "CFBundleAllowMixedLocalizations": true,
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "package": "com.asm_sante.twa",
