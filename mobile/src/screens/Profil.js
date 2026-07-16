@@ -22,6 +22,34 @@ export default function Profil() {
   const { t, langue, setLangue } = useLangue();
   const { profil, user } = useAuth();
   const [notifs, setNotifs] = useState(null);
+  const [suppEnCours, setSuppEnCours] = useState(false);
+
+  // Suppression de compte : initiée DANS l'app (exigence App Store 5.1.1),
+  // vérifiée par l'équipe puis validée par le super admin — comme sur le site.
+  function demanderSuppression() {
+    Alert.alert("ASM", t("supp_conf"), [
+      { text: t("annuler"), style: "cancel" },
+      {
+        text: t("supp_btn"),
+        style: "destructive",
+        onPress: async () => {
+          setSuppEnCours(true);
+          try {
+            await apiPost("/api/suppression-compte", {
+              nom: [profil?.prenom, profil?.nom].filter(Boolean).join(" ") || "Client ASM (application)",
+              telephone: profil?.telephone || user?.phone || "",
+              email: profil?.email || user?.email || "",
+              motif: "Demande envoyée depuis l'application mobile.",
+            });
+            Alert.alert("ASM", t("supp_ok"));
+          } catch {
+            Alert.alert("ASM", t("supp_err"));
+          }
+          setSuppEnCours(false);
+        },
+      },
+    ]);
+  }
 
   const charger = useCallback(() => {
     apiGet("/api/notifications").then((d) => setNotifs(d.notifications || [])).catch(() => setNotifs([]));
@@ -69,6 +97,14 @@ export default function Profil() {
           ])
         }
       />
+
+      <Text style={S.h2}>{t("supp_t")}</Text>
+      <View style={[S.carte, { borderColor: "#E3B7B7" }]}>
+        <Text style={{ color: C.gris, lineHeight: 20 }}>{t("supp_p")}</Text>
+        <View style={{ height: 10 }} />
+        <Bouton secondaire charge={suppEnCours} titre={t("supp_btn")} onPress={demanderSuppression} />
+      </View>
+      <View style={{ height: 24 }} />
     </ScrollView>
   );
 }

@@ -316,6 +316,13 @@ export default function MonCompte() {
         <button className="btn-deconnexion" onClick={deconnecter}>
           <IcoSortie /> {t("menu_deconnexion")}
         </button>
+
+        {/* ---- Suppression de compte (page dédiée, validée par l'équipe) ---- */}
+        <p style={{ textAlign: "center", marginTop: 14 }}>
+          <Link href="/suppression-compte" style={{ color: "var(--gris, #6B7A72)", fontSize: 14, textDecoration: "underline" }}>
+            {t("cpt_supprimer")}
+          </Link>
+        </p>
       </div>
     </div>
   );
