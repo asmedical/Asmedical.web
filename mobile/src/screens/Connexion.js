@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, ScrollView, Image, TouchableOpacity, Linking, KeyboardAvoidingView, Platform } from "react-native";
 import { C, S } from "../theme";
-import { Bouton, Chip } from "../ui";
+import { Bouton, Chip, proposerAppel } from "../ui";
 import { useLangue, TEL_AFFICHE, TEL_LIEN } from "../i18n";
 import { envoyerCode, verifierCode, connexionIdentifiant, normaliserTel } from "../supabase";
 import { API_BASE, apiPost, apiGet } from "../api";
@@ -168,7 +168,7 @@ export default function Connexion() {
 
         {!!erreur && <Text style={S.erreur}>{erreur}</Text>}
 
-        <TouchableOpacity onPress={() => Linking.openURL(TEL_LIEN)} style={{ marginTop: 28, alignItems: "center" }}>
+        <TouchableOpacity onPress={() => proposerAppel(t)} style={{ marginTop: 28, alignItems: "center" }}>
           <Text style={{ color: C.gris }}>
             {t("urgence")} <Text style={{ color: C.vertFonce, fontWeight: "800" }}>{TEL_AFFICHE}</Text>
           </Text>

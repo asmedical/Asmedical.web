@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useAsm } from "@/app/providers";
 import { supabase } from "@/lib/supabase";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
+import ChoixAppel from "@/app/components/appel";
 
 // Espace client « Paiements & factures » : solde, factures à payer,
 // paiement (espèces / carte si disponible / virement), tickets, reçus,
@@ -285,7 +286,7 @@ export default function PaiementsFactures() {
         )}
 
         <div className="info-appel" style={{ marginTop: 18 }}>
-          <span>{t("pf_aide")}</span> <a href={TEL_LIEN}>{TEL_AFFICHE}</a>
+          <span>{t("pf_aide")}</span> <ChoixAppel />
         </div>
       </div>
     </div>

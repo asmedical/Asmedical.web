@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
+import ChoixAppel from "@/app/components/appel";
 
 export const metadata = { title: "Page introuvable — ASM" };
 
@@ -27,9 +28,9 @@ export default function NonTrouve() {
           <span dir="rtl" lang="ar" style={{ fontSize: 14 }}>الصفحة غير موجودة</span>
         </p>
         <Link className="btn-action" href="/">Retour à l&apos;accueil</Link>
-        <a className="btn-secondaire" style={{ marginTop: 10 }} href={TEL_LIEN}>
+        <ChoixAppel className="btn-secondaire" style={{ marginTop: 10 }}>
           Appeler ASM · {TEL_AFFICHE}
-        </a>
+        </ChoixAppel>
       </div>
     </div>
   );

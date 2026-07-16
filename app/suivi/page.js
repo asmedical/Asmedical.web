@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
+import ChoixAppel from "@/app/components/appel";
 import { chargerMesDemandes, supabase } from "@/lib/supabase";
 import { IcoPersonne, IcoTelephone } from "@/app/components/icones";
 
@@ -244,7 +245,7 @@ function FicheSuivi({ demande, t }) {
       {(demande.statut === "TERMINEE" || demande.avis) && <BlocAvis demande={demande} t={t} />}
 
       <div className="info-appel" style={{ marginTop: 16 }}>
-        <span>{t("suivi_besoin")}</span> <a href={TEL_LIEN}>{TEL_AFFICHE}</a>
+        <span>{t("suivi_besoin")}</span> <ChoixAppel />
       </div>
     </div>
   );

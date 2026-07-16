@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { supabase } from "@/lib/supabase";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
+import ChoixAppel from "@/app/components/appel";
 import { IcoBulle, IcoEnvoyer, IcoDocument, IcoCalendrier, IcoCloche } from "@/app/components/icones";
 import BoutonPush from "@/app/components/push";
 
@@ -185,7 +186,7 @@ export default function CentreMessages() {
             })}
 
             <p className="msg-note">
-              {t("msg_urgence")} <a href={TEL_LIEN}>{TEL_AFFICHE}</a>
+              {t("msg_urgence")} <ChoixAppel />
             </p>
           </>
         )}
@@ -316,7 +317,7 @@ function Chat({ retour, t }) {
             </div>
             {erreurEnvoi && <p className="erreur">{erreurEnvoi}</p>}
             <p className="msg-note">
-              {t("msg_urgence")} <a href={TEL_LIEN}>{TEL_AFFICHE}</a>
+              {t("msg_urgence")} <ChoixAppel />
             </p>
           </>
         )}

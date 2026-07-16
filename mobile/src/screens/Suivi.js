@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, TextInput, Linking, Image } from "react-native";
 import { C, S } from "../theme";
-import { Bouton, Charge, SERVICES_LIB } from "../ui";
+import { Bouton, Charge, SERVICES_LIB, proposerAppel } from "../ui";
 import { useLangue, TEL_AFFICHE, TEL_LIEN } from "../i18n";
 import { apiGet, apiPost } from "../api";
 
@@ -189,7 +189,7 @@ export default function Suivi({ route }) {
 
       {(demande.statut === "TERMINEE" || demande.avis) && <BlocAvis demande={demande} t={t} onFait={charger} />}
 
-      <TouchableOpacity onPress={() => Linking.openURL(TEL_LIEN)} style={{ marginTop: 16, alignItems: "center" }}>
+      <TouchableOpacity onPress={() => proposerAppel(t)} style={{ marginTop: 16, alignItems: "center" }}>
         <Text style={{ color: C.gris }}>
           {t("urgence")} <Text style={{ color: C.vertFonce, fontWeight: "800" }}>{TEL_AFFICHE}</Text>
         </Text>

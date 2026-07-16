@@ -5,6 +5,7 @@ import { useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
+import ChoixAppel from "@/app/components/appel";
 import {
   IcoTelephone,
   IcoCalendrier,
@@ -26,7 +27,7 @@ export function BandeauAppel() {
   return (
     <div className="bandeau-info">
       <IcoTelephone />
-      <span>{t("aide")}</span> <a href={TEL_LIEN}>{TEL_AFFICHE}</a> ·{" "}
+      <span>{t("aide")}</span> <ChoixAppel /> ·{" "}
       <span>{t("sept")}</span>
     </div>
   );
@@ -329,7 +330,7 @@ export function BarreNav() {
 export function PiedDePage() {
   return (
     <footer>
-      ASM — Bir Mourad Raïs, Alger · <a href={TEL_LIEN}>{TEL_AFFICHE}</a>
+      ASM — Bir Mourad Raïs, Alger · <ChoixAppel />
       <br />
       <a href="/confidentialite" style={{ fontSize: 12, color: "inherit", opacity: 0.75 }}>Confidentialité</a>
     </footer>

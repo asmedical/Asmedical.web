@@ -60,3 +60,14 @@ export const SERVICES_LIB = {
   domicile: "Aide à domicile",
   medicaments: "Livraison de médicaments",
 };
+
+// Choix « nous joindre » : WhatsApp ou appel téléphonique classique.
+export function proposerAppel(t) {
+  const { Alert, Linking } = require("react-native");
+  const { TEL_LIEN, WHATSAPP_LIEN } = require("./i18n");
+  Alert.alert("ASM", t("appel_t"), [
+    { text: t("annuler"), style: "cancel" },
+    { text: t("appel_normal"), onPress: () => Linking.openURL(TEL_LIEN).catch(() => {}) },
+    { text: t("appel_whatsapp"), onPress: () => Linking.openURL(WHATSAPP_LIEN).catch(() => {}) },
+  ]);
+}

@@ -5,6 +5,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export const TEL_AFFICHE = "+213 5 64 49 33 48";
 export const TEL_LIEN = "tel:+213564493348";
+export const WHATSAPP_LIEN = "https://wa.me/213564493348";
 
 export const T = {
   fr: {
@@ -122,6 +123,7 @@ export const T = {
     bio_verrou_p: "Déverrouillez pour accéder à vos informations médicales.",
     bio_deverrouiller: "Déverrouiller",
     annuler: "Annuler",
+    appel_t: "Comment souhaitez-vous nous joindre ?", appel_whatsapp: "WhatsApp (appel ou message)", appel_normal: "Appel téléphonique",
     // Onglets
     tab_accueil: "Accueil",
     tab_rdv: "Rendez-vous",
@@ -237,6 +239,7 @@ export const T = {
     bio_verrou_p: "افتحوا القفل للوصول إلى معلوماتكم الطبية.",
     bio_deverrouiller: "فتح القفل",
     annuler: "إلغاء",
+    appel_t: "كيف تريدون التواصل معنا؟", appel_whatsapp: "واتساب (مكالمة أو رسالة)", appel_normal: "مكالمة هاتفية",
     tab_accueil: "الرئيسية",
     tab_rdv: "المواعيد",
     tab_messages: "الرسائل",

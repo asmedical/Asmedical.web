@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
+import ChoixAppel from "@/app/components/appel";
 import {
   envoyerCodeEmail,
   verifierCodeEmail,
@@ -100,7 +101,7 @@ export default function AideConnexion() {
   }
 
   const AppelerBloc = () => (
-    <a className="aide-option" href={TEL_LIEN}>
+    <ChoixAppel className="aide-option" style={{ width: "100%", textAlign: "start" }}>
       <span className="aide-ico">
         <IcoTelephone />
       </span>
@@ -108,7 +109,7 @@ export default function AideConnexion() {
         <strong>{t("aide_agent_t")}</strong>
         <small>{TEL_AFFICHE}</small>
       </span>
-    </a>
+    </ChoixAppel>
   );
 
   return (

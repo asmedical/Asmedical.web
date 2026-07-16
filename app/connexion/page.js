@@ -4,6 +4,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
+import ChoixAppel from "@/app/components/appel";
 import {
   envoyerCode,
   verifierCode,
@@ -470,7 +471,7 @@ function FormulaireConnexion() {
         )}
 
         <div className="info-appel">
-          <span>{t("urgence")}</span> <a href={TEL_LIEN}>{TEL_AFFICHE}</a>
+          <span>{t("urgence")}</span> <ChoixAppel />
         </div>
       </div>
     </div>
