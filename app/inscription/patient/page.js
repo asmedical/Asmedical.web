@@ -29,6 +29,7 @@ export default function InscriptionPatient() {
           setTel("+" + String(u.phone).replace(/^\+/, ""));
           setTelFige(true);
         }
+        if (u?.email && !String(u.email).endsWith("@asm.local")) setEmail(u.email);
       })
       .catch(() => {});
   }, []);

@@ -8,6 +8,8 @@ import ChoixAppel from "@/app/components/appel";
 import {
   envoyerCode,
   verifierCode,
+  envoyerCodeEmailCreation,
+  verifierCodeEmail,
   normaliserTel,
   chargerProfil,
   connexionIdentifiant,
@@ -78,6 +80,8 @@ function FormulaireConnexion() {
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
   const [canal, setCanal] = useState("sms"); // sms | whatsapp (réception du code)
+  const [viaEmail, setViaEmail] = useState(false); // code par email (création sans SMS)
+  const [emailOtp, setEmailOtp] = useState("");
   const [waActif, setWaActif] = useState(false);
   const [oauthEnCours, setOauthEnCours] = useState(params.get("oauth") === "retour");
 
@@ -173,6 +177,24 @@ function FormulaireConnexion() {
 
   async function demanderCode() {
     setErreur("");
+    if (viaEmail) {
+      const em = emailOtp.trim();
+      if (!/\S+@\S+\.\S+/.test(em)) {
+        setErreur(t("err_email"));
+        return;
+      }
+      setOccupe(true);
+      try {
+        await envoyerCodeEmailCreation(em);
+        setPhoneE164(em);
+        setEtape("code");
+      } catch {
+        setErreur(t("err_envoi_email"));
+      } finally {
+        setOccupe(false);
+      }
+      return;
+    }
     const p = normaliserTel(tel, indicatif);
     if (p.replace(/\D/g, "").length < 10) {
       setErreur(t("err_tel_format"));
@@ -204,7 +226,9 @@ function FormulaireConnexion() {
     setErreur("");
     setOccupe(true);
     try {
-      const user = await verifierCode(phoneE164, code.trim());
+      const user = viaEmail
+        ? await verifierCodeEmail(phoneE164, code.trim())
+        : await verifierCode(phoneE164, code.trim());
       await apresConnexion(user);
     } catch {
       setErreur(t("err_code"));
@@ -284,6 +308,19 @@ function FormulaireConnexion() {
         {mode === "sms" && etape === "tel" && (
           <>
             <p className="sous-page">{intention === "creer" ? t("creer_sous") : sousTitre}</p>
+            {viaEmail ? (
+              <div className="champ">
+                <label>{t("email_l")}</label>
+                <input
+                  type="email"
+                  inputMode="email"
+                  placeholder={t("email_ph")}
+                  value={emailOtp}
+                  onChange={(e) => setEmailOtp(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && demanderCode()}
+                />
+              </div>
+            ) : (
             <div className="champ">
               <label>{t("tel_l")}</label>
               <div className="tel-ligne">
@@ -309,7 +346,8 @@ function FormulaireConnexion() {
                 />
               </div>
             </div>
-            {waActif && (
+            )}
+            {!viaEmail && waActif && (
               <div className="canal-choix">
                 <span>{t("canal_l")}</span>
                 <div className="canal-chips">
@@ -324,6 +362,16 @@ function FormulaireConnexion() {
             <button className="btn-action" onClick={demanderCode} disabled={occupe}>
               {occupe ? t("otp_envoi") : intention === "creer" ? t("nouveau_b") : t("otp_envoyer")}
             </button>
+            <p className="lien-bas">
+              <a
+                onClick={() => {
+                  setViaEmail(!viaEmail);
+                  setErreur("");
+                }}
+              >
+                {viaEmail ? t("otp_par_tel") : t("otp_par_email")}
+              </a>
+            </p>
 
             {intention === "connexion" ? (
               <p className="creer-compte-ligne">
