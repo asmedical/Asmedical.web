@@ -40,7 +40,7 @@ patients rattachés depuis un espace dédié.
 Vos données restent protégées : connexions chiffrées, documents privés, personnel
 soumis à des droits d'accès stricts. Détails : https://asm-sante.com/confidentialite
 
-Une question ? Appelez-nous : +33 6 65 39 05 04 — nous répondons 7j/7.
+Une question ? Appelez-nous : +213 5 64 49 33 48 — nous répondons 7j/7.
 
 ## Description complète (arabe — fiche traduite ar)
 ‏ASM — مساعدة صحية طبية ترافقكم في الجزائر العاصمة، 7 أيام في الأسبوع.
@@ -69,7 +69,7 @@ Une question ? Appelez-nous : +33 6 65 39 05 04 — nous répondons 7j/7.
 بياناتكم محمية: اتصالات مشفّرة، مستندات خاصة، وصلاحيات وصول صارمة للفريق.
 التفاصيل: https://asm-sante.com/confidentialite
 
-سؤال؟ اتصلوا بنا: ‎+33 6 65 39 05 04 — نجيب 7 أيام في الأسبوع.
+سؤال؟ اتصلوا بنا: ‎+213 5 64 49 33 48 — نجيب 7 أيام في الأسبوع.
 
 ## Renseignements de la fiche
 - Catégorie : Médecine

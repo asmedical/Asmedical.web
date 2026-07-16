@@ -3,8 +3,8 @@
 import React, { createContext, useContext, useState, useCallback } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 
-export const TEL_AFFICHE = "+33 6 65 39 05 04";
-export const TEL_LIEN = "tel:+33665390504";
+export const TEL_AFFICHE = "+213 5 64 49 33 48";
+export const TEL_LIEN = "tel:+213564493348";
 
 export const T = {
   fr: {

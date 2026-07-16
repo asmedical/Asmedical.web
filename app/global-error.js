@@ -40,8 +40,8 @@ export default function ErreurGlobale({ error, reset }) {
           </p>
           <button style={btn} onClick={() => reset()}>Réessayer</button>
           <p style={{ marginTop: 18 }}>
-            <a href="tel:+33665390504" style={{ color: "#0E6B3F", fontWeight: 800, textDecoration: "none" }}>
-              Appeler ASM — +33 6 65 39 05 04
+            <a href="tel:+213564493348" style={{ color: "#0E6B3F", fontWeight: 800, textDecoration: "none" }}>
+              Appeler ASM — +213 5 64 49 33 48
             </a>
           </p>
         </div>

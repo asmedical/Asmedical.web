@@ -18,7 +18,7 @@ export default function HorsLigne() {
           Réessayer · إعادة المحاولة
         </a>
         <p className="sous-page" style={{ marginTop: 22 }}>
-          Urgence / عاجل : <a href="tel:+33665390504" style={{ fontWeight: 800 }}>+33 6 65 39 05 04</a>
+          Urgence / عاجل : <a href="tel:+213564493348" style={{ fontWeight: 800 }}>+213 5 64 49 33 48</a>
         </p>
       </div>
     </div>

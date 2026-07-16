@@ -48,7 +48,7 @@ function page(titre, corps) {
   .no-print{text-align:center;margin:18px 0}
   .no-print button{background:#0E6B3F;color:#fff;border:none;border-radius:10px;padding:12px 22px;font-size:15px;font-weight:800;cursor:pointer}
 </style></head><body>
-<div class="tete"><img src="/logo-asm.jpg" alt="ASM"><div><h1>ASM — Assistance Sociale Médicale</h1><small>asm-sante.com · Bir Mourad Raïs, Alger · +33 6 65 39 05 04</small></div></div>
+<div class="tete"><img src="/logo-asm.jpg" alt="ASM"><div><h1>ASM — Assistance Sociale Médicale</h1><small>asm-sante.com · Bir Mourad Raïs, Alger · +213 5 64 49 33 48</small></div></div>
 ${corps}
 <div class="no-print"><button onclick="window.print()">🖨 Imprimer / Enregistrer en PDF</button></div>
 <div class="pied">Document généré par la plateforme ASM — vérifiable auprès de nos services avec sa référence.</div>
@@ -140,7 +140,7 @@ ${f.notes ? `<p><b>Notes :</b> ${f.notes}</p>` : ""}`;
 <div class="qr"><img src="${qr}" alt="QR"><br><small>À présenter au personnel — vérification sécurisée</small></div>
 <h3>Points de paiement</h3>
 <table><thead><tr><th>Point</th><th>Adresse</th><th>Horaires</th></tr></thead><tbody>
-${points.map((pt) => `<tr><td>${pt.nom}</td><td>${[pt.adresse, pt.commune].filter(Boolean).join(", ") || "—"}</td><td>${pt.horaires || "—"}</td></tr>`).join("") || "<tr><td colspan=3>Contactez-nous : +33 6 65 39 05 04</td></tr>"}
+${points.map((pt) => `<tr><td>${pt.nom}</td><td>${[pt.adresse, pt.commune].filter(Boolean).join(", ") || "—"}</td><td>${pt.horaires || "—"}</td></tr>`).join("") || "<tr><td colspan=3>Contactez-nous : +213 5 64 49 33 48</td></tr>"}
 </tbody></table>
 <p><b>Consignes :</b> présentez ce ticket (écran ou papier). Après encaissement, votre reçu officiel sera disponible dans votre espace « Paiements ».</p>`;
       return new NextResponse(page(`Ticket ${t.reference}`, corps), { headers: { "Content-Type": "text/html; charset=utf-8" } });

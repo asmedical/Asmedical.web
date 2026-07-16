@@ -81,7 +81,7 @@ export default function SuppressionCompte() {
           <h3 style={{ marginBottom: 8 }}>Autres moyens</h3>
           <p style={{ lineHeight: 1.7 }}>
             Vous pouvez aussi nous écrire à <a href="mailto:contact@asm-sante.com">contact@asm-sante.com</a> ou
-            nous appeler au <a href="tel:+33665390504">+33 6 65 39 05 04</a> (7j/7). Pour en savoir plus sur nos
+            nous appeler au <a href="tel:+213564493348">+213 5 64 49 33 48</a> (7j/7). Pour en savoir plus sur nos
             pratiques : <Link href="/confidentialite">politique de confidentialité</Link>.
           </p>
         </section>
