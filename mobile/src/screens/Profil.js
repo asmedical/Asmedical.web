@@ -6,6 +6,7 @@ import { C, S } from "../theme";
 import { Bouton, Chip, Charge } from "../ui";
 import { useLangue } from "../i18n";
 import { useAuth } from "../auth";
+import { useVerrou, typeBiometrie } from "../verrou";
 import { deconnexion } from "../supabase";
 import { apiGet, apiPost } from "../api";
 
@@ -23,6 +24,20 @@ export default function Profil() {
   const { profil, user } = useAuth();
   const [notifs, setNotifs] = useState(null);
   const [suppEnCours, setSuppEnCours] = useState(false);
+  const verrou = useVerrou();
+  const [bio, setBio] = useState(null); // "faceid" | "empreinte" | null
+
+  useFocusEffect(useCallback(() => { typeBiometrie().then(setBio); }, []));
+  const bioLib = bio === "faceid" ? "Face ID" : t("bio_empreinte");
+
+  async function basculerBio() {
+    const r = verrou.actif
+      ? await verrou.desactiver(t("bio_invite"), t("annuler"))
+      : await verrou.activer(t("bio_invite"), t("annuler"));
+    if (r.erreur === "non_configure") Alert.alert("ASM", t("bio_non_configure"));
+    else if (r.erreur === "materiel") Alert.alert("ASM", t("bio_indisponible"));
+    else if (r.ok && !verrou.actif) Alert.alert("ASM", t("bio_active_ok").replace("{type}", bioLib));
+  }
 
   // Suppression de compte : initiée DANS l'app (exigence App Store 5.1.1),
   // vérifiée par l'équipe puis validée par le super admin — comme sur le site.
@@ -72,6 +87,22 @@ export default function Profil() {
         <Chip titre="Français" actif={langue === "fr"} onPress={() => setLangue("fr")} />
         <Chip titre="العربية" actif={langue === "ar"} onPress={() => setLangue("ar")} />
       </View>
+
+      {/* Verrouillage biométrique — seulement si l'appareil le permet */}
+      {bio && verrou && verrou.actif !== null && (
+        <>
+          <Text style={S.h2}>{t("bio_t")}</Text>
+          <View style={S.carte}>
+            <Text style={{ color: C.gris, lineHeight: 20 }}>{t("bio_p").replace("{type}", bioLib)}</Text>
+            <View style={{ height: 10 }} />
+            <Bouton
+              secondaire={verrou.actif}
+              titre={(verrou.actif ? t("bio_desactiver") : t("bio_activer")).replace("{type}", bioLib)}
+              onPress={basculerBio}
+            />
+          </View>
+        </>
+      )}
 
       <Text style={S.h2}>{t("notif_t")}</Text>
       {notifs === null && <Charge />}

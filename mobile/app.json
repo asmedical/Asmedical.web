@@ -26,6 +26,14 @@
     "web": {
       "favicon": "./assets/favicon.png"
     },
+    "plugins": [
+      [
+        "expo-local-authentication",
+        {
+          "faceIDPermission": "Face ID protège l'accès à vos informations médicales dans ASM."
+        }
+      ]
+    ],
     "extra": {
       "apiUrl": "https://asm-sante.com"
     }
