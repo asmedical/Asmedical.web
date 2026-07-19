@@ -25,7 +25,7 @@ const ONGLETS = [
   { href: "/admin/abonnements", libelle: "Abonnés", Ico: IcoVehicule },
   { href: "/admin/messages", libelle: "Messages", Ico: IcoBulle },
   { href: "/admin/clients", libelle: "Clients", Ico: IcoPersonne },
-  { href: "/admin/soignants", libelle: "Soignants", Ico: IcoMaison },
+  { href: "/admin/soignants", libelle: "Auxiliaires", Ico: IcoMaison },
   { href: "/admin/transporteurs", libelle: "Transport", Ico: IcoVehicule },
   { href: "/admin/equipe", libelle: "Équipe", Ico: IcoEtablissement },
   { href: "/admin/reglages", libelle: "Réglages", Ico: IcoReglages },
@@ -56,7 +56,7 @@ const GROUPES = [
     titre: "Utilisateurs",
     liens: [
       { href: "/admin/clients", libelle: "Clients (patients & établ.)", Ico: IcoPersonne, roles: TOUS },
-      { href: "/admin/soignants", libelle: "Soignants", Ico: IcoMaison, roles: TOUS },
+      { href: "/admin/soignants", libelle: "Auxiliaires", Ico: IcoMaison, roles: TOUS },
       { href: "/admin/transporteurs", libelle: "Transporteurs", Ico: IcoVehicule, roles: TOUS },
     ],
   },
@@ -171,7 +171,7 @@ function RechercheGlobale() {
           )}
           {res.soignants?.length > 0 && (
             <>
-              <div className="adm-rech-groupe">🩺 Soignants</div>
+              <div className="adm-rech-groupe">🩺 Auxiliaires de santé</div>
               {res.soignants.map((s) => (
                 <button key={s.id} onClick={() => aller(`/admin/soignants`)}>
                   <strong>{s.prenom} {s.nom}</strong>

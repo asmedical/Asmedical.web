@@ -127,7 +127,7 @@ export default function PagePlanning() {
           </div>
           <div className="adm-plan-bascule">
             <button className={type === "tous" ? "actif" : ""} onClick={() => setType("tous")}>Tous</button>
-            <button className={type === "soignants" ? "actif" : ""} onClick={() => setType("soignants")}>Soignants</button>
+            <button className={type === "soignants" ? "actif" : ""} onClick={() => setType("soignants")}>Auxiliaires</button>
             <button className={type === "transporteurs" ? "actif" : ""} onClick={() => setType("transporteurs")}>Transport</button>
           </div>
         </div>

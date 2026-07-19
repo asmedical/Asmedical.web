@@ -16,7 +16,7 @@ chauffeur identifié. Vous voyez le modèle du véhicule, sa couleur et sa plaqu
 son arrivée.
 
 🏠 AIDE À DOMICILE
-Auxiliaires de santé et infirmiers diplômés chez vous : toilette, pansements, injections,
+Auxiliaires de santé diplômés chez vous : toilette, pansements, injections,
 accompagnement. Vous choisissez un créneau réellement disponible, calculé selon les
 plannings de nos équipes.
 
@@ -51,7 +51,7 @@ Une question ? Appelez-nous : +213 5 64 49 33 48 — nous répondons 7j/7.
 المركبة ولونها ولوحة ترقيمها قبل وصولها.
 
 🏠 المساعدة في المنزل
-مساعدون صحيون وممرضون مؤهلون في بيتكم: العناية، الضمادات، الحقن، المرافقة.
+مساعدون صحيون مؤهلون في بيتكم: العناية، الضمادات، الحقن، المرافقة.
 تختارون موعداً متاحاً فعلياً حسب جداول فرقنا.
 
 💊 توصيل الأدوية

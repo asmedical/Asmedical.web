@@ -43,7 +43,7 @@ export default function PageSoignants() {
       await fetchAdmin("/api/admin/soignants", { method: "POST", body: JSON.stringify(neuf) });
       setNeuf(VIDE);
       setCreation(false);
-      setMsg("Soignant créé ✓ (statut : en attente de validation)");
+      setMsg("Auxiliaire créé ✓ (statut : en attente de validation)");
       await charger();
     } catch {
       setMsg("Erreur : création impossible.");
@@ -88,7 +88,7 @@ export default function PageSoignants() {
   return (
     <>
       <div className="adm-barre-titre">
-        <h1 className="adm-titre">Soignants</h1>
+        <h1 className="adm-titre">Auxiliaires de santé</h1>
         <button className="adm-btn" onClick={() => setCreation((c) => !c)}>{creation ? "Fermer" : "+ Créer un soignant"}</button>
       </div>
 
