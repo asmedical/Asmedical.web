@@ -34,8 +34,12 @@ export async function GET(req) {
       digits(user.phone).slice(-8) || digits(profil?.telephone).slice(-8);
     if (!cle) return NextResponse.json({ demandes: [] });
 
+    // Correspondance sur les CHIFFRES uniquement : un numéro enregistré
+    // « 0555 44 33 22 » doit matcher la clé « 55443322 » malgré les espaces.
+    const { idsDemandesParTel } = await import("@/lib/telephones");
+    const ids = await idsDemandesParTel(cle, 50);
     const demandes = await prisma.demande.findMany({
-      where: { telephone: { contains: cle } },
+      where: { id: { in: ids } },
       orderBy: { creeLe: "desc" },
       take: 50,
       include: {

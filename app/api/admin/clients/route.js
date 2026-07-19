@@ -31,9 +31,12 @@ export async function GET(req) {
       const estPro = profil.role === "pro";
       // Patient : ses demandes (par téléphone) + les établissements autorisés.
       // Établissement : les réservations faites PAR lui + ses patients rattachés.
+      // Correspondance téléphone insensible au format (espaces, indicatifs).
+      const { idsDemandesParTel } = await import("@/lib/telephones");
+      const idsTel = tel8 ? await idsDemandesParTel(tel8, 50) : [];
       const ouDemandes = estPro
-        ? { OR: [{ parEtabUserId: id }, ...(tel8 ? [{ telephone: { contains: tel8 } }] : [])] }
-        : tel8 ? { telephone: { contains: tel8 } } : null;
+        ? { OR: [{ parEtabUserId: id }, ...(idsTel.length ? [{ id: { in: idsTel } }] : [])] }
+        : idsTel.length ? { id: { in: idsTel } } : null;
       const [demandes, rattachementsTous] = await Promise.all([
         ouDemandes
           ? prisma.demande.findMany({
