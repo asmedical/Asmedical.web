@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { fetchAdmin } from "../ui";
 
 const GROUPES = [
-  ["aides_soignants", "Tous les aides-soignants"],
+  ["aides_soignants", "Tous les auxiliaires de santé"],
   ["infirmiers", "Tous les infirmiers"],
   ["soignants", "Tous les soignants"],
   ["chauffeurs", "Tous les chauffeurs / transporteurs"],

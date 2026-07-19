@@ -33,7 +33,7 @@ export default function TableauEmploye() {
           <div>
             <strong>{intervenant.nom}</strong>
             <small>
-              {estChauffeur ? intervenant.vehicule || "Véhicule non renseigné" : intervenant.qualification === "infirmier" ? "Infirmier(ère)" : "Aide-soignant(e)"}
+              {estChauffeur ? intervenant.vehicule || "Véhicule non renseigné" : intervenant.qualification === "infirmier" ? "Infirmier(ère)" : "Auxiliaire de santé"}
               {" · "}{intervenant.heureDebut}h – {intervenant.heureFin}h
             </small>
           </div>

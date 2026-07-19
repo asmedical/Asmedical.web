@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import { fetchAdmin, Pastille, Avatar, useGardeAdmin, LIBELLE_STATUT_INTERVENANT } from "../ui";
 import FicheEmploye from "../FicheEmploye";
 
-const QUALIFS = { aide_soignant: "Aide-soignant(e)", infirmier: "Infirmier(ère)" };
+const QUALIFS = { aide_soignant: "Auxiliaire de santé", infirmier: "Infirmier(ère)" };
 const VIDE = { prenom: "", nom: "", telephone: "", email: "", qualification: "aide_soignant", communes: "" };
 
 export default function PageSoignants() {

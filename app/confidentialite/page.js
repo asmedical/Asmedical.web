@@ -61,7 +61,7 @@ export default function Confidentialite() {
         <Bloc titre="4. Qui peut voir vos données">
           <ul>
             <li><strong>L&apos;équipe ASM</strong>, selon des rôles stricts contrôlés par nos serveurs : chaque membre ne voit que ce qui est nécessaire à sa mission, et les actions sensibles sont journalisées.</li>
-            <li><strong>L&apos;intervenant affecté</strong> à votre demande (chauffeur, aide-soignant·e, coursier) : uniquement les informations utiles à la mission — jamais vos documents ni votre historique complet.</li>
+            <li><strong>L&apos;intervenant affecté</strong> à votre demande (chauffeur, auxiliaire de santé, coursier) : uniquement les informations utiles à la mission — jamais vos documents ni votre historique complet.</li>
             <li><strong>Un établissement de santé</strong> uniquement si vous l&apos;y avez autorisé (procuration que vous pouvez révoquer à tout moment depuis votre espace).</li>
             <li><strong>Nos sous-traitants techniques</strong>, qui hébergent ou acheminent pour notre compte : hébergement du site et de la base de données, envoi de SMS, d&apos;e-mails et de notifications. Ils n&apos;utilisent pas vos données pour leur propre compte.</li>
           </ul>

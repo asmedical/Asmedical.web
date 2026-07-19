@@ -34,7 +34,7 @@ export function etatExpiration(dateStr) {
   return "";
 }
 
-const QUALIFS = { aide_soignant: "Aide-soignant(e)", infirmier: "Infirmier(ère)" };
+const QUALIFS = { aide_soignant: "Auxiliaire de santé", infirmier: "Infirmier(ère)" };
 const TYPES_TR = { simple: "Simple (assis)", accompagne: "Accompagné (fauteuil)", medicalise: "Médicalisé" };
 const JOURS = ["Lun", "Mar", "Mer", "Jeu", "Ven", "Sam", "Dim"];
 const DISPO = { DISPONIBLE: "Disponible", OCCUPE: "Occupé", ABSENT: "Absent" };

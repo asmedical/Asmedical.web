@@ -26,7 +26,7 @@ async function destinataires({ cible, userId, groupe }) {
 }
 
 // POST /api/admin/diffusion — envoie un message et/ou une notification à un
-// employé précis ou à un groupe (aides-soignants, chauffeurs, tous…).
+// employé précis ou à un groupe (auxiliaires de santé, chauffeurs, tous…).
 // { cible: "employe"|"groupe", userId?, groupe?, canal: "message"|"notification"|"les_deux", titre?, texte }
 export async function POST(req) {
   const acces = await verifierAdmin(req, ROLES_GESTION_INTERVENANTS);

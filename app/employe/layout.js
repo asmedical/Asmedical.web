@@ -9,7 +9,7 @@ const EmployeCtx = createContext(null);
 export const useEmploye = () => useContext(EmployeCtx);
 
 const LIB_ROLE = {
-  aide_soignant: "Aide-soignant",
+  aide_soignant: "Auxiliaire de santé",
   infirmier: "Infirmier",
   chauffeur: "Chauffeur",
   transporteur: "Transporteur",

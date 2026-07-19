@@ -12,7 +12,7 @@ const H_FIN = 20; // heure de fin affichée
 const PX_HEURE = 52; // hauteur d'une heure en pixels (vue jour)
 
 const LIB_SERVICE = { transport: "Transport", domicile: "Aide à domicile", medicaments: "Médicaments" };
-const LIB_QUALIF = { infirmier: "Infirmier·ère", aide_soignant: "Aide-soignant·e" };
+const LIB_QUALIF = { infirmier: "Infirmier·ère", aide_soignant: "Auxiliaire de santé" };
 const JOURS_COURTS = ["lun.", "mar.", "mer.", "jeu.", "ven.", "sam.", "dim."];
 
 // ---- Petites fonctions de dates (locales, format AAAA-MM-JJ) ----
