@@ -24,6 +24,21 @@ function reponseCsv(nom, lignes) {
   });
 }
 
+// Même tableau, deux formats : CSV (par défaut) ou Excel réel (.xlsx)
+// selon ?format=xlsx — généré sans dépendance (lib/xlsx).
+async function repondre(nom, lignes, p) {
+  if (p.get("format") === "xlsx") {
+    const { classeurXlsx } = await import("@/lib/xlsx");
+    return new NextResponse(classeurXlsx(lignes), {
+      headers: {
+        "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "Content-Disposition": `attachment; filename="${nom.replace(/\.csv$/, ".xlsx")}"`,
+      },
+    });
+  }
+  return reponseCsv(nom, lignes);
+}
+
 // GET /api/admin/exports?type=demandes|clients|etablissements|paie&debut=&fin=
 export async function GET(req) {
   const acces = await verifierAdmin(req, ROLES_GESTION_INTERVENANTS);
@@ -64,7 +79,7 @@ export async function GET(req) {
         ]),
       ];
       await journaliser(acces.nomAffiche, "export.demandes", "export", 0, `${debut} → ${fin} (${demandes.length} lignes)`);
-      return reponseCsv(`asm-demandes-${debut}-${fin}.csv`, lignes);
+      return repondre(`asm-demandes-${debut}-${fin}.csv`, lignes, p);
     }
 
     // ---- Clients (patients) / établissements ----
@@ -89,7 +104,7 @@ export async function GET(req) {
               ...(profils || []).map((c) => [c.prenom || "", c.nom || "", c.telephone || "", c.email || "", c.commune || "", c.contact || "", (c.cree_le || "").slice(0, 10)]),
             ];
       await journaliser(acces.nomAffiche, `export.${type}`, "export", 0, `${(profils || []).length} lignes`);
-      return reponseCsv(`asm-${type}.csv`, lignes);
+      return repondre(`asm-${type}.csv`, lignes, p);
     }
 
     // ---- Paie des intervenants (missions terminées de la période) ----
@@ -125,7 +140,94 @@ export async function GET(req) {
       transporteurs.forEach((t) => ajouter(t, "Transporteur"));
 
       await journaliser(acces.nomAffiche, "export.paie", "export", 0, `${debut} → ${fin}`);
-      return reponseCsv(`asm-paie-${debut}-${fin}.csv`, lignes);
+      return repondre(`asm-paie-${debut}-${fin}.csv`, lignes, p);
+    }
+
+    // ---- Rapport d'activité imprimable (→ PDF via « Imprimer ») ----
+    if (type === "rapport") {
+      if (!["superadmin", "admin"].includes(acces.profil.role)) return refus();
+      if (!periode) return NextResponse.json({ erreur: "période invalide" }, { status: 400 });
+
+      const [demandes, factures, paiements] = await Promise.all([
+        prisma.demande.findMany({
+          where: { date: { gte: debut, lte: fin + "T23:59" } },
+          select: { service: true, statut: true, commune: true, parEtablissement: true },
+        }),
+        prisma.facture.findMany({
+          where: { emissionLe: { gte: debut, lte: fin }, statut: { not: "ANNULEE" } },
+          select: { total: true, paye: true },
+        }),
+        prisma.paiement.findMany({
+          where: {
+            statut: { in: ["CONFIRME", "PARTIELLEMENT_REMBOURSE", "REMBOURSE"] },
+            confirmeLe: { gte: new Date(debut + "T00:00:00"), lte: new Date(fin + "T23:59:59") },
+          },
+          select: { montant: true, moyen: true },
+        }),
+      ]);
+
+      const parService = {};
+      const communes = {};
+      let terminees = 0, annulees = 0, parEtab = 0;
+      for (const d of demandes) {
+        const s = LIB_SERVICE[d.service] || d.service;
+        parService[s] = parService[s] || { total: 0, terminees: 0, annulees: 0 };
+        parService[s].total++;
+        if (d.statut === "TERMINEE") { parService[s].terminees++; terminees++; }
+        if (d.statut === "ANNULEE") { parService[s].annulees++; annulees++; }
+        if (d.parEtablissement) parEtab++;
+        const c = String(d.commune || "").trim();
+        if (c && d.statut !== "ANNULEE") communes[c] = (communes[c] || 0) + 1;
+      }
+      const caFacture = factures.reduce((s, f) => s + f.total, 0);
+      const encaisse = paiements.reduce((s, x) => s + x.montant, 0);
+      const parMoyen = {};
+      for (const x of paiements) parMoyen[x.moyen] = (parMoyen[x.moyen] || 0) + x.montant;
+      const topCommunes = Object.entries(communes).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+      const DA = (n) => `${Number(n || 0).toLocaleString("fr-FR")} DZD`;
+      const esc = (s) => String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;");
+      const html = `<!DOCTYPE html><html lang="fr"><head><meta charset="utf-8">
+<title>Rapport d'activité ASM — ${debut} → ${fin}</title>
+<style>
+  body{font-family:'Segoe UI',Arial,sans-serif;color:#22332C;max-width:760px;margin:24px auto;padding:0 18px;font-size:14px}
+  h1{font-size:20px;color:#0A5230;border-bottom:3px solid #0E6B3F;padding-bottom:10px}
+  h2{font-size:15px;color:#0A5230;margin-top:22px}
+  table{border-collapse:collapse;width:100%;margin:10px 0}
+  th,td{border:1px solid #E6EEE9;padding:7px 10px;text-align:left}
+  th{background:#F4F9F6;color:#0A5230}
+  .tuiles{display:flex;gap:10px;flex-wrap:wrap;margin:14px 0}
+  .tuile{border:1px solid #E6EEE9;border-radius:10px;padding:10px 14px;min-width:130px}
+  .tuile b{display:block;font-size:19px;color:#0A5230}
+  .pied{margin-top:26px;color:#6B7A72;font-size:12px}
+  @media print{.no-print{display:none}}
+</style></head><body>
+<h1>ASM — Rapport d'activité · ${debut} → ${fin}</h1>
+<div class="tuiles">
+  <div class="tuile"><b>${demandes.length}</b>demandes</div>
+  <div class="tuile"><b>${terminees}</b>terminées</div>
+  <div class="tuile"><b>${annulees}</b>annulées</div>
+  <div class="tuile"><b>${parEtab}</b>réservées par des établissements</div>
+  <div class="tuile"><b>${DA(caFacture)}</b>facturé</div>
+  <div class="tuile"><b>${DA(encaisse)}</b>encaissé</div>
+</div>
+<h2>Activité par service</h2>
+<table><tr><th>Service</th><th>Demandes</th><th>Terminées</th><th>Annulées</th></tr>
+${Object.entries(parService).map(([s, v]) => `<tr><td>${esc(s)}</td><td>${v.total}</td><td>${v.terminees}</td><td>${v.annulees}</td></tr>`).join("")}
+</table>
+<h2>Encaissements par moyen de paiement</h2>
+<table><tr><th>Moyen</th><th>Montant</th></tr>
+${Object.entries(parMoyen).map(([m, v]) => `<tr><td>${esc(m.toUpperCase())}</td><td>${DA(v)}</td></tr>`).join("") || "<tr><td colspan=2>Aucun encaissement sur la période.</td></tr>"}
+</table>
+<h2>Communes les plus servies</h2>
+<table><tr><th>Commune</th><th>Demandes</th></tr>
+${topCommunes.map(([c, n]) => `<tr><td>${esc(c)}</td><td>${n}</td></tr>`).join("") || "<tr><td colspan=2>Communes non renseignées.</td></tr>"}
+</table>
+<p class="pied">Généré le ${new Date().toLocaleString("fr-FR")} par ${esc(acces.nomAffiche)} — chiffres réels de la base ASM.
+<button class="no-print" onclick="window.print()" style="margin-inline-start:12px">🖨 Imprimer / PDF</button></p>
+</body></html>`;
+      await journaliser(acces.nomAffiche, "export.rapport", "export", 0, `${debut} → ${fin}`);
+      return new NextResponse(html, { headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
 
     // ═══════════ Exports FINANCIERS (superadmin / admin) ═══════════
@@ -166,7 +268,7 @@ export async function GET(req) {
         }
         lignes.push(["TOTAL", "", "", "", "", "", "", "", "", "", totalMontant, totalRembourse || "", totalMontant - totalRembourse]);
         await journaliser(acces.nomAffiche, "export.encaissements", "export", 0, `${debut} → ${fin} (${paiements.length} paiements · ${totalMontant} DZD)`);
-        return reponseCsv(`asm-encaissements-${debut}-${fin}.csv`, lignes);
+        return repondre(`asm-encaissements-${debut}-${fin}.csv`, lignes, p);
       }
 
       // ---- Impayés : PHOTO DU JOUR de tout le restant dû (sans période) ----
@@ -193,7 +295,7 @@ export async function GET(req) {
         }
         lignes.push(["TOTAL", "", "", "", "", "", "", "", "", totalDu, "", ""]);
         await journaliser(acces.nomAffiche, "export.impayes", "export", 0, `photo du ${jour} (${lignes.length - 2} factures · ${totalDu} DZD dus)`);
-        return reponseCsv(`asm-impayes-${jour}.csv`, lignes);
+        return repondre(`asm-impayes-${jour}.csv`, lignes, p);
       }
 
       // ---- Espèces : journal de caisse de la période (réconciliation) ----
@@ -227,7 +329,7 @@ export async function GET(req) {
         }
         lignes.push(["TOTAL", "", "", "", "", "", "", "", "", total]);
         await journaliser(acces.nomAffiche, "export.especes", "export", 0, `${debut} → ${fin} (${paiements.length} encaissements · ${total} DZD)`);
-        return reponseCsv(`asm-especes-${debut}-${fin}.csv`, lignes);
+        return repondre(`asm-especes-${debut}-${fin}.csv`, lignes, p);
       }
     }
 

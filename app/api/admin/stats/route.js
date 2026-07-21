@@ -9,6 +9,18 @@ export async function GET(req) {
   const acces = await verifierAdmin(req);
   if (!acces) return refus();
   try {
+    // ---- Vue AVANCÉE : graphiques activité / finances sur 12 mois ----
+    // Les montants (CA, encaissements) sont réservés à superadmin/admin.
+    if (new URL(req.url).searchParams.get("vue") === "avancee") {
+      const { statsAvancees } = await import("@/lib/pilotage");
+      const s = await statsAvancees();
+      const voitFinances = ["superadmin", "admin"].includes(acces.profil.role);
+      if (!voitFinances) {
+        s.mois = s.mois.map(({ facture, encaisse, ...reste }) => reste);
+      }
+      return NextResponse.json({ ...s, voitFinances });
+    }
+
     const aujourdhui = new Date().toISOString().slice(0, 10);
     const maintenant = new Date().toISOString().slice(0, 16);
 

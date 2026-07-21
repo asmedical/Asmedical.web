@@ -25,21 +25,27 @@ export async function GET(req) {
 
     const { data: profil } = await admin
       .from("profil")
-      .select("telephone")
+      .select("telephone, role")
       .eq("id", user.id)
       .maybeSingle();
 
     const digits = (s) => String(s || "").replace(/\D/g, "");
     const cle =
       digits(user.phone).slice(-8) || digits(profil?.telephone).slice(-8);
-    if (!cle) return NextResponse.json({ demandes: [] });
+    if (!cle && profil?.role !== "pro") return NextResponse.json({ demandes: [] });
 
     // Correspondance sur les CHIFFRES uniquement : un numéro enregistré
     // « 0555 44 33 22 » doit matcher la clé « 55443322 » malgré les espaces.
     const { idsDemandesParTel } = await import("@/lib/telephones");
-    const ids = await idsDemandesParTel(cle, 50);
+    const ids = cle ? await idsDemandesParTel(cle, 50) : [];
+    // Un ÉTABLISSEMENT voit AUSSI les réservations qu'il a posées pour ses
+    // patients (parEtabUserId = lui) — pas seulement celles à son numéro.
+    const filtre =
+      profil?.role === "pro"
+        ? { OR: [{ id: { in: ids } }, { parEtabUserId: user.id }] }
+        : { id: { in: ids } };
     const demandes = await prisma.demande.findMany({
-      where: { id: { in: ids } },
+      where: filtre,
       orderBy: { creeLe: "desc" },
       take: 50,
       include: {

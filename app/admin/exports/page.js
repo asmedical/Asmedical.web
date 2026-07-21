@@ -20,6 +20,7 @@ export default function PageExports() {
   const [moyen, setMoyen] = useState("");
   const [occupe, setOccupe] = useState("");
   const [msg, setMsg] = useState("");
+  const [format, setFormat] = useState("csv"); // csv | xlsx
 
   function periodeRapide(quoi) {
     const d = new Date();
@@ -44,7 +45,7 @@ export default function PageExports() {
     setOccupe(cle);
     try {
       const { data: { session } } = await supabase.auth.getSession();
-      const r = await fetch(`/api/admin/exports?${params}`, {
+      const r = await fetch(`/api/admin/exports?${params}&format=${format}`, {
         headers: { Authorization: `Bearer ${session?.access_token || ""}` },
       });
       if (!r.ok) throw new Error();
@@ -66,23 +67,65 @@ export default function PageExports() {
 
   const periode = `debut=${debut}&fin=${fin}`;
 
+  // Rapport d'activité imprimable : ouvert dans un nouvel onglet → PDF via
+  // « Imprimer / Enregistrer en PDF » (comme les factures et relevés).
+  async function ouvrirRapport() {
+    setMsg("");
+    setOccupe("rapport");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch(`/api/admin/exports?type=rapport&${periode}`, {
+        headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+      });
+      if (!r.ok) throw new Error();
+      const url = URL.createObjectURL(await r.blob());
+      window.open(url, "_blank");
+      setTimeout(() => URL.revokeObjectURL(url), 60000);
+    } catch {
+      setMsg("Rapport impossible (vérifiez la période et vos droits).");
+    }
+    setOccupe("");
+  }
+
   return (
     <>
       <h1 className="adm-titre">Exports & rapports</h1>
       <p className="adm-vide" style={{ textAlign: "start" }}>
-        Fichiers CSV lisibles dans Excel, Numbers ou Google Sheets. Chaque export est journalisé.
+        Fichiers CSV ou Excel (.xlsx) lisibles dans Excel, Numbers ou Google Sheets. Chaque export est journalisé.
       </p>
       {msg && <p className="adm-msg">{msg}</p>}
 
-      {/* ---- Période commune ---- */}
-      <h2 className="adm-sous-titre">Période</h2>
+      {/* ---- Période et format communs ---- */}
+      <h2 className="adm-sous-titre">Période & format</h2>
       <div className="adm-filtres" style={{ alignItems: "center" }}>
         <label className="exp-date">du <input type="date" value={debut} onChange={(e) => e.target.value && setDebut(e.target.value)} /></label>
         <label className="exp-date">au <input type="date" value={fin} onChange={(e) => e.target.value && setFin(e.target.value)} /></label>
         <button className="adm-btn secondaire" onClick={() => periodeRapide("mois")}>Ce mois-ci</button>
         <button className="adm-btn secondaire" onClick={() => periodeRapide("mois-1")}>Mois dernier</button>
         <button className="adm-btn secondaire" onClick={() => periodeRapide("7j")}>7 derniers jours</button>
+        <select value={format} onChange={(e) => setFormat(e.target.value)} aria-label="Format de fichier">
+          <option value="csv">Format : CSV</option>
+          <option value="xlsx">Format : Excel (.xlsx)</option>
+        </select>
       </div>
+
+      {/* ---- Rapport imprimable (superadmin / admin) ---- */}
+      {["superadmin", "admin"].includes(role) && (
+        <div className="adm-fiche">
+          <p className="fe-aide" style={{ marginTop: 0 }}>
+            <strong>Rapport d&apos;activité</strong> : synthèse imprimable de la période (demandes par
+            service, facturé, encaissé par moyen, communes les plus servies) — s&apos;ouvre dans un
+            onglet, puis « Imprimer / Enregistrer en PDF ».
+          </p>
+          <button
+            className={"adm-btn" + (occupe === "rapport" ? " btn-charge" : "")}
+            disabled={!!occupe}
+            onClick={ouvrirRapport}
+          >
+            🖨 Ouvrir le rapport de la période
+          </button>
+        </div>
+      )}
 
       {/* ---- Demandes ---- */}
       <h2 className="adm-sous-titre">Demandes & rendez-vous</h2>
@@ -109,7 +152,7 @@ export default function PageExports() {
             disabled={!!occupe}
             onClick={() => telecharger("demandes", `type=demandes&${periode}${service ? `&service=${service}` : ""}${statut ? `&statut=${statut}` : ""}`)}
           >
-            ⬇ Télécharger le CSV
+            ⬇ Télécharger
           </button>
         </div>
       </div>
@@ -126,14 +169,14 @@ export default function PageExports() {
             disabled={!!occupe}
             onClick={() => telecharger("clients", "type=clients")}
           >
-            ⬇ Patients (CSV)
+            ⬇ Patients
           </button>
           <button
             className={"adm-btn secondaire" + (occupe === "etablissements" ? " btn-charge" : "")}
             disabled={!!occupe}
             onClick={() => telecharger("etablissements", "type=etablissements")}
           >
-            ⬇ Établissements (CSV)
+            ⬇ Établissements
           </button>
         </div>
       </div>
@@ -160,7 +203,7 @@ export default function PageExports() {
                 disabled={!!occupe}
                 onClick={() => telecharger("encaissements", `type=encaissements&${periode}${moyen ? `&moyen=${moyen}` : ""}`)}
               >
-                ⬇ Encaissements (CSV)
+                ⬇ Encaissements
               </button>
             </div>
           </div>
@@ -177,14 +220,14 @@ export default function PageExports() {
                 disabled={!!occupe}
                 onClick={() => telecharger("impayes", "type=impayes")}
               >
-                ⬇ Impayés du jour (CSV)
+                ⬇ Impayés du jour
               </button>
               <button
                 className={"adm-btn secondaire" + (occupe === "especes" ? " btn-charge" : "")}
                 disabled={!!occupe}
                 onClick={() => telecharger("especes", `type=especes&${periode}`)}
               >
-                ⬇ Journal des espèces (CSV)
+                ⬇ Journal des espèces
               </button>
             </div>
           </div>
@@ -207,7 +250,7 @@ export default function PageExports() {
                 disabled={!!occupe}
                 onClick={() => telecharger("paie", `type=paie&${periode}`)}
               >
-                ⬇ Télécharger la paie (CSV)
+                ⬇ Télécharger la paie
               </button>
             </div>
           </div>

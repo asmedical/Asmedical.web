@@ -39,6 +39,7 @@ const GROUPES = [
     titre: "Pilotage",
     liens: [
       { href: "/admin", libelle: "Tableau de bord", Ico: IcoDocumentLignes, roles: TOUS },
+      { href: "/admin/stats", libelle: "Statistiques", Ico: IcoDocumentLignes, roles: ["superadmin", "admin", "moderateur"] },
       { href: "/admin/planning", libelle: "Planning", Ico: IcoCalendrier, roles: TOUS },
       { href: "/admin/demandes?supervision=en_retard", libelle: "⏱ En retard", roles: TOUS },
       { href: "/admin/demandes?supervision=non_confirmee", libelle: "❓ Non confirmées", roles: TOUS },

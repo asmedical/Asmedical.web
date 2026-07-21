@@ -122,6 +122,8 @@ export default function PageClients() {
           🏥 Établissements
         </button>
       </div>
+
+      {type === "pro" && <GroupesPanel />}
       <div className="adm-filtres">
         <input
           placeholder="Rechercher par nom, téléphone, email…"
@@ -291,6 +293,97 @@ function NotifierClient({ userId }) {
             ))}
           </div>
         </>
+      )}
+    </div>
+  );
+}
+
+// Groupes multi-sites (superadmin) : relier plusieurs comptes pro pour
+// que chacun voie les chiffres consolidés du groupe dans son espace.
+// Le panneau se masque seul si le rôle n'y a pas droit (403 serveur).
+function GroupesPanel() {
+  const [donnees, setDonnees] = useState(null);
+  const [ouvert, setOuvert] = useState(false);
+  const [nom, setNom] = useState("");
+  const [choix, setChoix] = useState({}); // groupeId -> userId a ajouter
+  const [msg, setMsg] = useState("");
+
+  const charger = () =>
+    fetchAdmin("/api/admin/groupes").then(setDonnees).catch(() => setDonnees({ interdit: true }));
+  useEffect(() => { charger(); }, []);
+
+  if (!donnees || donnees.interdit) return null;
+
+  async function agir(corps, confirmation) {
+    if (confirmation && !window.confirm(confirmation)) return;
+    setMsg("");
+    try {
+      await fetchAdmin("/api/admin/groupes", { method: "POST", body: JSON.stringify(corps) });
+      await charger();
+      setNom("");
+    } catch (e) {
+      setMsg(e?.data?.erreur === "membre_autre_groupe"
+        ? "Ce compte appartient déjà à un autre groupe — retirez-le d'abord."
+        : "Action impossible.");
+    }
+  }
+
+  const dejaMembres = new Set(donnees.groupes.flatMap((g) => g.membres.map((m) => m.userId)));
+  const libres = donnees.pros.filter((p) => !dejaMembres.has(p.id));
+
+  return (
+    <div className="adm-fiche" style={{ marginTop: 10 }}>
+      <button className="adm-btn secondaire" onClick={() => setOuvert((o) => !o)}>
+        🏢 Groupes multi-sites ({donnees.groupes.length}) {ouvert ? "▴" : "▾"}
+      </button>
+      {ouvert && (
+        <div style={{ marginTop: 12 }}>
+          <p className="fe-aide" style={{ marginTop: 0 }}>
+            Un groupe relie plusieurs établissements (sites d&apos;une même enseigne) : chaque site
+            voit alors les statistiques consolidées du groupe dans son espace pro.
+          </p>
+          {msg && <p className="adm-msg">{msg}</p>}
+          <div className="adm-filtres">
+            <input placeholder="Nom du nouveau groupe (ex. Cliniques El Azhar)" value={nom} onChange={(e) => setNom(e.target.value)} />
+            <button className="adm-btn" disabled={nom.trim().length < 2} onClick={() => agir({ action: "creer", nom: nom.trim() })}>
+              + Créer le groupe
+            </button>
+          </div>
+          {donnees.groupes.map((g) => (
+            <div key={g.id} style={{ border: "1px solid var(--ligne)", borderRadius: 10, padding: "10px 14px", marginTop: 10 }}>
+              <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 8 }}>
+                <strong>{g.nom}</strong>
+                <button className="fin-lien" onClick={() => agir({ action: "supprimer", groupeId: g.id }, `Supprimer le groupe « ${g.nom} » ? Les sites redeviennent indépendants.`)}>
+                  Supprimer
+                </button>
+              </div>
+              {g.membres.length === 0 && <p className="fe-aide">Aucun site pour l&apos;instant.</p>}
+              {g.membres.map((m) => (
+                <p key={m.userId} style={{ margin: "6px 0", fontSize: 14 }}>
+                  🏥 {m.nom}{" "}
+                  <button className="fin-lien" onClick={() => agir({ action: "retirer", userId: m.userId }, `Retirer « ${m.nom} » du groupe ?`)}>
+                    retirer
+                  </button>
+                </p>
+              ))}
+              <div className="adm-filtres" style={{ marginTop: 8 }}>
+                <select value={choix[g.id] || ""} onChange={(e) => setChoix({ ...choix, [g.id]: e.target.value })}>
+                  <option value="">Ajouter un établissement…</option>
+                  {libres.map((p) => (
+                    <option value={p.id} key={p.id}>{p.nom}</option>
+                  ))}
+                </select>
+                <button
+                  className="adm-btn secondaire"
+                  disabled={!choix[g.id]}
+                  onClick={() => agir({ action: "ajouter", groupeId: g.id, userId: choix[g.id] })}
+                >
+                  Ajouter
+                </button>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

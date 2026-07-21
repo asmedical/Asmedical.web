@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEmploye } from "../layout";
+import { etapesTournee } from "@/lib/tournees";
 
 const SERVICES = { transport: "Transport", domicile: "Aide à domicile", medicaments: "Médicaments" };
 const STATUT_LIB = {
@@ -55,8 +56,27 @@ export default function PlanningEmploye() {
       {jours.map((j) => (
         <div key={j} style={{ marginBottom: 18 }}>
           <h2 className="emp-section" style={{ textTransform: "capitalize", marginTop: 8 }}>{libJour(j)}</h2>
-          {parJour[j].map((i) => (
-            <Link className={"emp-carte-i cliquable" + (i.prioritaire ? " urgente" : "")} href={`/employe/interventions/${i.id}`} key={i.id}>
+          {/* Tournée suggérée (chauffeurs) : heures fixes respectées, puis
+              regroupement par commune — l'ordre reste une suggestion. */}
+          {(estChauffeur ? etapesTournee(parJour[j]) : parJour[j]).map((i) => (
+            <div key={i.id}>
+              {estChauffeur && i.nouvelleCommune && parJour[j].length > 1 && (
+                <p className="emp-commune-etape">📍 {i.nouvelleCommune}</p>
+              )}
+              <MissionCarte i={i} estChauffeur={estChauffeur} />
+            </div>
+          ))}
+        </div>
+      ))}
+
+      <Link className="adm-btn secondaire" href="/employe" style={{ marginTop: 8, display: "inline-block" }}>← Retour au tableau de bord</Link>
+    </>
+  );
+}
+
+function MissionCarte({ i, estChauffeur }) {
+  return (
+            <Link className={"emp-carte-i cliquable" + (i.prioritaire ? " urgente" : "")} href={`/employe/interventions/${i.id}`}>
               <div className="emp-i-tete">
                 <span className="emp-i-txt">
                   <strong>
@@ -76,11 +96,5 @@ export default function PlanningEmploye() {
                 </span>
               </div>
             </Link>
-          ))}
-        </div>
-      ))}
-
-      <Link className="adm-btn secondaire" href="/employe" style={{ marginTop: 8, display: "inline-block" }}>← Retour au tableau de bord</Link>
-    </>
   );
 }

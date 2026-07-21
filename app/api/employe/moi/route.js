@@ -82,6 +82,7 @@ export async function GET(req) {
         select: {
           id: true, service: true, date: true, statut: true, destination: true,
           depart: true, nom: true, telephone: true, sousMode: true, prioritaire: true, fenetre: true,
+          commune: true, // regroupement des tournées par commune
         },
       });
     }

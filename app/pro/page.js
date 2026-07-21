@@ -6,6 +6,7 @@ import { useAsm } from "@/app/providers";
 import { chargerMesDemandes } from "@/lib/supabase";
 import { IcoVehicule, IcoMaison, IcoMedicaments } from "@/app/components/icones";
 import PatientsRattaches from "./rattaches";
+import TableauBordPro from "./tableau-bord";
 
 const ICONES = { transport: IcoVehicule, domicile: IcoMaison, medicaments: IcoMedicaments };
 const CLE_SERVICE = { transport: "s_transport", domicile: "s_domicile", medicaments: "s_medic" };
@@ -105,6 +106,8 @@ export default function EspacePro() {
         <Link className="btn-action" href="/rdv">
           {t("pro_commander")}
         </Link>
+
+        <TableauBordPro />
 
         {/* Petit lien discret en haut à droite pour ouvrir l'historique */}
         <div className="barre-histo">

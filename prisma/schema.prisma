@@ -418,6 +418,25 @@ model ListeAttente {
   @@index([service, date, statut])
 }
 
+// Multi-établissements : un GROUPE relie plusieurs comptes pro (sites).
+// Chaque membre voit alors, dans son espace pro, les statistiques
+// consolidées du groupe en plus des siennes. Géré par le superadmin.
+model GroupeEtablissement {
+  id      Int             @id @default(autoincrement())
+  nom     String
+  creeLe  DateTime        @default(now())
+  membres GroupeMembre[]
+}
+
+model GroupeMembre {
+  id       Int      @id @default(autoincrement())
+  groupeId Int
+  groupe   GroupeEtablissement @relation(fields: [groupeId], references: [id], onDelete: Cascade)
+  userId   String   @unique // compte pro (profil) — un seul groupe par compte
+  nom      String?  // nom du site affiché dans le groupe
+  ajouteLe DateTime @default(now())
+}
+
 // Note interne (jamais visible côté patient)
 model NoteInterne {
   id       Int      @id @default(autoincrement())

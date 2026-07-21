@@ -233,10 +233,59 @@ export default function PageEquipe() {
         </>
       )}
 
+      <JournalActivite recentes={donnees.journal} />
+    </>
+  );
+}
+
+// Journal d'activité GLOBAL filtrable : qui a fait quoi, quand, sur quoi —
+// par auteur, action, type d'entité, période et texte libre, avec pages.
+// Sans filtre actif, on affiche les entrées récentes déjà chargées.
+function JournalActivite({ recentes }) {
+  const [f, setF] = useState({ auteur: "", action: "", entite: "", q: "", debut: "", fin: "" });
+  const [res, setRes] = useState(null); // null = pas de recherche → récentes
+  const [page, setPage] = useState(1);
+  const filtreActif = Object.values(f).some((v) => v.trim());
+
+  async function chercher(p = 1) {
+    setPage(p);
+    try {
+      const u = new URLSearchParams({ vue: "global", page: String(p) });
+      for (const [k, v] of Object.entries(f)) if (v.trim()) u.set(k, v.trim());
+      setRes(await fetchAdmin(`/api/admin/historique?${u}`));
+    } catch {
+      setRes({ entrees: [], total: 0, pages: 0 });
+    }
+  }
+
+  const entrees = res ? res.entrees : recentes;
+
+  return (
+    <>
       <h2 className="adm-sous-titre">Journal d&apos;activité</h2>
-      {donnees.journal.length === 0 && <p className="adm-vide">Aucune action enregistrée pour l&apos;instant.</p>}
+      <div className="adm-filtres">
+        <input placeholder="Auteur…" value={f.auteur} onChange={(e) => setF({ ...f, auteur: e.target.value })} style={{ maxWidth: 140 }} />
+        <input placeholder="Action (ex. export, statut)…" value={f.action} onChange={(e) => setF({ ...f, action: e.target.value })} style={{ maxWidth: 180 }} />
+        <select value={f.entite} onChange={(e) => setF({ ...f, entite: e.target.value })}>
+          <option value="">Toutes entités</option>
+          {["demande", "client", "soignant", "transporteur", "facture", "paiement", "export", "groupe", "reglage"].map((x) => (
+            <option value={x} key={x}>{x}</option>
+          ))}
+        </select>
+        <input type="date" value={f.debut} onChange={(e) => setF({ ...f, debut: e.target.value })} />
+        <input type="date" value={f.fin} onChange={(e) => setF({ ...f, fin: e.target.value })} />
+        <input placeholder="Texte du détail…" value={f.q} onChange={(e) => setF({ ...f, q: e.target.value })} onKeyDown={(e) => e.key === "Enter" && chercher(1)} style={{ maxWidth: 170 }} />
+        <button className="adm-btn" onClick={() => chercher(1)}>Filtrer</button>
+        {res && (
+          <button className="adm-btn secondaire" onClick={() => { setRes(null); setF({ auteur: "", action: "", entite: "", q: "", debut: "", fin: "" }); }}>
+            Réinitialiser
+          </button>
+        )}
+      </div>
+      {res && <p className="fe-aide">{res.total} action{res.total > 1 ? "s" : ""} trouvée{res.total > 1 ? "s" : ""}{filtreActif ? " avec ces filtres" : ""}.</p>}
+      {entrees.length === 0 && <p className="adm-vide">Aucune action {res ? "ne correspond à ces filtres" : "enregistrée pour l'instant"}.</p>}
       <div className="adm-liste">
-        {donnees.journal.map((j) => (
+        {entrees.map((j) => (
           <div className="adm-ligne" key={j.id}>
             <span>
               <strong>{j.auteur} — {j.action}</strong>
@@ -247,6 +296,13 @@ export default function PageEquipe() {
           </div>
         ))}
       </div>
+      {res?.pages > 1 && (
+        <div className="adm-pagination">
+          <button disabled={page <= 1} onClick={() => chercher(page - 1)}>←</button>
+          <span>Page {page} / {res.pages}</span>
+          <button disabled={page >= res.pages} onClick={() => chercher(page + 1)}>→</button>
+        </div>
+      )}
     </>
   );
 }
