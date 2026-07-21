@@ -32,18 +32,19 @@ export async function GET(req) {
     const digits = (s) => String(s || "").replace(/\D/g, "");
     const cle =
       digits(user.phone).slice(-8) || digits(profil?.telephone).slice(-8);
-    if (!cle && profil?.role !== "pro") return NextResponse.json({ demandes: [] });
 
     // Correspondance sur les CHIFFRES uniquement : un numéro enregistré
     // « 0555 44 33 22 » doit matcher la clé « 55443322 » malgré les espaces.
     const { idsDemandesParTel } = await import("@/lib/telephones");
     const ids = cle ? await idsDemandesParTel(cle, 50) : [];
-    // Un ÉTABLISSEMENT voit AUSSI les réservations qu'il a posées pour ses
-    // patients (parEtabUserId = lui) — pas seulement celles à son numéro.
-    const filtre =
-      profil?.role === "pro"
-        ? { OR: [{ id: { in: ids } }, { parEtabUserId: user.id }] }
-        : { id: { in: ids } };
+    // Une demande appartient à l'utilisateur si : elle a été réservée depuis
+    // SON compte (creeParUserId — fiable même sans téléphone, ex. Google),
+    // OU son numéro correspond, OU (établissement) il l'a posée pour un
+    // patient (parEtabUserId).
+    const ou = [{ creeParUserId: user.id }];
+    if (ids.length) ou.push({ id: { in: ids } });
+    if (profil?.role === "pro") ou.push({ parEtabUserId: user.id });
+    const filtre = { OR: ou };
     // Déclencheur opportuniste des rappels de rendez-vous (jamais bloquant,
     // verrouillé en base à une exécution par 10 minutes).
     try {

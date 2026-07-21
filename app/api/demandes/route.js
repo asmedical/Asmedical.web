@@ -23,6 +23,28 @@ export async function POST(req) {
       return NextResponse.json({ erreur: "Données invalides" }, { status: 400 });
     }
 
+    // Compte du patient connecté (facultatif) : on RATTACHE la demande à son
+    // compte pour qu'elle soit toujours visible et payable par lui, même si
+    // le téléphone saisi diffère (ex. connexion Google sans téléphone, ou
+    // numéro tapé différemment). Uniquement pour une réservation POUR SOI —
+    // les réservations « pour un patient » gardent leur propre logique.
+    let creeParUserId = null;
+    if (!corps.pourPatient) {
+      const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
+      if (token) {
+        try {
+          const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+          const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+          if (url && key) {
+            const { createClient } = await import("@supabase/supabase-js");
+            const admin = createClient(url, key, { auth: { persistSession: false } });
+            const { data: { user } } = await admin.auth.getUser(token);
+            if (user) creeParUserId = user.id;
+          }
+        } catch {}
+      }
+    }
+
     // ---- Réservation AU NOM d'un patient rattaché (établissement OU proche) ----
     // Vérifiée côté serveur : procuration ACCEPTE, non expirée, couvrant le
     // service. Sans procuration valide → refus explicite.
@@ -193,6 +215,7 @@ export async function POST(req) {
             commune,
             parEtablissement,
             parEtabUserId,
+            creeParUserId,
             ...geo,
           },
         });

@@ -35,6 +35,7 @@ model Demande {
   commune        String?  // commune du patient (filtre de zone du moteur de disponibilités)
   parEtablissement String? // réservé AU NOM du patient par cet établissement (nom affiché)
   parEtabUserId  String?  // compte établissement ayant créé la réservation
+  creeParUserId  String?  // compte du patient qui a réservé POUR LUI-MÊME (rattachement fiable, indépendant du téléphone saisi)
   prisEnChargePar String? // assurance / mutuelle (ex. CNAS, CASNOS) — préparation conventions
   soignantId     Int?
   soignant       Soignant?     @relation(fields: [soignantId], references: [id])

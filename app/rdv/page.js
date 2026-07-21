@@ -158,6 +158,25 @@ export default function PriseRdv() {
     setTelephone("");
   }
 
+  // Pré-remplissage du téléphone avec celui du compte connecté (quand le
+  // champ est vide et qu'on ne réserve pas pour un proche) : évite les
+  // écarts entre le numéro du compte et celui saisi.
+  useEffect(() => {
+    (async () => {
+      try {
+        const { utilisateurCourant, chargerProfil } = await import("@/lib/supabase");
+        const u = await utilisateurCourant();
+        if (!u) return;
+        const p = await chargerProfil(u.id);
+        const tel = u.phone || p?.telephone || "";
+        if (tel) {
+          setTelephone((actuel) => (actuel && actuel.trim() ? actuel : tel));
+        }
+      } catch {}
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // Sélecteur « Pour qui ? » : proches autorisés du compte connecté
   // (rattachements ACCEPTE) — réserver pour maman/papa en deux touches.
   const [proches, setProches] = useState([]);
@@ -345,13 +364,16 @@ export default function PriseRdv() {
 
     setEnvoi(true);
     try {
-      // Réservation au nom d'un patient : jeton requis (contrôle procuration).
+      // Jeton envoyé DÈS QU'ON EST CONNECTÉ : réservation « pour un patient »
+      // (contrôle procuration) OU pour soi (rattachement de la demande au
+      // compte, pour qu'elle reste visible et payable même si le téléphone
+      // saisi diffère — ex. connexion Google).
       const entetes = { "Content-Type": "application/json" };
-      if (pourPatient?.tel) {
+      try {
         const { supabase } = await import("@/lib/supabase");
         const { data: { session } } = await supabase.auth.getSession();
         if (session?.access_token) entetes.Authorization = `Bearer ${session.access_token}`;
-      }
+      } catch {}
       const r = await fetch("/api/demandes", {
         method: "POST",
         headers: entetes,
