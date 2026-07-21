@@ -91,23 +91,37 @@ export function AsmProvider({ children }) {
     }
   }, []);
 
-  // Filet de sécurité pour le retour des connexions externes (Google, etc.) :
-  // si le fournisseur nous a déposés ailleurs que sur /connexion (typiquement
-  // l'accueil, via la « Site URL » de Supabase), la session a bien été posée
-  // par Supabase (detectSessionInUrl) mais l'aiguillage n'a pas eu lieu. On
-  // ramène alors l'utilisateur sur /connexion, où le retour est finalisé et
-  // l'utilisateur redirigé selon son rôle. Le drapeau n'existe QUE pendant un
-  // retour OAuth (posé par connexionOAuth), donc aucune navigation normale
-  // n'est affectée.
+  // Filet de sécurité pour le retour des connexions externes (Google, etc.).
+  // Supabase redirige souvent vers la « Site URL » (accueil) plutôt que vers
+  // l'URL demandée ; la session est bien établie par Supabase (échange PKCE
+  // via detectSessionInUrl), mais l'aiguillage par rôle n'a pas lieu.
+  // IMPORTANT : on attend que la session soit RÉELLEMENT posée (via
+  // onAuthStateChange — aucune course avec l'échange PKCE) AVANT de ramener
+  // l'utilisateur sur /connexion, où le retour est finalisé et l'utilisateur
+  // aiguillé selon son rôle. Le drapeau n'existe QUE pendant un retour OAuth
+  // (posé par connexionOAuth), donc aucune navigation normale n'est affectée,
+  // et /connexion le consomme immédiatement : pas de boucle possible.
   useEffect(() => {
-    try {
-      if (
-        sessionStorage.getItem("asm_oauth_retour") === "1" &&
-        window.location.pathname !== "/connexion"
-      ) {
-        window.location.replace("/connexion");
-      }
-    } catch {}
+    if (!supabase) return;
+    let fait = false;
+    const drapeauPose = () => {
+      try { return sessionStorage.getItem("asm_oauth_retour") === "1"; } catch { return false; }
+    };
+    const finaliser = () => {
+      if (fait || !drapeauPose()) return;
+      if (window.location.pathname === "/connexion") return; // déjà au bon endroit
+      fait = true;
+      window.location.replace("/connexion");
+    };
+    // La session est-elle déjà posée au chargement ?
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) finaliser();
+    }).catch(() => {});
+    // …ou arrive-t-elle juste après (échange PKCE terminé) ?
+    const { data } = supabase.auth.onAuthStateChange((_evt, session) => {
+      if (session?.user) finaliser();
+    });
+    return () => { try { data?.subscription?.unsubscribe?.(); } catch {} };
   }, []);
 
   // Restauration après rechargement
