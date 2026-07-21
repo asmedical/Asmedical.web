@@ -52,6 +52,40 @@ export default function FicheMission({ params }) {
   }
   useEffect(() => { charger(); /* eslint-disable-next-line */ }, [id]);
 
+  // Rafraîchissement léger : voir arriver « patient prêt » sans recharger.
+  useEffect(() => {
+    if (!iv || ["terminee", "annulee", "absent"].includes(iv.etape)) return;
+    const minuteur = setInterval(charger, 45000);
+    return () => clearInterval(minuteur);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [iv?.etape]);
+
+  // Partage de position pendant le trajet (transport, étape « en route ») :
+  // envoyée au serveur toutes les ~20 s, affichée sur le suivi du patient.
+  // S'arrête seul dès que l'étape change ou qu'on quitte la page.
+  const gpsActif = iv?.service === "transport" && iv?.etape === "en_route";
+  useEffect(() => {
+    if (!gpsActif || !navigator.geolocation) return;
+    let dernierEnvoi = 0;
+    const surveillance = navigator.geolocation.watchPosition(
+      async (p) => {
+        if (Date.now() - dernierEnvoi < 20000) return;
+        dernierEnvoi = Date.now();
+        try {
+          const token = await jeton();
+          await fetch("/api/employe/intervention", {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ id: Number(id), action: "position", lat: p.coords.latitude, lng: p.coords.longitude }),
+          });
+        } catch {}
+      },
+      () => {},
+      { enableHighAccuracy: true, maximumAge: 15000 }
+    );
+    return () => navigator.geolocation.clearWatch(surveillance);
+  }, [gpsActif, id]);
+
   async function agir(action, extra = {}) {
     setErr("");
     setOccupe(true);
@@ -108,6 +142,18 @@ export default function FicheMission({ params }) {
       )}
       {iv.etape === "absent" && <p className="fe-alerte">Marquée « patient absent ».</p>}
       {iv.etape === "annulee" && <p className="fe-alerte">Cette intervention a été annulée.</p>}
+
+      {/* Patient prêt pour le retour (bouton « Je suis prêt » côté patient). */}
+      {iv.retourPretLe && !cloturee && (
+        <p className="fe-alerte" style={{ background: "#e7f6ec", borderColor: "#bfe6cc", color: "#1c6b38" }}>
+          🟢 Le patient est prêt pour le retour (depuis {new Date(iv.retourPretLe).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })}).
+        </p>
+      )}
+      {gpsActif && (
+        <p className="fe-aide" style={{ marginTop: 4 }}>
+          📡 Votre position est partagée avec le patient pendant le trajet (elle s&apos;efface à la fin de la mission).
+        </p>
+      )}
 
       {iv.ordonnances?.length > 0 && (
         <div className="fe-carte" style={{ marginBottom: 12 }}>

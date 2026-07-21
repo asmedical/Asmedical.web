@@ -222,7 +222,7 @@ dossier banque.
 - [x] Phase 2 — Personnalisation du soin (25/07/2026 — 13 tests dédiés, 81 tests antérieurs verts)
 - [x] Phase 3 — Documents & ordonnances (25/07/2026 — 18 tests dédiés, 94 tests antérieurs verts)
 - [x] Phase 4 — Offre commerciale (25/07/2026 — 23 tests dédiés, 112 tests antérieurs verts)
-- [ ] Phase 5 — Trajet temps réel
+- [x] Phase 5 — Trajet temps réel (25/07/2026 — 32 tests dédiés, 135 tests antérieurs verts)
 - [ ] Phase 6 — Espace pro & pilotage
 - [ ] Phase 7 — Communication & assistance
 - [ ] Phase 8 — Préparation lancement

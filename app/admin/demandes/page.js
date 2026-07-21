@@ -103,6 +103,8 @@ function PageDemandes() {
         </div>
       )}
 
+      <BlocAttente />
+
       {/* Supervision terrain : accès rapide en un tap */}
       <div className="adm-supervision">
         {[
@@ -360,6 +362,37 @@ function DocsDemande({ d }) {
           )}
           {docs.documents.length === 0 && !docs.signatureUrl && "aucun"}
         </p>
+      )}
+    </div>
+  );
+}
+
+// Liste d'attente : patients inscrits sur des créneaux complets. Ils sont
+// prévenus automatiquement quand une annulation libère une place — ce
+// panneau sert à garder un œil (et à rappeler quelqu'un à la main).
+function BlocAttente() {
+  const [attentes, setAttentes] = useState(null);
+  const [ouvert, setOuvert] = useState(false);
+  useEffect(() => {
+    fetchAdmin("/api/attente").then((d) => setAttentes(d.attentes || [])).catch(() => setAttentes([]));
+  }, []);
+  if (!attentes || attentes.length === 0) return null;
+  return (
+    <div className="adm-fiche" style={{ marginBottom: 12 }}>
+      <button className="adm-btn secondaire" onClick={() => setOuvert((o) => !o)}>
+        {"⏳"} Liste d&apos;attente ({attentes.length}) {ouvert ? "▴" : "▾"}
+      </button>
+      {ouvert && (
+        <div style={{ marginTop: 10 }}>
+          {attentes.map((a) => (
+            <p key={a.id} style={{ margin: "4px 0", fontSize: 14 }}>
+              <b>{a.date.replace("T", " · ")}</b> · {SERVICES[a.service] || a.service} · {a.nom || "—"} ·{" "}
+              <a href={`tel:${a.telephone}`}>{a.telephone}</a>
+              {a.commune ? ` · ${a.commune}` : ""}
+              {a.statut === "NOTIFIE" ? " · ✅ prévenu(e)" : ""}
+            </p>
+          ))}
+        </div>
       )}
     </div>
   );

@@ -241,6 +241,107 @@ function BlocSignalement({ demande, t }) {
   );
 }
 
+// Trajet en direct (transport) : le chauffeur partage sa position pendant
+// qu'il roule vers le patient. L'arrivée estimée est calculée ICI, sur le
+// téléphone du patient (haversine + vitesse moyenne) : sa position ne
+// quitte jamais son appareil.
+function BlocTrajet({ demande, t }) {
+  const [maPos, setMaPos] = useState(null); // {lat, lng} | "refus"
+  const [estim, setEstim] = useState(null); // {km, minutes}
+
+  const posOk = demande.posLat != null && demande.posLng != null && demande.posLe;
+  const agePos = posOk ? Date.now() - new Date(demande.posLe).getTime() : null;
+  const posRecente = posOk && agePos < 5 * 60000;
+
+  // Ré-estime à chaque rafraîchissement de la position du véhicule.
+  useEffect(() => {
+    if (!posRecente || !maPos || maPos === "refus") return setEstim(null);
+    import("@/lib/geoloc").then(({ estimationTrajet }) => {
+      setEstim(estimationTrajet(demande.posLat, demande.posLng, maPos.lat, maPos.lng));
+    });
+  }, [demande.posLat, demande.posLng, posRecente, maPos]);
+
+  function estimer() {
+    if (!navigator.geolocation) return setMaPos("refus");
+    navigator.geolocation.getCurrentPosition(
+      (p) => setMaPos({ lat: p.coords.latitude, lng: p.coords.longitude }),
+      () => setMaPos("refus"),
+      { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 }
+    );
+  }
+
+  const hEnRoute = new Date(demande.enRouteLe).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" });
+  const ageTxt = posOk
+    ? agePos < 60000
+      ? `${Math.max(1, Math.round(agePos / 1000))} ${t("trj_sec")}`
+      : `${Math.round(agePos / 60000)} ${t("trj_min")}`
+    : null;
+  const heureArrivee = estim
+    ? new Date(Date.now() + estim.minutes * 60000).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" })
+    : null;
+
+  return (
+    <div className="suivi-trajet">
+      <strong>🚗 {t("trj_t")}</strong>
+      <p className="suivi-info" style={{ margin: "6px 0 0" }}>
+        {t("trj_enroute")} {hEnRoute}
+        {posRecente ? ` · ${t("trj_pos_maj")} ${t("trj_il_y_a")} ${ageTxt}` : ` · ${t("trj_pos_attente")}`}
+      </p>
+      {posRecente && estim && (
+        <p style={{ margin: "8px 0 0", fontWeight: 700, color: "var(--vert-fonce)" }}>
+          ≈ {String(estim.km).replace(".", ",")} {t("trj_km")} · {t("trj_eta")} ~{estim.minutes} {t("trj_min")} ({t("trj_soit")} {heureArrivee})
+        </p>
+      )}
+      {posRecente && !estim && maPos !== "refus" && (
+        <button className="btn-secondaire" style={{ marginTop: 8 }} onClick={estimer}>
+          {t("trj_estimer")}
+        </button>
+      )}
+      {maPos === "refus" && <p className="suivi-info" style={{ marginTop: 6 }}>{t("trj_geo_refus")}</p>}
+      {estim && <small style={{ display: "block", marginTop: 4, opacity: 0.7 }}>{t("trj_approx")}</small>}
+    </div>
+  );
+}
+
+// « Je suis prêt » : pendant un transport en cours, le patient prévient
+// son chauffeur (et l'équipe) qu'il est prêt à repartir — un seul geste.
+function BlocRetourPret({ demande, t }) {
+  const [etat, setEtat] = useState(demande.retourPretLe ? "ok" : ""); // "" | envoi | ok | erreur
+  useEffect(() => {
+    if (demande.retourPretLe) setEtat("ok");
+  }, [demande.retourPretLe]);
+
+  async function signaler() {
+    if (!window.confirm(t("pret_conf"))) return;
+    setEtat("envoi");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch("/api/demandes/retour-pret", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ demandeId: demande.id }),
+      });
+      if (!r.ok) throw new Error();
+      setEtat("ok");
+    } catch {
+      setEtat("erreur");
+    }
+  }
+
+  if (etat === "ok") {
+    return <p className="suivi-info" style={{ marginTop: 10, color: "var(--vert-fonce)", fontWeight: 700 }}>{t("pret_ok")}</p>;
+  }
+  return (
+    <div style={{ marginTop: 10 }}>
+      <button className="btn-action" onClick={signaler} disabled={etat === "envoi"}>
+        {etat === "envoi" ? t("envoi") : t("pret_b")}
+      </button>
+      <small style={{ display: "block", marginTop: 4, opacity: 0.75 }}>{t("pret_aide")}</small>
+      {etat === "erreur" && <p className="erreur">{t("pret_err")}</p>}
+    </div>
+  );
+}
+
 function FicheSuivi({ demande, t }) {
   const annulee = demande.statut === "ANNULEE";
   const etapeActive = INDEX[demande.statut] ?? 0;
@@ -324,6 +425,17 @@ function FicheSuivi({ demande, t }) {
             <span className="suivi-plaque" dir="ltr">{demande.transporteur.vehiculeImmat}</span>
           )}
         </div>
+      )}
+
+      {/* Trajet en direct : chauffeur en route vers le patient. */}
+      {demande.service === "transport" && demande.enRouteLe && !demande.arriveeLe && !demande.finLe &&
+        !["TERMINEE", "ANNULEE", "ABSENT"].includes(demande.statut) && (
+          <BlocTrajet demande={demande} t={t} />
+        )}
+
+      {/* « Je suis prêt » : transport en cours (rendez-vous du patient). */}
+      {demande.service === "transport" && demande.statut === "EN_COURS" && (
+        <BlocRetourPret demande={demande} t={t} />
       )}
 
       {demande.service === "medicaments" && demande.statut === "TERMINEE" && (

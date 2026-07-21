@@ -50,6 +50,11 @@ model Demande {
   problemeLe     DateTime?  // problème signalé
   problemeTexte  String?    // description du problème signalé
   compteRendu    String?    // compte rendu court après intervention (visible admin)
+  // --- Trajet en temps réel (transport) ---
+  retourPretLe   DateTime?  // le patient a appuyé sur « Je suis prêt » (retour)
+  posLat         Float?     // dernière position GPS du chauffeur pendant le trajet
+  posLng         Float?
+  posLe          DateTime?  // horodatage de cette position
   avis           Avis?
   documents      DocumentDemande[]
   creeLe         DateTime @default(now())
@@ -389,6 +394,28 @@ model DemandeSuppression {
   creeLe     DateTime @default(now())
 
   @@index([statut])
+}
+
+// Liste d'attente intelligente : un créneau complet peut être « surveillé »
+// par un patient — dès qu'une annulation ou une reprogrammation libère de
+// la place, le premier inscrit est prévenu automatiquement (notification
+// interne + push). Une entrée par (créneau, client).
+model ListeAttente {
+  id         Int      @id @default(autoincrement())
+  service    String   // transport | domicile
+  date       String   // créneau surveillé (AAAA-MM-JJTHH:MM)
+  telephone  String
+  telCle     String   // 8 derniers chiffres — anti-doublon multi-formats
+  nom        String?
+  commune    String?
+  typeTrajet String?
+  duree      Int      @default(60)
+  statut     String   @default("EN_ATTENTE") // EN_ATTENTE | NOTIFIE | EXPIREE | ANNULEE
+  creeLe     DateTime @default(now())
+  notifieLe  DateTime?
+
+  @@unique([service, date, telCle])
+  @@index([service, date, statut])
 }
 
 // Note interne (jamais visible côté patient)

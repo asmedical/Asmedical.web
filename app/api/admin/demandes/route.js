@@ -209,6 +209,18 @@ export async function PATCH(req) {
       }
     } catch {}
 
+    // Liste d'attente : une annulation ou une reprogrammation peut libérer
+    // le créneau d'origine → on prévient les inscrits (jamais bloquant).
+    try {
+      const libere =
+        (data.statut === "ANNULEE" && avant.statut !== "ANNULEE") ||
+        (data.date && data.date !== avant.date);
+      if (libere && String(avant.date || "").includes("T")) {
+        const { traiterLiberation } = await import("@/lib/attente");
+        await traiterLiberation(avant.service, avant.date, { admin: acces.admin });
+      }
+    } catch {}
+
     return NextResponse.json({ ok: true, demande: maj });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });

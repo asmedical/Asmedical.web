@@ -936,6 +936,7 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 
 /* ---------- SUIVI : carte véhicule (modèle, couleur, plaque) ---------- */
 .suivi-vehicule{display:flex;align-items:center;gap:12px;background:var(--vert-pale);border:1px solid var(--ligne);border-radius:14px;padding:12px 14px;margin-top:12px}
+.suivi-trajet{background:var(--vert-pale);border:1px solid var(--ligne);border-radius:14px;padding:12px 14px;margin-top:12px}
 .suivi-veh-ico{font-size:26px;line-height:1}
 .suivi-veh-txt{flex:1;min-width:0}
 .suivi-veh-txt strong{display:block;font-size:15px;line-height:1.3}

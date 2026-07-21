@@ -89,6 +89,9 @@ export default function PriseRdv() {
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState("");
   const [confirme, setConfirme] = useState(""); // "" | standard | urgent | abonnement | livraison
+  // Liste d'attente : créneau pris sous nos yeux → proposer d'être prévenu.
+  const [attenteSlot, setAttenteSlot] = useState(null); // { date } du créneau raté
+  const [attenteEtat, setAttenteEtat] = useState(""); // "" | envoi | ok | deja | trop | erreur
 
   // Réservation AU NOM d'un patient rattaché (établissement) : posée par
   // l'espace pro via sessionStorage, vérifiée côté serveur (procuration).
@@ -278,6 +281,7 @@ export default function PriseRdv() {
 
   async function confirmer() {
     setErreur("");
+    setAttenteSlot(null);
     if (telephone.trim().length < 9) {
       setErreur(t("err_tel"));
       return;
@@ -364,6 +368,12 @@ export default function PriseRdv() {
           return;
         }
         setErreur(t("err_creneau_pris"));
+        // On garde le créneau raté sous la main : le patient peut demander
+        // à être prévenu automatiquement si une place se libère.
+        if (["transport", "domicile"].includes(service) && date?.includes("T")) {
+          setAttenteSlot({ date });
+          setAttenteEtat("");
+        }
         const u = new URLSearchParams({ service, jour: jourChoisi, duree: String(dureeActuelle) });
         if (communeFiltre.trim()) u.set("commune", communeFiltre.trim());
         const rc = await fetch(`/api/creneaux?${u}`);
@@ -802,6 +812,49 @@ export default function PriseRdv() {
           {envoi ? t("envoi") : t("rdv_b")}
         </button>
         {erreur && <p className="erreur">{erreur}</p>}
+
+        {/* Liste d'attente : le créneau vient d'être pris → être prévenu
+            automatiquement si une place se libère (annulation). */}
+        {attenteSlot && (
+          attenteEtat === "ok" || attenteEtat === "deja" ? (
+            <p className="suivi-info" style={{ color: "var(--vert-fonce)", fontWeight: 700, marginTop: 8 }}>
+              {t(attenteEtat === "deja" ? "att_deja" : "att_ok")}
+            </p>
+          ) : (
+            <div style={{ marginTop: 8 }}>
+              <button
+                className="btn-secondaire"
+                disabled={attenteEtat === "envoi"}
+                onClick={async () => {
+                  setAttenteEtat("envoi");
+                  try {
+                    const r = await fetch("/api/attente", {
+                      method: "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body: JSON.stringify({
+                        service,
+                        date: attenteSlot.date,
+                        telephone,
+                        commune: commune.trim() || undefined,
+                        typeTrajet: service === "transport" ? typeTrajet : undefined,
+                        duree: dureeActuelle,
+                      }),
+                    });
+                    const d = await r.json().catch(() => ({}));
+                    if (r.ok) setAttenteEtat(d.deja ? "deja" : "ok");
+                    else setAttenteEtat(d.erreur === "trop_attentes" ? "trop" : "erreur");
+                  } catch {
+                    setAttenteEtat("erreur");
+                  }
+                }}
+              >
+                {t("att_b")} ({attenteSlot.date.replace("T", " · ")})
+              </button>
+              {attenteEtat === "trop" && <p className="erreur">{t("att_trop")}</p>}
+              {attenteEtat === "erreur" && <p className="erreur">{t("att_err")}</p>}
+            </div>
+          )
+        )}
       </div>
     </div>
   );

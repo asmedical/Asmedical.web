@@ -90,6 +90,8 @@ function vueIntervenant(d) {
     accepteeLe: d.accepteeLe, enRouteLe: d.enRouteLe, arriveeLe: d.arriveeLe,
     debutLe: d.debutLe, finLe: d.finLe, problemeLe: d.problemeLe,
     problemeTexte: d.problemeTexte, compteRendu: d.compteRendu,
+    // Trajet temps réel
+    retourPretLe: d.retourPretLe, posLe: d.posLe,
   };
 }
 
@@ -142,6 +144,15 @@ export async function PATCH(req) {
     const d = await prisma.demande.findUnique({ where: { id } });
     if (!possede(d, ctx)) return NextResponse.json({ erreur: "non autorisé" }, { status: 403 });
 
+    // Position GPS pendant le trajet (transport) : mise à jour silencieuse —
+    // ni journal ni notification, envoyée toutes les ~20 s par la fiche mission.
+    if (c.action === "position") {
+      const { enregistrerPosition } = await import("@/lib/trajetLive");
+      const res = await enregistrerPosition(d, c.lat, c.lng);
+      if (res.erreur) return NextResponse.json({ erreur: res.erreur }, { status: 409 });
+      return NextResponse.json({ ok: true });
+    }
+
     const now = new Date();
     const data = {};
     let libelle = "";
@@ -176,11 +187,15 @@ export async function PATCH(req) {
             }
           } catch {}
         }
+        // La position du chauffeur ne sert plus : on l'efface (vie privée).
+        data.posLat = null; data.posLng = null; data.posLe = null;
         libelle = "intervention terminée"; break;
       case "probleme":
         data.problemeLe = now; data.problemeTexte = String(c.problemeTexte || "").slice(0, 1000) || "Problème signalé"; libelle = "problème signalé"; break;
       case "absent":
-        data.statut = "ABSENT"; libelle = "patient absent"; break;
+        data.statut = "ABSENT";
+        data.posLat = null; data.posLng = null; data.posLe = null;
+        libelle = "patient absent"; break;
       default:
         return NextResponse.json({ erreur: "action inconnue" }, { status: 400 });
     }
