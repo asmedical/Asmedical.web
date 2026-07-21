@@ -175,9 +175,25 @@ model Message {
   texte        String
   luParPatient Boolean  @default(false) // messages équipe lus par le patient
   luParEquipe  Boolean  @default(false) // messages patient lus par l'équipe
+  // --- Fil par DEMANDE (cercle familial / établissement) ---
+  demandeId    Int?     // null = fil personnel avec l'équipe (historique)
+  nomAuteur    String?  // nom affiché de l'auteur dans un fil partagé
   creeLe       DateTime @default(now())
 
   @@index([userId, creeLe])
+  @@index([demandeId, creeLe])
+}
+
+// Rappels de rendez-vous déjà envoyés (anti-doublon strict) : un rappel
+// « veille » et un rappel « 2 h avant » maximum par demande.
+model RappelRdv {
+  id        Int      @id @default(autoincrement())
+  demandeId Int
+  type      String   // veille | h2
+  canaux    String   @default("") // notification,push,sms,whatsapp
+  creeLe    DateTime @default(now())
+
+  @@unique([demandeId, type])
 }
 
 // Message officiel / notification envoyé par l'équipe à un compte :
@@ -475,6 +491,9 @@ model Reglage {
   capaciteFenetre     Int     @default(8)     // livraisons max par fenêtre (matin/midi/soir)
   affectationAuto     Boolean @default(false) // affecter automatiquement l'intervenant le moins chargé
   facturationAuto     Boolean @default(true)  // facturer automatiquement à la clôture d'une prestation
+  // --- Rappels de rendez-vous automatiques ---
+  rappelsAuto         Boolean   @default(true) // rappels veille + 2 h avant
+  rappelsTickLe       DateTime? // verrou anti-rafale du déclencheur opportuniste
 }
 
 // Canal choisi par l'utilisateur pour recevoir son code de connexion

@@ -4,6 +4,7 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE } from "@/lib/i18n";
+import { repondreAssistant, libelleAction, CIBLES_ACTION } from "@/lib/assistantScenarios";
 import { IcoBulleAssistant, IcoEnvoyer } from "@/app/components/icones";
 
 // Assistant conversationnel (réponses guidées, bilingue, repli vers l'appel).
@@ -33,6 +34,16 @@ export function Assistant() {
     routeur.push(connecte ? "/rdv" : "/connexion?gate=1");
   };
 
+  // Une réponse du moteur de scénarios → bulle + bouton d'action éventuel.
+  const repondre = (texteUtilisateur) => {
+    const rep = repondreAssistant(texteUtilisateur, langue);
+    ajouter({ type: "bot", txt: rep.txt });
+    if (rep.action && rep.action !== "appeler" && CIBLES_ACTION[rep.action]) {
+      ajouter({ type: "action", action: rep.action });
+    }
+    ajouter({ type: "rapides" });
+  };
+
   const reponsesRapides = () => [
     {
       txt: langue === "ar" ? "حجز نقل" : "Réserver un transport",
@@ -43,15 +54,23 @@ export function Assistant() {
       action: () => reserver("domicile"),
     },
     {
+      txt: langue === "ar" ? "توصيل الأدوية" : "Livraison de médicaments",
+      action: () => reserver("medicaments"),
+    },
+    {
+      txt: langue === "ar" ? "تتبع طلبي" : "Suivre ma demande",
+      action: () => {
+        setOuvert(false);
+        routeur.push("/suivi");
+      },
+    },
+    {
       txt: langue === "ar" ? "التسعيرة" : "Les tarifs",
-      action: () =>
-        ajouter({
-          type: "bot",
-          txt:
-            langue === "ar"
-              ? "تعتمد الأسعار على المسافة والخدمة. يعطيك المستشار السعر الدقيق عند معاودة الاتصال المجانية. بعض الرحلات يمكن أن تغطيها CNAS حسب ملفك."
-              : "Les tarifs dépendent du trajet et du service. Un conseiller vous donne le prix exact lors du rappel gratuit. Certains transports peuvent être pris en charge par la CNAS selon votre dossier.",
-        }),
+      action: () => repondre(langue === "ar" ? "سعر" : "prix"),
+    },
+    {
+      txt: langue === "ar" ? "الحجز لقريب" : "Réserver pour un proche",
+      action: () => repondre(langue === "ar" ? "قريب" : "proche"),
     },
     {
       txt: langue === "ar" ? "التحدث إلى شخص" : "Parler à quelqu'un",
@@ -93,20 +112,14 @@ export function Assistant() {
     if (!texte) return;
     ajouter({ type: "moi", txt: texte });
     setSaisie("");
-    setTimeout(() => {
-      setMessages((m) => [
-        ...m,
-        {
-          type: "bot",
-          txt:
-            langue === "ar"
-              ? `سجّلت سؤالك! للحصول على رد دقيق، اتصل على ${TEL_AFFICHE} أو اترك رقمك — نعاود الاتصال خلال أقل من 30 دقيقة.`
-              : `Je note votre question ! Pour une réponse précise, appelez le ${TEL_AFFICHE} ou laissez votre numéro — un conseiller vous rappelle en moins de 30 minutes.`,
-        },
-        { type: "rapides" },
-      ]);
-      defiler();
-    }, 500);
+    // Le moteur de scénarios reconnaît l'intention (FR/AR) et propose
+    // l'action utile ; sans correspondance, il oriente vers un humain.
+    setTimeout(() => repondre(texte), 450);
+  };
+
+  const suivreAction = (action) => {
+    setOuvert(false);
+    routeur.push(connecte || ["packs", "devis", "connexion"].includes(action) ? CIBLES_ACTION[action] : "/connexion?gate=1");
   };
 
   return (
@@ -142,6 +155,12 @@ export function Assistant() {
                     {r.txt}
                   </button>
                 ))}
+              </div>
+            ) : m.type === "action" ? (
+              <div className="reponses-rapides" key={i}>
+                <button onClick={() => suivreAction(m.action)}>
+                  → {libelleAction(m.action, langue)}
+                </button>
               </div>
             ) : (
               <div className={"msg " + m.type} key={i}>

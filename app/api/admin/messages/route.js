@@ -17,12 +17,12 @@ export async function GET(req) {
 
     if (userId) {
       const messages = await prisma.message.findMany({
-        where: { userId },
+        where: { userId, demandeId: null },
         orderBy: { creeLe: "asc" },
         take: 300,
       });
       await prisma.message.updateMany({
-        where: { userId, deEquipe: false, luParEquipe: false },
+        where: { userId, demandeId: null, deEquipe: false, luParEquipe: false },
         data: { luParEquipe: true },
       });
       return NextResponse.json({ messages });
@@ -31,13 +31,14 @@ export async function GET(req) {
     // Conversations : groupées par compte, plus récentes d'abord.
     const groupes = await prisma.message.groupBy({
       by: ["userId"],
+      where: { demandeId: null },
       _max: { creeLe: true },
       orderBy: { _max: { creeLe: "desc" } },
       take: 100,
     });
     const nonLus = await prisma.message.groupBy({
       by: ["userId"],
-      where: { deEquipe: false, luParEquipe: false },
+      where: { demandeId: null, deEquipe: false, luParEquipe: false },
       _count: { _all: true },
     });
     const carteNonLus = Object.fromEntries(nonLus.map((g) => [g.userId, g._count._all]));
@@ -45,7 +46,7 @@ export async function GET(req) {
     const derniers = await Promise.all(
       groupes.map((g) =>
         prisma.message.findFirst({
-          where: { userId: g.userId },
+          where: { userId: g.userId, demandeId: null },
           orderBy: { creeLe: "desc" },
           select: { texte: true, deEquipe: true, creeLe: true },
         })

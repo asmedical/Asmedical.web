@@ -29,7 +29,7 @@ export async function GET(req) {
     if (new URL(req.url).searchParams.get("compteur")) {
       const [notifs, chat] = await Promise.all([
         prisma.notification.count({ where: { userId: user.id, statut: "NON_LU" } }),
-        prisma.message.count({ where: { userId: user.id, deEquipe: true, luParPatient: false } }),
+        prisma.message.count({ where: { userId: user.id, demandeId: null, deEquipe: true, luParPatient: false } }),
       ]);
       return NextResponse.json({ notifs, chat });
     }

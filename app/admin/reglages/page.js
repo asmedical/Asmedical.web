@@ -149,6 +149,14 @@ export default function PageReglages() {
           Décoché : les nouvelles demandes restent « à affecter » et l&apos;équipe choisit l&apos;intervenant.
           Les capacités « repli » ne servent que si aucun soignant/transporteur validé n&apos;est configuré.
         </p>
+        <label className="case-ligne" style={{ marginTop: 10 }}>
+          <input
+            type="checkbox"
+            checked={reglage.rappelsAuto !== false}
+            onChange={(e) => setReglage({ ...reglage, rappelsAuto: e.target.checked })}
+          />
+          Rappels de rendez-vous automatiques : la veille + 2 h avant (notification, push, SMS si crédit, WhatsApp si configuré)
+        </label>
         <button className="adm-btn" style={{ marginTop: 12 }} onClick={enregistrer} disabled={occupe}>
           {occupe ? "Enregistrement…" : "Enregistrer"}
         </button>

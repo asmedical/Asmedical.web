@@ -110,7 +110,10 @@ NEXT_PUBLIC_SITE_URL, ELITESMS_API_KEY, ELITESMS_USER_KEY, [ELITESMS_BASE_URL],
 WHATSAPP_TEMPLATE, WHATSAPP_TEMPLATE_LANGUE], OTP_TEST_CODE (mode test, à
 retirer au lancement), [CHARGILY_SECRET_KEY, CHARGILY_MODE],
 [VIREMENT_ACTIF/BANQUE/TITULAIRE/RIB], NEXT_PUBLIC_VAPID_PUBLIC_KEY,
-VAPID_PRIVATE_KEY, ANDROID_PACKAGE_NAME, ANDROID_ASSETLINKS_SHA256`.
+VAPID_PRIVATE_KEY, ANDROID_PACKAGE_NAME, ANDROID_ASSETLINKS_SHA256,
+[CRON_SECRET] (protège /api/rappels, envoyé par le cron Vercel),
+[WHATSAPP_TEMPLATE_RAPPEL] (modèle utilitaire Meta approuvé — active le
+canal WhatsApp des rappels de rendez-vous), [MAPS_PROVIDER] (réservé)`.
 
 ### État au 25/07/2026
 Play Store : test fermé actif (12 testeurs, fin ~31/07). Apple : adhésion en
@@ -224,5 +227,5 @@ dossier banque.
 - [x] Phase 4 — Offre commerciale (25/07/2026 — 23 tests dédiés, 112 tests antérieurs verts)
 - [x] Phase 5 — Trajet temps réel (25/07/2026 — 32 tests dédiés, 135 tests antérieurs verts)
 - [x] Phase 6 — Espace pro & pilotage (25/07/2026 — 31 tests dédiés, 167 tests antérieurs verts)
-- [ ] Phase 7 — Communication & assistance
+- [x] Phase 7 — Communication & assistance (25/07/2026 — 29 tests dédiés, 198 tests antérieurs verts)
 - [ ] Phase 8 — Préparation lancement

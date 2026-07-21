@@ -44,6 +44,13 @@ export async function GET(req) {
       profil?.role === "pro"
         ? { OR: [{ id: { in: ids } }, { parEtabUserId: user.id }] }
         : { id: { in: ids } };
+    // Déclencheur opportuniste des rappels de rendez-vous (jamais bloquant,
+    // verrouillé en base à une exécution par 10 minutes).
+    try {
+      const { tickRappels } = await import("@/lib/rappels");
+      tickRappels({ admin }).catch(() => {});
+    } catch {}
+
     const demandes = await prisma.demande.findMany({
       where: filtre,
       orderBy: { creeLe: "desc" },

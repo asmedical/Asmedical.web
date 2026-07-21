@@ -21,6 +21,12 @@ export async function GET(req) {
       return NextResponse.json({ ...s, voitFinances });
     }
 
+    // Déclencheur opportuniste des rappels de rendez-vous (non bloquant).
+    try {
+      const { tickRappels } = await import("@/lib/rappels");
+      tickRappels({ admin: acces.admin }).catch(() => {});
+    } catch {}
+
     const aujourdhui = new Date().toISOString().slice(0, 10);
     const maintenant = new Date().toISOString().slice(0, 16);
 
@@ -43,7 +49,7 @@ export async function GET(req) {
       prisma.soignant.count({ where: { userId: { not: null } } }),
       prisma.transporteur.count({ where: { userId: { not: null } } }),
       prisma.abonnement.count({ where: { statut: "ACTIF" } }),
-      prisma.message.count({ where: { deEquipe: false, luParEquipe: false } }),
+      prisma.message.count({ where: { demandeId: null, deEquipe: false, luParEquipe: false } }),
       prisma.demande.findMany({ orderBy: { creeLe: "desc" }, take: 5 }),
     ]);
     const suppressionsAttente = await prisma.demandeSuppression.count({ where: { statut: "EN_ATTENTE" } });

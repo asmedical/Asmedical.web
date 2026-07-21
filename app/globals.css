@@ -663,6 +663,19 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .pro-sites{border-top:1px dashed var(--ligne);margin-top:12px;padding-top:8px}
 .pro-sites p{margin:5px 0;font-size:14px}
 .emp-commune-etape{margin:10px 0 4px;font-size:12.5px;font-weight:800;color:var(--vert-fonce);text-transform:uppercase;letter-spacing:.03em}
+
+/* ---------- Fil de discussion par demande ---------- */
+.fil-demande{border:1px solid var(--ligne);border-radius:14px;padding:12px 14px;margin-top:12px;background:var(--blanc)}
+.fil-demande-tete{display:flex;justify-content:space-between;align-items:center}
+.fil-demande-info{font-size:12px;color:var(--gris);margin:4px 0 8px}
+.fil-demande-corps{max-height:260px;overflow-y:auto;display:flex;flex-direction:column;gap:8px;padding:4px 0}
+.fil-demande-vide{color:var(--gris);font-size:13.5px;text-align:center;margin:12px 0}
+.fil-msg{max-width:85%;background:var(--vert-pale);border-radius:12px;padding:8px 12px;font-size:14.5px;align-self:flex-start}
+.fil-msg small{display:block;font-size:11px;font-weight:800;color:var(--vert-fonce);margin-bottom:2px}
+.fil-msg.moi{align-self:flex-end;background:var(--vert);color:#fff}
+.fil-msg.equipe{border:1px solid var(--or);background:#FBF6EA}
+.fil-demande-saisie{display:flex;gap:8px;margin-top:8px}
+.fil-demande-saisie input{flex:1;border:1px solid var(--ligne);border-radius:10px;padding:10px 12px;font-size:15px}
 .adm-fiche>strong{font-size:16px;color:var(--vert-fonce)}
 .adm-photo{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}
 .adm-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--vert-pale);border:1px solid var(--ligne)}

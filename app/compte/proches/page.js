@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { supabase } from "@/lib/supabase";
+import FilDemande from "@/app/components/fil-demande";
 
 // « Mes proches » — tableau de bord Famille : les patients pour lesquels je
 // suis autorisé(e) à réserver et suivre les prestations. L'autre sens (qui a
@@ -203,6 +204,8 @@ export default function MesProches() {
                               <strong>{t("pr_cr")} :</strong> {dm.compteRendu}
                             </div>
                           )}
+                          {/* Fil partagé avec le patient et l'équipe. */}
+                          <FilDemande demandeId={dm.id} />
                         </div>
                       ))}
                     </div>

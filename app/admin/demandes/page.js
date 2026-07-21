@@ -191,6 +191,7 @@ function PageDemandes() {
             )}
             {d.notes && <p><b>Notes client :</b> {d.notes}</p>}
             <DocsDemande d={d} />
+            <FilAdmin demandeId={d.id} />
             <Precisions json={d.details} />
             <SuiviIntervenant d={d} />
           </div>
@@ -394,6 +395,60 @@ function BlocAttente() {
           ))}
         </div>
       )}
+    </div>
+  );
+}
+
+// Fil de discussion de la demande (patient / proches / établissement) :
+// l'équipe lit et répond directement depuis la fiche.
+function FilAdmin({ demandeId }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [messages, setMessages] = useState(null);
+  const [texte, setTexte] = useState("");
+  const [occupe, setOccupe] = useState(false);
+
+  const charger = () =>
+    fetchAdmin(`/api/admin/fil?demande=${demandeId}`).then((d) => setMessages(d.messages || [])).catch(() => setMessages([]));
+  useEffect(() => {
+    if (ouvert) charger();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ouvert, demandeId]);
+
+  async function repondre() {
+    if (!texte.trim() || occupe) return;
+    setOccupe(true);
+    try {
+      await fetchAdmin("/api/admin/fil", { method: "POST", body: JSON.stringify({ demandeId, texte: texte.trim() }) });
+      setTexte("");
+      await charger();
+    } catch {}
+    setOccupe(false);
+  }
+
+  if (!ouvert) {
+    return (
+      <button className="adm-btn secondaire" style={{ marginTop: 8 }} onClick={() => setOuvert(true)}>
+        💬 Discussion {messages ? `(${messages.length})` : ""}
+      </button>
+    );
+  }
+  return (
+    <div style={{ border: "1px solid var(--ligne)", borderRadius: 10, padding: "10px 12px", marginTop: 8 }}>
+      <strong>💬 Discussion (patient, proches, établissement)</strong>
+      {messages === null && <p className="adm-vide">Chargement…</p>}
+      {messages?.length === 0 && <p className="fe-aide">Aucun message dans ce fil.</p>}
+      {messages?.map((m) => (
+        <p key={m.id} style={{ margin: "6px 0", fontSize: 14 }}>
+          <b style={{ color: m.deEquipe ? "var(--or)" : "var(--vert-fonce)" }}>{m.nomAuteur || "?"}</b>{" "}
+          <small style={{ color: "var(--gris)" }}>{new Date(m.creeLe).toLocaleString("fr-FR")}</small>
+          <br />{m.texte}
+        </p>
+      ))}
+      <div className="adm-filtres" style={{ marginTop: 8 }}>
+        <input placeholder="Répondre au fil…" value={texte} onChange={(e) => setTexte(e.target.value)} onKeyDown={(e) => e.key === "Enter" && repondre()} maxLength={1000} />
+        <button className="adm-btn" disabled={occupe || !texte.trim()} onClick={repondre}>Envoyer</button>
+        <button className="adm-btn secondaire" onClick={() => setOuvert(false)}>Fermer</button>
+      </div>
     </div>
   );
 }
