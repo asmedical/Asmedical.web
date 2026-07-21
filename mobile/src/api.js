@@ -5,7 +5,7 @@ import Constants from "expo-constants";
 export const API_BASE =
   process.env.EXPO_PUBLIC_API_URL ||
   Constants.expoConfig?.extra?.apiUrl ||
-  "https://asm-sante.com";
+  "https://www.asm-sante.com"; // domaine canonique (évite la redirection 308)
 
 async function jeton() {
   const { supabase } = require("./supabase");

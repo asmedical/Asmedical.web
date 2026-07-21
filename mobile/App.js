@@ -4,7 +4,7 @@
 import React, { useEffect } from "react";
 import { Text, View, ActivityIndicator } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { NavigationContainer, DefaultTheme } from "@react-navigation/native";
+import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { SafeAreaProvider } from "react-native-safe-area-context";
@@ -21,6 +21,13 @@ import MesDemandes from "./src/screens/MesDemandes";
 import Suivi from "./src/screens/Suivi";
 import Messagerie from "./src/screens/Messagerie";
 import Profil from "./src/screens/Profil";
+import Assistant from "./src/Assistant";
+
+// Référence de navigation : permet à l'assistant (superposé) d'ouvrir un écran.
+const navigationRef = createNavigationContainerRef();
+const naviguer = (nom, params) => {
+  if (navigationRef.isReady()) navigationRef.navigate(nom, params);
+};
 
 const Tabs = createBottomTabNavigator();
 const Pile = createNativeStackNavigator();
@@ -87,13 +94,17 @@ function Racine() {
   }
 
   return (
-    <NavigationContainer theme={THEME}>
+    <NavigationContainer ref={navigationRef} theme={THEME}>
       {user ? (
-        <Pile.Navigator screenOptions={{ headerTintColor: C.vertFonce, headerTitleStyle: { fontWeight: "800" } }}>
-          <Pile.Screen name="TabsRacine" component={Onglets} options={{ headerShown: false }} />
-          <Pile.Screen name="Reservation" component={Reservation} options={{ title: t("rdv_t") }} />
-          <Pile.Screen name="Suivi" component={Suivi} options={{ title: t("suivi_t") }} />
-        </Pile.Navigator>
+        <View style={{ flex: 1 }}>
+          <Pile.Navigator screenOptions={{ headerTintColor: C.vertFonce, headerTitleStyle: { fontWeight: "800" } }}>
+            <Pile.Screen name="TabsRacine" component={Onglets} options={{ headerShown: false }} />
+            <Pile.Screen name="Reservation" component={Reservation} options={{ title: t("rdv_t") }} />
+            <Pile.Screen name="Suivi" component={Suivi} options={{ title: t("suivi_t") }} />
+          </Pile.Navigator>
+          {/* Assistant IA superposé (bulle flottante), disponible partout. */}
+          <Assistant navigate={naviguer} />
+        </View>
       ) : (
         <Pile.Navigator screenOptions={{ headerShown: false }}>
           <Pile.Screen name="Connexion" component={Connexion} />
