@@ -220,7 +220,7 @@ dossier banque.
 ### Suivi
 - [x] Phase 1 — Cercle familial (25/07/2026 — 20 tests dédiés, suites 23+15+23 vertes)
 - [x] Phase 2 — Personnalisation du soin (25/07/2026 — 13 tests dédiés, 81 tests antérieurs verts)
-- [ ] Phase 3 — Documents & ordonnances
+- [x] Phase 3 — Documents & ordonnances (25/07/2026 — 18 tests dédiés, 94 tests antérieurs verts)
 - [ ] Phase 4 — Offre commerciale
 - [ ] Phase 5 — Trajet temps réel
 - [ ] Phase 6 — Espace pro & pilotage

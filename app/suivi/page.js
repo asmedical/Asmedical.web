@@ -157,6 +157,46 @@ function SuiviContenu() {
   );
 }
 
+// Renouvellement en un bouton d'une commande de médicaments terminée.
+function BlocRenouveler({ demande, t }) {
+  const [etat, setEtat] = useState(""); // "" | envoi | ok | erreur
+  const [nouvelId, setNouvelId] = useState(null);
+  if (etat === "ok") {
+    return (
+      <p className="suivi-info" style={{ color: "var(--vert-fonce)", fontWeight: 700 }}>
+        {t("ren_ok")} {nouvelId ? `(n°${nouvelId})` : ""}
+      </p>
+    );
+  }
+  async function renouveler() {
+    if (!window.confirm(t("ren_conf"))) return;
+    setEtat("envoi");
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch("/api/renouveler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ demandeId: demande.id }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error();
+      setNouvelId(d.id || null);
+      setEtat("ok");
+    } catch {
+      setEtat("erreur");
+    }
+  }
+  return (
+    <div style={{ marginTop: 10 }}>
+      <button className="btn-secondaire" onClick={renouveler} disabled={etat === "envoi"}>
+        🔁 {etat === "envoi" ? t("otp_envoi") : t("ren_b")}
+      </button>
+      {etat === "erreur" && <p className="erreur">{t("ren_err")}</p>}
+    </div>
+  );
+}
+
 // Signalement d'un problème sur la prestation — note interne + alerte équipe.
 function BlocSignalement({ demande, t }) {
   const [ouvert, setOuvert] = useState(false);
@@ -284,6 +324,10 @@ function FicheSuivi({ demande, t }) {
             <span className="suivi-plaque" dir="ltr">{demande.transporteur.vehiculeImmat}</span>
           )}
         </div>
+      )}
+
+      {demande.service === "medicaments" && demande.statut === "TERMINEE" && (
+        <BlocRenouveler demande={demande} t={t} />
       )}
 
       {(demande.statut === "TERMINEE" || demande.avis) && <BlocAvis demande={demande} t={t} />}

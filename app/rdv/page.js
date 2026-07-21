@@ -93,6 +93,7 @@ export default function PriseRdv() {
   // Réservation AU NOM d'un patient rattaché (établissement) : posée par
   // l'espace pro via sessionStorage, vérifiée côté serveur (procuration).
   const [prefGenre, setPrefGenre] = useState("");
+  const [ordonnance, setOrdonnance] = useState(null); // fichier joint (livraison)
   const [pourPatient, setPourPatient] = useState(null);
   useEffect(() => {
     try {
@@ -354,6 +355,20 @@ export default function PriseRdv() {
         return;
       }
       if (!r.ok) throw new Error();
+      // Ordonnance jointe : envoyée après la création (jamais bloquant).
+      if (livraison && ordonnance) {
+        try {
+          const dRep = await r.clone().json().catch(() => ({}));
+          if (dRep?.id) {
+            const fd = new FormData();
+            fd.append("demandeId", String(dRep.id));
+            fd.append("telephone", telephone);
+            fd.append("fichier", ordonnance);
+            await fetch("/api/demandes/ordonnance", { method: "POST", body: fd });
+          }
+        } catch {}
+        setOrdonnance(null);
+      }
       if (pourPatient) {
         try { sessionStorage.removeItem("asm_pour_patient"); } catch {}
       }
@@ -575,6 +590,16 @@ export default function PriseRdv() {
               </div>
             </div>
             <p className="precisions-aide">{t("ordonnance_info")}</p>
+            <div className="champ">
+              <label>{t("ord_l")}</label>
+              <input
+                type="file"
+                accept="image/*,application/pdf"
+                onChange={(e) => setOrdonnance(e.target.files?.[0] || null)}
+              />
+              {ordonnance && <p className="fe-aide" style={{ marginBottom: 0 }}>📎 {ordonnance.name} — {t("ord_pret")}</p>}
+              {!ordonnance && <p className="fe-aide" style={{ marginBottom: 0 }}>{t("ord_aide")}</p>}
+            </div>
           </>
         )}
 

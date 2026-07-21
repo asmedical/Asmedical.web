@@ -188,6 +188,7 @@ function PageDemandes() {
               </p>
             )}
             {d.notes && <p><b>Notes client :</b> {d.notes}</p>}
+            <DocsDemande d={d} />
             <Precisions json={d.details} />
             <SuiviIntervenant d={d} />
           </div>
@@ -319,5 +320,47 @@ export default function Page() {
     <Suspense>
       <PageDemandes />
     </Suspense>
+  );
+}
+
+// Documents d'une demande (ordonnances) + signature de fin — liens signés
+// chargés à la demande (1 h), jamais d'URL publique.
+function DocsDemande({ d }) {
+  const [docs, setDocs] = useState(null); // null = pas chargés
+  const [charge, setCharge] = useState(false);
+  const rien = !(d.documents?.length || d.signaturePath);
+  if (rien) return null;
+  async function voir() {
+    setCharge(true);
+    try {
+      const r = await fetchAdmin(`/api/admin/demandes?documents=${d.id}`);
+      setDocs(r);
+    } catch {
+      setDocs({ documents: [], signatureUrl: null });
+    }
+    setCharge(false);
+  }
+  return (
+    <div style={{ margin: "6px 0" }}>
+      {docs === null ? (
+        <button className="adm-btn secondaire" onClick={voir} disabled={charge}>
+          📎 {charge ? "Chargement…" : `Documents (${d.documents?.length || 0}${d.signaturePath ? " + signature" : ""})`}
+        </button>
+      ) : (
+        <p style={{ margin: 0 }}>
+          <b>Documents :</b>{" "}
+          {docs.documents.map((x) => (
+            <span key={x.id}>
+              {x.url ? <a href={x.url} target="_blank" rel="noopener noreferrer">{x.nom}</a> : x.nom}
+              {" · "}
+            </span>
+          ))}
+          {docs.signatureUrl && (
+            <a href={docs.signatureUrl} target="_blank" rel="noopener noreferrer">✍ Signature de fin</a>
+          )}
+          {docs.documents.length === 0 && !docs.signatureUrl && "aucun"}
+        </p>
+      )}
+    </div>
   );
 }

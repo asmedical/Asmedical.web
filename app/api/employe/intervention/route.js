@@ -109,7 +109,20 @@ export async function GET(req) {
       const { consignesIntervenant } = await import("@/lib/preferences");
       preferencesPatient = await consignesIntervenant(d.telephone);
     } catch {}
-    return NextResponse.json({ intervention: { ...vueIntervenant(d), preferencesPatient }, estChauffeur: ctx.estChauffeur });
+    // Ordonnances jointes (livraison de médicaments) — liens signés 1 h.
+    let ordonnances = [];
+    try {
+      if (d.service === "medicaments") {
+        const docs = await prisma.documentDemande.findMany({ where: { demandeId: d.id }, orderBy: { creeLe: "asc" } });
+        if (docs.length) {
+          const { data: urls } = await ctx.admin.storage
+            .from("documents")
+            .createSignedUrls(docs.map((x) => x.chemin), 3600);
+          ordonnances = docs.map((x, i) => ({ id: x.id, nom: x.nom, url: urls?.[i]?.signedUrl || null }));
+        }
+      }
+    } catch {}
+    return NextResponse.json({ intervention: { ...vueIntervenant(d), preferencesPatient, ordonnances }, estChauffeur: ctx.estChauffeur });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
   }
@@ -146,6 +159,23 @@ export async function PATCH(req) {
       case "terminer":
         data.finLe = now; data.statut = "TERMINEE";
         if (c.compteRendu) data.compteRendu = String(c.compteRendu).slice(0, 1500);
+        // Signature électronique du patient (tracé tactile) : image PNG
+        // encodée en base64, bornée, stockée dans le bucket PRIVÉ.
+        if (c.signature && typeof c.signature === "string") {
+          try {
+            const m = c.signature.match(/^data:image\/(png|jpeg);base64,([A-Za-z0-9+/=]+)$/);
+            if (m) {
+              const tampon = Buffer.from(m[2], "base64");
+              if (tampon.length > 100 && tampon.length <= 500 * 1024) {
+                const chemin = `signatures/demande-${id}-${Date.now()}.${m[1] === "jpeg" ? "jpg" : "png"}`;
+                const { error: eSig } = await ctx.admin.storage
+                  .from("documents")
+                  .upload(chemin, tampon, { contentType: `image/${m[1]}`, upsert: false });
+                if (!eSig) data.signaturePath = chemin;
+              }
+            }
+          } catch {}
+        }
         libelle = "intervention terminée"; break;
       case "probleme":
         data.problemeLe = now; data.problemeTexte = String(c.problemeTexte || "").slice(0, 1000) || "Problème signalé"; libelle = "problème signalé"; break;

@@ -13,6 +13,7 @@ model Demande {
   service        String   // transport | domicile | medicaments
   typeTrajet     String?  // simple | accompagne | medicalise
   prefGenre      String?  // souhait du patient : homme | femme (domicile)
+  signaturePath  String?  // signature de fin d'intervention (chemin stockage privé)
   nom            String?
   telephone      String
   depart         String?
@@ -48,6 +49,7 @@ model Demande {
   problemeTexte  String?    // description du problème signalé
   compteRendu    String?    // compte rendu court après intervention (visible admin)
   avis           Avis?
+  documents      DocumentDemande[]
   creeLe         DateTime @default(now())
 }
 
@@ -194,6 +196,23 @@ model Notification {
 // Procuration / rattachement d'un patient à un établissement partenaire.
 // L'établissement ne peut agir POUR un patient que si un rattachement
 // ACCEPTE, non expiré et couvrant le service existe.
+// Document rattaché à UNE demande (ordonnance de livraison, bon…).
+// Le fichier vit dans le bucket privé « documents » ; ici les métadonnées.
+model DocumentDemande {
+  id        Int      @id @default(autoincrement())
+  demandeId Int
+  demande   Demande  @relation(fields: [demandeId], references: [id], onDelete: Cascade)
+  categorie String   @default("ordonnance") // ordonnance | bon | autre
+  nom       String
+  chemin    String   // chemin dans le bucket privé
+  mime      String?
+  taille    Int?
+  par       String?  // patient | proche | staff
+  creeLe    DateTime @default(now())
+
+  @@index([demandeId])
+}
+
 // Préférences de soin du patient : consignes pratiques (accès, allergies)
 // visibles UNIQUEMENT par l'intervenant affecté, préférence de genre et
 // intervenant favori (prioritaires à l'affectation automatique).

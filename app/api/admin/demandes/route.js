@@ -77,6 +77,26 @@ export async function GET(req) {
     }
     const page = Math.max(1, parseInt(p.get("page") || "1", 10));
     const parPage = 30;
+    // Liens signés (1 h) des documents et de la signature d'une demande.
+    const docsPour = Number(p.get("documents"));
+    if (docsPour) {
+      const d = await prisma.demande.findUnique({
+        where: { id: docsPour },
+        include: { documents: { orderBy: { creeLe: "asc" } } },
+      });
+      if (!d) return NextResponse.json({ erreur: "introuvable" }, { status: 404 });
+      const chemins = [...d.documents.map((x) => x.chemin), ...(d.signaturePath ? [d.signaturePath] : [])];
+      let urls = [];
+      if (chemins.length) {
+        const { data } = await acces.admin.storage.from("documents").createSignedUrls(chemins, 3600);
+        urls = data || [];
+      }
+      return NextResponse.json({
+        documents: d.documents.map((x, i) => ({ id: x.id, nom: x.nom, categorie: x.categorie, url: urls[i]?.signedUrl || null })),
+        signatureUrl: d.signaturePath ? urls[urls.length - 1]?.signedUrl || null : null,
+      });
+    }
+
     const [total, demandes] = await Promise.all([
       prisma.demande.count({ where }),
       prisma.demande.findMany({
@@ -89,6 +109,7 @@ export async function GET(req) {
           transporteur: { select: { nom: true } },
           abonnement: true,
           avis: { select: { note: true, commentaire: true } },
+          documents: { select: { id: true, nom: true, categorie: true } },
         },
       }),
     ]);

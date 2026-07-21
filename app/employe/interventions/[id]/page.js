@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabase";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
@@ -36,6 +36,7 @@ export default function FicheMission({ params }) {
   const [err, setErr] = useState("");
   const [rendu, setRendu] = useState(false); // formulaire compte rendu ouvert
   const [texteRendu, setTexteRendu] = useState("");
+  const [signature, setSignature] = useState(null);
   const [pb, setPb] = useState(false); // formulaire problème ouvert
   const [textePb, setTextePb] = useState("");
 
@@ -108,6 +109,27 @@ export default function FicheMission({ params }) {
       {iv.etape === "absent" && <p className="fe-alerte">Marquée « patient absent ».</p>}
       {iv.etape === "annulee" && <p className="fe-alerte">Cette intervention a été annulée.</p>}
 
+      {iv.ordonnances?.length > 0 && (
+        <div className="fe-carte" style={{ marginBottom: 12 }}>
+          <strong>📎 Ordonnance{iv.ordonnances.length > 1 ? "s" : ""}</strong>
+          {iv.ordonnances.map((o) => (
+            <p key={o.id} style={{ margin: "6px 0 0" }}>
+              {o.url ? <a href={o.url} target="_blank" rel="noopener noreferrer">{o.nom}</a> : o.nom}
+            </p>
+          ))}
+        </div>
+      )}
+
+      {iv.preferencesPatient && (
+        <div className="fe-carte" style={{ marginBottom: 12 }}>
+          <strong>ℹ Consignes du patient</strong>
+          {iv.preferencesPatient.allergies && <p style={{ margin: "6px 0 0" }}>⚠ Allergies : {iv.preferencesPatient.allergies}</p>}
+          {iv.preferencesPatient.etage && <p style={{ margin: "6px 0 0" }}>Étage : {iv.preferencesPatient.etage}</p>}
+          {iv.preferencesPatient.codePorte && <p style={{ margin: "6px 0 0" }}>Accès : {iv.preferencesPatient.codePorte}</p>}
+          {iv.preferencesPatient.consignes && <p style={{ margin: "6px 0 0" }}>{iv.preferencesPatient.consignes}</p>}
+        </div>
+      )}
+
       {err && <p className="erreur">{err}</p>}
 
       {/* Action principale */}
@@ -122,8 +144,9 @@ export default function FicheMission({ params }) {
               <label className="fe-champ"><span>Compte rendu (facultatif — visible par l&apos;équipe ASM)</span>
                 <textarea rows={3} value={texteRendu} onChange={(e) => setTexteRendu(e.target.value)} placeholder="Tout s'est bien passé / points à signaler…" />
               </label>
+              <PaveSignature onChange={setSignature} />
               <div style={{ display: "flex", gap: 8, marginTop: 10 }}>
-                <button className={"adm-btn" + (occupe ? " btn-charge" : "")} disabled={occupe} onClick={() => agir("terminer", { compteRendu: texteRendu.trim() })}>Valider la fin</button>
+                <button className={"adm-btn" + (occupe ? " btn-charge" : "")} disabled={occupe} onClick={() => agir("terminer", { compteRendu: texteRendu.trim(), signature: signature || undefined })}>Valider la fin</button>
                 <button className="adm-btn secondaire" onClick={() => setRendu(false)}>Annuler</button>
               </div>
             </div>
@@ -199,5 +222,65 @@ export default function FicheMission({ params }) {
         </div>
       )}
     </>
+  );
+}
+
+// Pavé de signature tactile (facultatif) : le patient signe du doigt à la
+// fin de l'intervention. L'image part avec « Valider la fin » — preuve de
+// passage conservée dans l'espace privé, visible par l'équipe.
+function PaveSignature({ onChange }) {
+  const ref = useRef(null);
+  const trace = useRef(false);
+  const vide = useRef(true);
+
+  function position(e) {
+    const c = ref.current;
+    const r = c.getBoundingClientRect();
+    const t = e.touches?.[0] || e;
+    return { x: ((t.clientX - r.left) * c.width) / r.width, y: ((t.clientY - r.top) * c.height) / r.height };
+  }
+  function debut(e) {
+    e.preventDefault();
+    trace.current = true;
+    const ctx = ref.current.getContext("2d");
+    const p = position(e);
+    ctx.lineWidth = 2.4; ctx.lineCap = "round"; ctx.strokeStyle = "#22332C";
+    ctx.beginPath();
+    ctx.moveTo(p.x, p.y);
+  }
+  function bouge(e) {
+    if (!trace.current) return;
+    e.preventDefault();
+    const ctx = ref.current.getContext("2d");
+    const p = position(e);
+    ctx.lineTo(p.x, p.y);
+    ctx.stroke();
+    vide.current = false;
+  }
+  function fin() {
+    if (!trace.current) return;
+    trace.current = false;
+    if (!vide.current) onChange(ref.current.toDataURL("image/png"));
+  }
+  function effacer() {
+    const c = ref.current;
+    c.getContext("2d").clearRect(0, 0, c.width, c.height);
+    vide.current = true;
+    onChange(null);
+  }
+
+  return (
+    <div style={{ marginTop: 10 }}>
+      <span style={{ fontWeight: 700, fontSize: 14 }}>Signature du patient (facultatif)</span>
+      <canvas
+        ref={ref}
+        width={600}
+        height={200}
+        style={{ width: "100%", height: 120, border: "1.5px dashed var(--ligne, #ccc)", borderRadius: 10, background: "#fff", touchAction: "none", marginTop: 6 }}
+        onMouseDown={debut} onMouseMove={bouge} onMouseUp={fin} onMouseLeave={fin}
+        onTouchStart={debut} onTouchMove={bouge} onTouchEnd={fin}
+      />
+      <button type="button" className="fin-lien" onClick={effacer} style={{ marginTop: 4 }}>Effacer la signature</button>
+    </div>
   );
 }
