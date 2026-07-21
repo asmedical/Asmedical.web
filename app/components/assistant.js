@@ -4,18 +4,23 @@ import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE } from "@/lib/i18n";
-import { repondreAssistant, libelleAction, CIBLES_ACTION } from "@/lib/assistantScenarios";
+import { libelleAction, CIBLES_ACTION } from "@/lib/assistantScenarios";
 import { IcoBulleAssistant, IcoEnvoyer } from "@/app/components/icones";
 
-// Assistant conversationnel (réponses guidées, bilingue, repli vers l'appel).
-// L'abstraction reste simple pour pouvoir brancher une vraie IA plus tard.
+// Assistant conversationnel ASM. Il parle à l'API /api/assistant : côté serveur,
+// une vraie IA (Claude) répond en comprenant le langage libre ET le contexte
+// réel du client (ses demandes) ; si la clé IA n'est pas configurée, le serveur
+// bascule tout seul sur un moteur guidé. Le composant ne connaît aucune clé.
 export function Assistant() {
   const { t, langue, connecte, choisirService } = useAsm();
   const routeur = useRouter();
   const [ouvert, setOuvert] = useState(false);
   const [messages, setMessages] = useState([]);
   const [saisie, setSaisie] = useState("");
+  const [chargement, setChargement] = useState(false);
   const corpsRef = useRef(null);
+  // Mémoire de conversation envoyée à l'IA pour qu'elle garde le fil.
+  const histoRef = useRef([]);
 
   const defiler = () => {
     requestAnimationFrame(() => {
@@ -34,13 +39,54 @@ export function Assistant() {
     routeur.push(connecte ? "/rdv" : "/connexion?gate=1");
   };
 
-  // Une réponse du moteur de scénarios → bulle + bouton d'action éventuel.
-  const repondre = (texteUtilisateur) => {
-    const rep = repondreAssistant(texteUtilisateur, langue);
-    ajouter({ type: "bot", txt: rep.txt });
-    if (rep.action && rep.action !== "appeler" && CIBLES_ACTION[rep.action]) {
-      ajouter({ type: "action", action: rep.action });
+  const jeton = async () => {
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      const { data: { session } } = await supabase.auth.getSession();
+      return session?.access_token || "";
+    } catch {
+      return "";
     }
+  };
+
+  // Envoie le message à l'IA (le serveur choisit IA ou repli guidé). Le caller
+  // affiche déjà la bulle « moi » ; ici on gère le contexte + la réponse.
+  const demander = async (texte) => {
+    const historique = histoRef.current.slice(-8);
+    histoRef.current.push({ role: "user", content: texte });
+    setChargement(true);
+    defiler();
+    let rep = null;
+    try {
+      const token = await jeton();
+      const r = await fetch("/api/assistant", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({ message: texte, historique, langue }),
+      });
+      rep = await r.json();
+    } catch {}
+    setChargement(false);
+
+    if (!rep || !rep.reponse) {
+      ajouter({
+        type: "bot",
+        txt:
+          langue === "ar"
+            ? `عذراً، تعذّر الرد الآن. اتصلوا بنا على ${TEL_AFFICHE}، على مدار الأسبوع.`
+            : `Désolé, je n'ai pas pu répondre à l'instant. Appelez-nous au ${TEL_AFFICHE}, 7j/7.`,
+      });
+      ajouter({ type: "rapides" });
+      return;
+    }
+    histoRef.current.push({ role: "assistant", content: rep.reponse });
+    ajouter({ type: "bot", txt: rep.reponse });
+    // Bouton d'action utile sous la réponse (jamais pour « appeler » : le
+    // numéro figure déjà dans le texte).
+    if (rep.action && rep.action !== "appeler") ajouter({ type: "action", action: rep.action });
     ajouter({ type: "rapides" });
   };
 
@@ -66,11 +112,12 @@ export function Assistant() {
     },
     {
       txt: langue === "ar" ? "التسعيرة" : "Les tarifs",
-      action: () => repondre(langue === "ar" ? "سعر" : "prix"),
+      action: () => demander(langue === "ar" ? "ما هي الأسعار؟" : "Quels sont vos tarifs ?"),
     },
     {
       txt: langue === "ar" ? "الحجز لقريب" : "Réserver pour un proche",
-      action: () => repondre(langue === "ar" ? "قريب" : "proche"),
+      action: () =>
+        demander(langue === "ar" ? "كيف أحجز لقريب؟" : "Comment réserver pour un proche ?"),
     },
     {
       txt: langue === "ar" ? "التحدث إلى شخص" : "Parler à quelqu'un",
@@ -79,7 +126,7 @@ export function Assistant() {
           type: "bot",
           txt:
             langue === "ar"
-              ? `بالطبع! اتصل بنا على ${TEL_AFFICHE}، على مدار الأسبوع.`
+              ? `بالطبع! اتصلوا بنا على ${TEL_AFFICHE}، على مدار الأسبوع.`
               : `Bien sûr ! Appelez-nous au ${TEL_AFFICHE}, 7j/7.`,
         }),
     },
@@ -103,23 +150,27 @@ export function Assistant() {
   };
 
   const choisirRapide = (r) => {
-    ajouter({ type: "moi", txt: r.txt });
-    setTimeout(r.action, 350);
+    if (r.txt) ajouter({ type: "moi", txt: r.txt });
+    setTimeout(r.action, 300);
   };
 
   const envoyer = () => {
     const texte = saisie.trim();
-    if (!texte) return;
+    if (!texte || chargement) return;
     ajouter({ type: "moi", txt: texte });
     setSaisie("");
-    // Le moteur de scénarios reconnaît l'intention (FR/AR) et propose
-    // l'action utile ; sans correspondance, il oriente vers un humain.
-    setTimeout(() => repondre(texte), 450);
+    demander(texte);
   };
 
   const suivreAction = (action) => {
     setOuvert(false);
-    routeur.push(connecte || ["packs", "devis", "connexion"].includes(action) ? CIBLES_ACTION[action] : "/connexion?gate=1");
+    const cible = CIBLES_ACTION[action];
+    if (!cible) return;
+    routeur.push(
+      connecte || ["packs", "abonnements", "devis", "connexion"].includes(action)
+        ? cible
+        : "/connexion?gate=1"
+    );
   };
 
   return (
@@ -168,6 +219,15 @@ export function Assistant() {
               </div>
             )
           )}
+          {chargement && (
+            <div className="msg bot" aria-live="polite">
+              <span className="chat-ecrit">
+                <span></span>
+                <span></span>
+                <span></span>
+              </span>
+            </div>
+          )}
         </div>
         <div className="chat-saisie">
           <input
@@ -176,8 +236,9 @@ export function Assistant() {
             value={saisie}
             onChange={(e) => setSaisie(e.target.value)}
             onKeyDown={(e) => e.key === "Enter" && envoyer()}
+            disabled={chargement}
           />
-          <button onClick={envoyer} aria-label="Envoyer">
+          <button onClick={envoyer} aria-label="Envoyer" disabled={chargement}>
             <IcoEnvoyer />
           </button>
         </div>
