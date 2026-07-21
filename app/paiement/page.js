@@ -26,7 +26,7 @@ function PaiementContenu() {
   const demandeId = params.get("demande");
 
   const [ctx, setCtx] = useState(undefined); // undefined = chargement, null = erreur
-  const [ecran, setEcran] = useState("");    // "" | ticket | reussi | refuse | annule | abo_ok | surplace_ok
+  const [ecran, setEcran] = useState("");    // "" | reussi | reussi_ticket | refuse | annule | abo_ok
   const [codeTicket, setCodeTicket] = useState("");
   const [msg, setMsg] = useState("");
   const [occupe, setOccupe] = useState(false);
@@ -92,11 +92,6 @@ function PaiementContenu() {
     else setMsg(t("pay_err"));
   };
 
-  const payerSurPlace = async () => {
-    const res = await agir({ action: "surplace" });
-    if (res.ok) setEcran("surplace_ok");
-  };
-
   // ---- Écrans de résultat ----
   const Resultat = ({ icone, titre, texte, retenter }) => (
     <div className="pay-resultat">
@@ -134,7 +129,6 @@ function PaiementContenu() {
         {ecran === "refuse" && <Resultat icone="❌" titre={t("pay_refuse_t")} texte={t("pay_sim_ko")} retenter />}
         {ecran === "annule" && <Resultat icone="↩️" titre={t("pay_attente_t")} texte={t("pay_sim_annule")} retenter />}
         {ecran === "abo_ok" && <Resultat icone="⭐" titre={t("pay_abo_t")} texte={t("pay_abo_ok")} />}
-        {ecran === "surplace_ok" && <Resultat icone="💵" titre={t("pay_gratuit_t")} texte={t("pay_surplace_ok")} />}
 
         {ctx && !ecran && (
           <>
@@ -197,9 +191,11 @@ function PaiementContenu() {
                       <small style={{ display: "block", marginTop: 4, opacity: 0.7 }}>{t("pay_sim_note")}</small>
                     </>
                   )}
-                  <button className="btn-secondaire" style={{ marginTop: 10 }} disabled={occupe} onClick={payerSurPlace}>
-                    {t("pay_surplace_b")}
-                  </button>
+                  {/* Le paiement en espèces au coursier / à l'auxiliaire est
+                      volontairement retiré : en Algérie, régler la personne
+                      qui intervient est déconseillé. Le règlement se fait en
+                      ligne ou en espèces à l'agence (ticket ci-dessous). */}
+                  <small style={{ display: "block", marginTop: 4, opacity: 0.7 }}>{t("pay_pas_especes")}</small>
                 </div>
 
                 <div className="pay-carte">

@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 //   action = "abonnement"                → couvrir par l'abonnement actif
 //   action = "ticket",  code             → ticket prépayé d'agence
 //   action = "simulation", moyen, resultat → paiement simulé (réglage requis)
-//   action = "surplace"                  → paiement à la prestation (historique)
+//   action = "surplace"                  → retiré (espèces au coursier/auxiliaire refusé)
 
 async function identifier(req) {
   const token = (req.headers.get("authorization") || "").replace(/^Bearer\s+/i, "");
@@ -68,9 +68,11 @@ export async function POST(req) {
       return NextResponse.json(res);
     }
     if (c.action === "surplace") {
-      // Comportement historique conservé : le règlement se fait à la
-      // prestation (espèces) — la facture arrivera à la clôture.
-      return NextResponse.json({ ok: true, surplace: true });
+      // Paiement en espèces à la prestation (au coursier / à l'auxiliaire) :
+      // retiré du parcours. En Algérie, régler la personne qui intervient est
+      // déconseillé — on n'accepte que le paiement en ligne ou le ticket
+      // d'agence. Refus explicite même si l'action est déclenchée autrement.
+      return NextResponse.json({ erreur: "moyen_non_autorise" }, { status: 400 });
     }
     return NextResponse.json({ erreur: "action inconnue" }, { status: 400 });
   } catch {
