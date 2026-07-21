@@ -113,13 +113,29 @@ retirer au lancement), [CHARGILY_SECRET_KEY, CHARGILY_MODE],
 VAPID_PRIVATE_KEY, ANDROID_PACKAGE_NAME, ANDROID_ASSETLINKS_SHA256,
 [CRON_SECRET] (protège /api/rappels, envoyé par le cron Vercel),
 [WHATSAPP_TEMPLATE_RAPPEL] (modèle utilitaire Meta approuvé — active le
-canal WhatsApp des rappels de rendez-vous), [MAPS_PROVIDER] (réservé)`.
+canal WhatsApp des rappels de rendez-vous), [MAPS_PROVIDER] (réservé),
+[DEMO_TEL, DEMO_CODE] (compte de démonstration whitelisté pour les examens
+Google/Apple — remplace OTP_TEST_CODE, à supprimer une fois DEMO_* posés)`.
 
 ### État au 25/07/2026
 Play Store : test fermé actif (12 testeurs, fin ~31/07). Apple : adhésion en
 cours. Meta/WhatsApp : vérification d'identité en attente. Encore en démo :
 code OTP 123456, grille tarifaire par défaut, Chargily/virement non branchés,
 points de paiement vides.
+
+### ⏳ EN SUSPENS (à rappeler si on me demande « qu'est-ce qui est en suspens ? »)
+1. **Modèles WhatsApp (bloqué par la vérification Meta — selfie en attente)** :
+   dès validation → activer le produit WhatsApp, créer et faire approuver
+   (a) le modèle d'AUTHENTIFICATION `asm_code` (FR + AR, bouton copier le code)
+   et (b) un modèle UTILITAIRE de rappel (« Rappel ASM : votre {{1}} est prévu
+   à {{2}}. ») ; puis poser dans Vercel : `WHATSAPP_TOKEN`,
+   `WHATSAPP_PHONE_ID`, `WHATSAPP_TEMPLATE` (=asm_code),
+   `WHATSAPP_TEMPLATE_LANGUE`, `WHATSAPP_TEMPLATE_RAPPEL`. Aucune valeur dans
+   le code — Vercel uniquement.
+2. **Variable Vercel `CRON_SECRET`** : valeur de 30 caractères générée et
+   transmise à l'utilisateur en discussion le 25/07/2026 (jamais écrite ici ni
+   dans le code). À poser dans Vercel → protège `/api/rappels` (rappels de
+   rendez-vous, cron quotidien 17h Algérie). Vérifier qu'elle est bien posée.
 
 ---
 
@@ -228,4 +244,4 @@ dossier banque.
 - [x] Phase 5 — Trajet temps réel (25/07/2026 — 32 tests dédiés, 135 tests antérieurs verts)
 - [x] Phase 6 — Espace pro & pilotage (25/07/2026 — 31 tests dédiés, 167 tests antérieurs verts)
 - [x] Phase 7 — Communication & assistance (25/07/2026 — 29 tests dédiés, 198 tests antérieurs verts)
-- [ ] Phase 8 — Préparation lancement
+- [x] Phase 8 — Préparation lancement (25/07/2026 — 19 tests dédiés dont contrôles de sécurité rejouables, 227 tests antérieurs verts)

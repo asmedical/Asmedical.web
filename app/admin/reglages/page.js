@@ -67,8 +67,15 @@ function SectionSms() {
         )}
         {etat.modeTestOtp && (
           <p className="adm-msg" style={{ marginTop: 10 }}>
-            ⚠ Le mode TEST des codes de connexion est encore actif (variable OTP_TEST_CODE sur Vercel).
-            À retirer impérativement avant l&apos;ouverture au public.
+            ⚠ L&apos;ancienne variable OTP_TEST_CODE est encore posée sur Vercel. Depuis la
+            préparation au lancement, elle ne sert plus qu&apos;au compte de démonstration
+            (+213 550 000 000) — plus aucun autre numéro ne passe sans vrai SMS. Pour finir la
+            migration : poser DEMO_TEL et DEMO_CODE sur Vercel, puis supprimer OTP_TEST_CODE.
+          </p>
+        )}
+        {etat.compteDemoConfigure && (
+          <p className="fe-aide" style={{ marginTop: 10 }}>
+            ✅ Compte de démonstration (examens Google/Apple) configuré : DEMO_TEL + DEMO_CODE.
           </p>
         )}
         <p className="fe-aide">

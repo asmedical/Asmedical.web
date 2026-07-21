@@ -35,6 +35,7 @@ model Demande {
   commune        String?  // commune du patient (filtre de zone du moteur de disponibilités)
   parEtablissement String? // réservé AU NOM du patient par cet établissement (nom affiché)
   parEtabUserId  String?  // compte établissement ayant créé la réservation
+  prisEnChargePar String? // assurance / mutuelle (ex. CNAS, CASNOS) — préparation conventions
   soignantId     Int?
   soignant       Soignant?     @relation(fields: [soignantId], references: [id])
   transporteurId Int?
@@ -526,6 +527,7 @@ model CompteFinancier {
   telFacturation   String?
   statut           String   @default("ACTIF")
   modeFacturation  String   @default("prestation") // prestation (auto à la clôture) | mensuel (groupée fin de mois)
+  convention       String?  // référence de convention assurance/mutuelle (préparation)
   factures         Facture[]
   remises          RemiseClient[]
   souscriptions    Souscription[]
@@ -569,6 +571,7 @@ model Facture {
   remiseDetail   String?  // libellé affiché (ex. « Remise fidélité ASM : -10 % »)
   total          Int
   paye           Int      @default(0)
+  partAssureur   Int      @default(0) // part prise en charge par l'assureur (DZD) — préparation
   devise         String   @default("DZD")
   notes          String?
   creePar        String?

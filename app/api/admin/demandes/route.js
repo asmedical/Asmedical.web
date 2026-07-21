@@ -153,6 +153,11 @@ export async function PATCH(req) {
       data.date = String(c.date).slice(0, 16);
       actions.push(`reprogrammée ${data.date}`);
     }
+    // Prise en charge assurance/mutuelle (préparation conventions — Phase 8).
+    if (c.prisEnChargePar !== undefined) {
+      data.prisEnChargePar = c.prisEnChargePar ? String(c.prisEnChargePar).trim().slice(0, 80) : null;
+      actions.push(`prise en charge → ${data.prisEnChargePar || "aucune"}`);
+    }
 
     // État précédent (notifications + contrôle de conflit d'affectation).
     const avant = await prisma.demande.findUnique({ where: { id } });

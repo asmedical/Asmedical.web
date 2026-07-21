@@ -89,8 +89,9 @@ export async function GET(req) {
 <tr><td colspan="3">Sous-total</td><td>${DA(f.sousTotal)}</td></tr>
 ${f.remiseTotal ? `<tr><td colspan="3">Réduction — ${f.remiseDetail || ""}</td><td>-${DA(f.remiseTotal)}</td></tr>` : ""}
 <tr class="tot"><td colspan="3">TOTAL</td><td>${DA(f.total)}</td></tr>
+${f.partAssureur ? `<tr><td colspan="3">Part prise en charge (assurance/mutuelle)</td><td>-${DA(f.partAssureur)}</td></tr>` : ""}
 <tr><td colspan="3">Déjà payé</td><td>${DA(f.paye)}</td></tr>
-<tr class="tot"><td colspan="3">Reste à payer</td><td>${DA(f.total - f.paye)}</td></tr>
+<tr class="tot"><td colspan="3">Reste à payer</td><td>${DA(Math.max(0, f.total - f.partAssureur - f.paye))}</td></tr>
 </tbody></table>
 ${f.notes ? `<p><b>Notes :</b> ${f.notes}</p>` : ""}`;
       return new NextResponse(page(`Facture ${f.numero}`, corps), { headers: { "Content-Type": "text/html; charset=utf-8" } });

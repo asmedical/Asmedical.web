@@ -1,14 +1,15 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { autorise } from "@/lib/ratelimit";
+import { compteDemo, estNumeroDemo, verifierDemo } from "@/lib/demo";
 
 export const dynamic = "force-dynamic";
 
-// ⚠️ MODE TEST TEMPORAIRE — en attendant l'activation SMS (Twilio/Elite).
-// Actif UNIQUEMENT si la variable OTP_TEST_CODE est définie (ex. 123456).
-// N'importe quel numéro + ce code = session ouverte (création ou connexion).
-// À DÉSACTIVER avant l'ouverture au public : supprimer OTP_TEST_CODE de
-// Vercel puis redéployer — le flux SMS normal reprend, sans toucher au code.
+// COMPTE DE DÉMONSTRATION (examens Google Play / App Store).
+// ⚠️ L'ancien mode test « n'importe quel numéro + code » est SUPPRIMÉ :
+// seul le numéro whitelisté (DEMO_TEL) avec son code fixe (DEMO_CODE)
+// ouvre une session sans SMS. Tous les autres numéros passent par le
+// flux SMS réel (Elite/Twilio). Voir lib/demo.js.
 
 function admin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -17,19 +18,20 @@ function admin() {
   return createClient(url, key, { auth: { persistSession: false } });
 }
 
-// GET → le mode test est-il actif ? (permet au site de passer à l'écran
-// code même si l'envoi SMS a échoué)
-export async function GET() {
-  return NextResponse.json({ actif: Boolean(process.env.OTP_TEST_CODE) });
+// GET ?phone=… → ce numéro est-il le compte de démonstration ?
+// (permet au site de passer à l'écran code même si l'envoi SMS a échoué —
+// uniquement pour ce numéro-là)
+export async function GET(req) {
+  const phone = new URL(req.url).searchParams.get("phone") || "";
+  return NextResponse.json({ actif: estNumeroDemo(phone) });
 }
 
-// POST { phone, code } → si code = OTP_TEST_CODE : crée le compte si besoin
-// (téléphone confirmé) et renvoie un mot de passe à usage immédiat pour
-// ouvrir la session côté navigateur (signInWithPassword téléphone).
+// POST { phone, code } → si (numéro, code) = compte de démonstration :
+// crée le compte si besoin (téléphone confirmé) et renvoie un mot de passe
+// à usage immédiat pour ouvrir la session côté navigateur.
 export async function POST(req) {
   try {
-    const attendu = process.env.OTP_TEST_CODE;
-    if (!attendu) return NextResponse.json({ erreur: "désactivé" }, { status: 404 });
+    if (!compteDemo()) return NextResponse.json({ erreur: "désactivé" }, { status: 404 });
 
     const ip = (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() || "inconnu";
     if (!autorise(`otptest:${ip}`, 8, 60000)) {
@@ -39,7 +41,7 @@ export async function POST(req) {
     const { phone, code } = await req.json();
     const p = String(phone || "").trim();
     if (!/^\+\d{9,15}$/.test(p)) return NextResponse.json({ erreur: "téléphone invalide" }, { status: 400 });
-    if (String(code || "").trim() !== attendu) return NextResponse.json({ erreur: "code incorrect" }, { status: 401 });
+    if (!verifierDemo(p, code)) return NextResponse.json({ erreur: "code incorrect" }, { status: 401 });
 
     const a = admin();
     if (!a) return NextResponse.json({ erreur: "config" }, { status: 500 });
@@ -58,7 +60,6 @@ export async function POST(req) {
     if (!eCreate && cree?.user) {
       userId = cree.user.id;
     } else {
-      // Déjà existant → retrouver par téléphone (base encore petite).
       const chiffres = p.replace(/\D/g, "");
       for (let page = 1; page <= 5 && !userId; page++) {
         const { data } = await a.auth.admin.listUsers({ page, perPage: 200 });

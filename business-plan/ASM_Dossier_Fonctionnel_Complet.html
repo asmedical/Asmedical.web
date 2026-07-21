@@ -517,10 +517,31 @@
       <tr><td>Suppression de comptes soumise à validation du Super admin</td><td class="c">—</td><td class="c">—</td><td class="c">Demande</td><td class="c">Demande</td><td class="c">Valide</td><td>Opérationnelle</td></tr>
       <tr><td>Exports CSV (demandes, clients, établissements, paie)</td><td class="c">—</td><td class="c">—</td><td class="c">Partiel</td><td class="c">Oui</td><td class="c">Oui</td><td>Opérationnelle</td></tr>
       <tr><td>Journal d'audit de toutes les actions sensibles</td><td class="c">—</td><td class="c">—</td><td class="c">Écrit</td><td class="c">Écrit</td><td class="c">Lit tout</td><td>Opérationnelle</td></tr>
-      <tr><td>Application mobile native / GPS embarqué</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td>Prévue, non développée</td></tr>
+      <tr><td>Application mobile native (iOS/Android) + verrou biométrique Face ID</td><td class="c">Oui</td><td class="c">Oui</td><td class="c">—</td><td class="c">—</td><td class="c">—</td><td>Développée — tests fermés Google Play en cours</td></tr>
     </tbody>
   </table>
   <p style="font-size:8.5pt;color:var(--gris);margin-top:2mm">* Pour un établissement : uniquement pour ses patients rattachés, procuration valide contrôlée par le serveur à chaque réservation.</p>
+</div>
+
+<!-- ================= 8 bis. NOUVEAUTÉS ================= -->
+<div class="section">
+  <h2><span class="num">8 bis.</span> Nouveautés — juillet 2026</h2>
+  <p>Depuis la première édition de ce dossier, huit lots de développement ont été livrés,
+  testés (plus de 250 vérifications automatiques) et mis en production :</p>
+  <table>
+    <thead><tr><th>Module</th><th>Ce qu'il apporte</th><th>Statut</th></tr></thead>
+    <tbody>
+      <tr><td>Module financier complet</td><td>Tarifs versionnés, factures numérotées (ASM-…), paiements espèces/CIB/EDAHABIA/virement, tickets de caisse, remboursements, relances d'impayés, facturation mensuelle groupée et relevés pour les établissements.</td><td>Opérationnelle (testée)</td></tr>
+      <tr><td>Cercle familial</td><td>Un proche (enfant, aidant) réserve et suit les prestations d'un parent avec son accord (code sécurisé, révocable) ; compte-rendu de fin partagé aux proches autorisés.</td><td>Opérationnelle (testée)</td></tr>
+      <tr><td>Personnalisation du soin</td><td>Préférences patient (allergies, accès, consignes — visibles du seul intervenant affecté), choix homme/femme, intervenant favori prioritaire, évaluations, signalement d'incident.</td><td>Opérationnelle (testée)</td></tr>
+      <tr><td>Documents &amp; ordonnances</td><td>Ordonnance photographiée jointe à la livraison, renouvellement en un bouton, signature électronique de fin d'intervention (preuve de passage), stockage privé chiffré.</td><td>Opérationnelle (testée)</td></tr>
+      <tr><td>Offre commerciale</td><td>Packs forfaitaires affichés et réservables, devis numérotés pour les besoins réguliers, codes promotionnels et parrainage — plafonds et unicité contrôlés par le serveur.</td><td>Opérationnelle (testée)</td></tr>
+      <tr><td>Trajet en temps réel</td><td>Position du véhicule pendant le trajet, heure d'arrivée estimée (calculée sur l'appareil du patient — aucune donnée de localisation patient transmise), bouton « Je suis prêt » pour le retour, liste d'attente intelligente avec notification automatique dès qu'une place se libère.</td><td>Opérationnelle (testée)</td></tr>
+      <tr><td>Pilotage &amp; multi-sites</td><td>Tableau de bord chiffré pour chaque établissement, groupes multi-établissements consolidés, statistiques 12 mois (activité, facturé, encaissé), exports Excel réels, rapport d'activité PDF, journal d'audit filtrable, tournées chauffeurs optimisées par commune.</td><td>Opérationnelle (testée)</td></tr>
+      <tr><td>Communication &amp; assistance</td><td>Fil de discussion sécurisé par prestation (patient, famille autorisée, établissement, équipe), rappels de rendez-vous automatiques (veille + 2 h avant : notification, push, SMS, WhatsApp), assistant guidé bilingue FR/AR.</td><td>Opérationnelle (testée)</td></tr>
+      <tr><td>Préparation lancement</td><td>Compte de démonstration sécurisé pour les examens Google/Apple, revue de sécurité complète documentée, préparation des conventions assurances/mutuelles (CNAS, CASNOS…).</td><td>Opérationnelle</td></tr>
+    </tbody>
+  </table>
 </div>
 
 <!-- ================= 9. ARCHITECTURE ================= -->

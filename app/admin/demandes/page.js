@@ -226,6 +226,13 @@ function PageDemandes() {
             <label>Reprogrammer
               <input type="datetime-local" defaultValue={d.date} onBlur={(e) => e.target.value && e.target.value !== d.date && maj(d.id, { date: e.target.value })} />
             </label>
+            <label>Pris en charge par
+              <input
+                placeholder="CNAS, CASNOS, assurance… (vide = aucune)"
+                defaultValue={d.prisEnChargePar || ""}
+                onBlur={(e) => (e.target.value.trim() || "") !== (d.prisEnChargePar || "") && maj(d.id, { prisEnChargePar: e.target.value.trim() || null })}
+              />
+            </label>
             <button className="adm-btn secondaire" onClick={() => maj(d.id, { prioritaire: !d.prioritaire })}>
               {d.prioritaire ? "Retirer la priorité" : "Marquer urgent"}
             </button>

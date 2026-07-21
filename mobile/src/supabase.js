@@ -32,14 +32,15 @@ export function normaliserTel(saisie, indicatif = "+213") {
   return indicatif + s;
 }
 
-// Envoi du code (Supabase → SMS/WhatsApp). Si l'envoi échoue mais que le
-// MODE TEST est actif côté serveur, on continue quand même vers l'écran code.
+// Envoi du code (Supabase → SMS/WhatsApp). Si l'envoi échoue mais que CE
+// numéro est le compte de DÉMONSTRATION whitelisté serveur (examens des
+// stores), on continue quand même vers l'écran code.
 export async function envoyerCode(phone) {
   if (!supabase) throw new Error("config");
   const { error } = await supabase.auth.signInWithOtp({ phone });
   if (error) {
     try {
-      const r = await fetch(`${API_BASE}/api/otp-test`);
+      const r = await fetch(`${API_BASE}/api/otp-test?phone=${encodeURIComponent(phone)}`);
       const d = await r.json();
       if (d?.actif) return;
     } catch {}
@@ -47,7 +48,7 @@ export async function envoyerCode(phone) {
   }
 }
 
-// Vérification du code (avec repli MODE TEST identique au site).
+// Vérification du code (avec repli compte de DÉMONSTRATION, identique au site).
 export async function verifierCode(phone, code) {
   if (!supabase) throw new Error("config");
   const { data, error } = await supabase.auth.verifyOtp({ phone, token: code, type: "sms" });

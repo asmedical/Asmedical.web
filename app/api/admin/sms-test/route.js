@@ -31,7 +31,8 @@ export async function GET(req) {
     credit, erreurElite,
     twilio: !!(process.env.TWILIO_ACCOUNT_SID && process.env.TWILIO_AUTH_TOKEN),
     whatsapp: !!(process.env.WHATSAPP_TOKEN && process.env.WHATSAPP_PHONE_ID),
-    modeTestOtp: !!process.env.OTP_TEST_CODE, // ⚠ à retirer avant le lancement
+    modeTestOtp: !!process.env.OTP_TEST_CODE, // ⚠ ancien mode — à remplacer par DEMO_TEL/DEMO_CODE
+    compteDemoConfigure: !!(process.env.DEMO_TEL && process.env.DEMO_CODE),
   });
 }
 
