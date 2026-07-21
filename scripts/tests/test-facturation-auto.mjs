@@ -29,10 +29,15 @@ await installerTarifsDefaut("test");
 const compte = await compteFinancierPour("user-fa-1", { role: "patient", prenom: "Ali", nom: "TEST-FA", telephone: "0555 44 33 22" });
 
 // 1. Transport aller-retour, prioritaire, le samedi → base×2 + urgence + week-end
+// Samedi calculé DANS LE FUTUR : le test reste valable quel que soit le jour
+// d'exécution (les tarifs de test démarrent « aujourd'hui »).
+const samedi = new Date();
+samedi.setDate(samedi.getDate() + ((6 - samedi.getDay() + 7) % 7 || 7));
+const dateSamedi = samedi.toISOString().slice(0, 10) + "T09:00";
 const d1 = await prisma.demande.create({
   data: {
     service: "transport", typeTrajet: "aller_retour", nom: "Ali TEST-FA", telephone: "0555 44 33 22",
-    date: "2026-07-18T09:00", // samedi
+    date: dateSamedi,
     dureeMin: 60, statut: "TERMINEE", prioritaire: true, finLe: new Date(),
   },
 });
@@ -98,7 +103,7 @@ verif("réservation d'établissement → facturée à l'ÉTABLISSEMENT (pas au p
 verif("mention « Réservé par » sur la facture", r8.facture.notes?.includes("Centre TEST-FA"));
 
 // 9. PARITÉ estimation ↔ facture : mêmes paramètres, même total
-const est = await estimerPrestation({ service: "transport", date: "2026-07-18T09:00", dureeMin: 60, typeTrajet: "aller_retour", prioritaire: true, compteId: compte.id });
+const est = await estimerPrestation({ service: "transport", date: dateSamedi, dureeMin: 60, typeTrajet: "aller_retour", prioritaire: true, compteId: compte.id });
 const factD1 = await prisma.facture.findFirst({ where: { demandeId: d1.id } });
 verif("estimation avant réservation = facture finale (mêmes règles)", est.total === factD1.total);
 

@@ -196,8 +196,9 @@ model Rattachement {
   id           Int       @id @default(autoincrement())
   patientTel   String    // téléphone du patient (identité de réservation)
   patientNom   String?   // nom saisi par l'établissement (affichage)
-  etabUserId   String?   // compte Supabase de l'établissement (null tant que code non réclamé)
-  etabNom      String?   // nom d'affichage de l'établissement
+  etabUserId   String?   // compte Supabase du bénéficiaire (établissement OU proche)
+  etabNom      String?   // nom d'affichage de l'établissement ou du proche
+  type         String    @default("etablissement") // etablissement | proche
   statut       String    @default("EN_ATTENTE") // EN_ATTENTE | ACCEPTE | REFUSE | REVOQUE | CODE_ATTENTE
   source       String    @default("invitation") // invitation | code | staff | document
   scopes       String    @default("transport,domicile,medicaments") // services autorisés

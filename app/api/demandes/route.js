@@ -23,15 +23,17 @@ export async function POST(req) {
       return NextResponse.json({ erreur: "Données invalides" }, { status: 400 });
     }
 
-    // ---- Réservation par un ÉTABLISSEMENT au nom d'un patient rattaché ----
+    // ---- Réservation AU NOM d'un patient rattaché (établissement OU proche) ----
     // Vérifiée côté serveur : procuration ACCEPTE, non expirée, couvrant le
     // service. Sans procuration valide → refus explicite.
+    // Payeur : l'ÉTABLISSEMENT s'il réserve (parEtabUserId) ; quand c'est un
+    // PROCHE, la demande reste au nom et à la charge du patient.
     let parEtablissement = null;
     let parEtabUserId = null;
     if (corps.pourPatient) {
       const { identite, autorisationEtablissement, notifierPatientTel } = await import("@/lib/rattachements");
       const id = await identite(req);
-      if (!id || id.profil?.role !== "pro") {
+      if (!id) {
         return NextResponse.json({ erreur: "procuration_requise" }, { status: 403 });
       }
       const verdict = await autorisationEtablissement(id.user.id, corps.pourPatient, String(service));
@@ -39,8 +41,9 @@ export async function POST(req) {
         return NextResponse.json({ erreur: verdict.raison }, { status: 403 });
       }
       telephone = verdict.lien.patientTel; // la demande appartient au PATIENT
-      parEtablissement = verdict.lien.etabNom || id.profil?.etablissement || "Établissement";
-      parEtabUserId = id.user.id;
+      const estPro = id.profil?.role === "pro";
+      parEtablissement = verdict.lien.etabNom || (estPro ? id.profil?.etablissement || "Établissement" : "Proche");
+      parEtabUserId = estPro ? id.user.id : null; // proche → le patient reste payeur
       // Le patient est prévenu qu'une réservation a été faite pour lui.
       notifierPatientTel(id.admin, telephone, {
         titre: "Réservation faite pour vous",

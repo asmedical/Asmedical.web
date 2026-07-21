@@ -158,6 +158,11 @@ export async function PATCH(req) {
         const { facturerDemande } = await import("@/lib/finances");
         await facturerDemande(maj, { auteur: acces.nomAffiche });
       } catch {}
+      // Compte-rendu partagé aux proches et établissements autorisés.
+      try {
+        const { notifierProchesFin } = await import("@/lib/proches");
+        await notifierProchesFin(maj);
+      } catch {}
     }
 
     // Notifications automatiques dans l'espace de l'intervenant.

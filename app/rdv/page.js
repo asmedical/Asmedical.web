@@ -109,6 +109,30 @@ export default function PriseRdv() {
     setTelephone("");
   }
 
+  // Sélecteur « Pour qui ? » : proches autorisés du compte connecté
+  // (rattachements ACCEPTE) — réserver pour maman/papa en deux touches.
+  const [proches, setProches] = useState([]);
+  useEffect(() => {
+    (async () => {
+      try {
+        const { supabase } = await import("@/lib/supabase");
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!session) return;
+        const r = await fetch("/api/proches", { headers: { Authorization: `Bearer ${session.access_token}` } });
+        const d = await r.json();
+        setProches((d.proches || []).filter((p) => p.statut === "ACCEPTE" && !p.expiree));
+      } catch {}
+    })();
+  }, []);
+  function choisirProche(p) {
+    if (!p) {
+      annulerPourPatient();
+      return;
+    }
+    setPourPatient({ tel: p.patientTel, nom: p.patientNom || p.patientTel });
+    setTelephone(p.patientTel);
+  }
+
   const besoinCreneau =
     (service === "transport" && sousMode === "ponctuel") || service === "domicile";
 
@@ -388,6 +412,21 @@ export default function PriseRdv() {
           <div className="pour-patient">
             <span>👤 {t("pp_bandeau")} <strong>{pourPatient.nom}</strong></span>
             <button type="button" onClick={annulerPourPatient}>{t("annuler")}</button>
+          </div>
+        )}
+
+        {/* ---- Pour qui ? (proches autorisés du compte connecté) ---- */}
+        {!pourPatient && proches.length > 0 && (
+          <div className="champ">
+            <label>{t("pr_pour_qui")}</label>
+            <div className="chips">
+              <button type="button" className="chip actif">{t("pr_moi")}</button>
+              {proches.map((p) => (
+                <button type="button" className="chip" key={p.id} onClick={() => choisirProche(p)}>
+                  👤 {p.patientNom || p.patientTel}
+                </button>
+              ))}
+            </div>
           </div>
         )}
 

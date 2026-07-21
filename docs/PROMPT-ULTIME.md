@@ -218,7 +218,7 @@ d'intégration technique externe), revue de sécurité complète, mise à jour d
 dossier banque.
 
 ### Suivi
-- [ ] Phase 1 — Cercle familial
+- [x] Phase 1 — Cercle familial (25/07/2026 — 20 tests dédiés, suites 23+15+23 vertes)
 - [ ] Phase 2 — Personnalisation du soin
 - [ ] Phase 3 — Documents & ordonnances
 - [ ] Phase 4 — Offre commerciale

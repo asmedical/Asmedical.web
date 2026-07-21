@@ -171,6 +171,11 @@ export async function PATCH(req) {
         const { facturerDemande } = await import("@/lib/finances");
         await facturerDemande(maj);
       } catch {}
+      // Compte-rendu partagé aux proches et établissements autorisés.
+      try {
+        const { notifierProchesFin } = await import("@/lib/proches");
+        await notifierProchesFin(maj);
+      } catch {}
     }
 
     return NextResponse.json({ ok: true, intervention: vueIntervenant(maj) });
