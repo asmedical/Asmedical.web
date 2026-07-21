@@ -43,6 +43,7 @@ export async function GET(req) {
       typeTrajet: p.get("typeTrajet") || undefined,
       prioritaire: p.get("prioritaire") === "1",
       compteId,
+      packId: p.get("pack") ? Number(p.get("pack")) : undefined,
     });
     if (!estimation) return NextResponse.json({ disponible: false });
     return NextResponse.json({ disponible: true, ...estimation });

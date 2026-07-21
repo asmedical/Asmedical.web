@@ -11,7 +11,7 @@ import { supabase } from "@/lib/supabase";
 const DA = (n) => `${Number(n || 0).toLocaleString("fr-FR")} DZD`;
 const ONGLTS = [
   ["bord", "Tableau de bord"], ["factures", "Factures"], ["paiements", "Paiements & tickets"],
-  ["mensuel", "Établissements"], ["tarifs", "Tarifs"], ["remises", "Remises"],
+  ["mensuel", "Établissements"], ["offres", "Offres & devis"], ["tarifs", "Tarifs"], ["remises", "Remises"],
   ["plans", "Abonnements"], ["points", "Points de paiement"], ["evenements", "Événements"],
 ];
 
@@ -249,6 +249,100 @@ function FinancesContenu() {
                     }}>Rembourser</button>
                   )}
                 </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ================= OFFRES : packs, devis, codes promo ================= */}
+      {onglet === "offres" && d?.packs && (
+        <>
+          <h2 className="adm-sous-titre">Packs forfaitaires</h2>
+          {superadmin && (
+            <button className="adm-btn" style={{ marginBottom: 10 }} onClick={async () => {
+              const nom = window.prompt("Nom du pack (ex. Pack Dialyse mensuel) :");
+              if (!nom) return;
+              const service = window.prompt("Service (transport / domicile / medicaments) :", "transport");
+              const prix = window.prompt("Prix forfaitaire (DZD) :");
+              if (!prix) return;
+              const description = window.prompt("Description courte (affichée aux clients) :") || "";
+              await action({ action: "pack.creer", nom, service, prix, description });
+            }}>+ Nouveau pack</button>
+          )}
+          {d.packs.length === 0 && <p className="adm-vide">Aucun pack — créez vos offres phares (prix affichés au public).</p>}
+          <div className="adm-liste">
+            {d.packs.map((pk) => (
+              <div className="adm-ligne" key={pk.id}>
+                <span className="adm-ligne-texte">
+                  <strong>{pk.nom} — {DA(pk.prix)}</strong>
+                  <small>{pk.service} · ≈ {pk.dureeMin} min {pk.description ? `· ${pk.description}` : ""}{pk.actif ? "" : " · ⚪ désactivé"}</small>
+                </span>
+                {superadmin && (
+                  <button className="adm-btn secondaire" onClick={() => action({ action: "pack.maj", id: pk.id, ...pk, actif: !pk.actif })}>
+                    {pk.actif ? "Désactiver" : "Réactiver"}
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+
+          <h2 className="adm-sous-titre">Demandes de devis</h2>
+          {d.devis.length === 0 && <p className="adm-vide">Aucune demande de devis.</p>}
+          <div className="adm-liste">
+            {d.devis.map((dv) => (
+              <div className={"adm-ligne" + (dv.statut === "NOUVEAU" ? " signale" : "")} key={dv.id}>
+                <span className="adm-ligne-texte">
+                  <strong>{dv.numero} · {dv.nom} · {dv.telephone}</strong>
+                  <small>{dv.service || "service à préciser"} · {dv.besoin.slice(0, 90)}{dv.besoin.length > 90 ? "…" : ""}{dv.montant ? ` · chiffré ${DA(dv.montant)}` : ""}</small>
+                </span>
+                <span style={{ display: "flex", gap: 6, flexShrink: 0, alignItems: "center" }}>
+                  <span className="adm-pastille">{dv.statut}</span>
+                  <button className="adm-btn secondaire" onClick={() => {
+                    const montant = window.prompt("Montant proposé (DZD) :", dv.montant ? String(dv.montant) : "");
+                    if (!montant) return;
+                    const reponse = window.prompt("Détail de la proposition (affiché sur le devis) :", dv.reponse || "");
+                    action({ action: "devis.chiffrer", id: dv.id, montant, reponse });
+                  }}>Chiffrer</button>
+                  {dv.montant && (
+                    <a className="adm-btn secondaire" href={`/api/finances/document?type=devis&id=${dv.id}`} target="_blank" rel="noopener noreferrer"
+                      onClick={async (e) => {
+                        e.preventDefault();
+                        const { supabase } = await import("@/lib/supabase");
+                        const { data: { session } } = await supabase.auth.getSession();
+                        const r = await fetch(`/api/finances/document?type=devis&id=${dv.id}`, { headers: { Authorization: `Bearer ${session?.access_token || ""}` } });
+                        const html = await r.text();
+                        const f = window.open("", "_blank");
+                        if (f) { f.document.write(html); f.document.close(); }
+                      }}>Imprimer</a>
+                  )}
+                </span>
+              </div>
+            ))}
+          </div>
+
+          <h2 className="adm-sous-titre">Codes promo</h2>
+          {superadmin && (
+            <button className="adm-btn" style={{ marginBottom: 10 }} onClick={async () => {
+              const code = window.prompt("Code (ex. BIENVENUE10) :");
+              if (!code) return;
+              const type = window.confirm("OK = POURCENTAGE · Annuler = MONTANT FIXE (DZD)") ? "pourcentage" : "fixe";
+              const valeur = window.prompt(type === "pourcentage" ? "Pourcentage (ex. 10) :" : "Montant (DZD) :");
+              if (!valeur) return;
+              const maxUsages = window.prompt("Nombre d'utilisations max (vide = illimité) :") || "";
+              await action({ action: "promo.creer", code, type, valeur, maxUsages });
+            }}>+ Nouveau code promo</button>
+          )}
+          <div className="adm-liste">
+            {(d.promos || []).map((pr) => (
+              <div className="adm-ligne" key={pr.id}>
+                <span className="adm-ligne-texte">
+                  <strong>{pr.code} — {pr.type === "pourcentage" ? `-${pr.valeur} %` : `-${DA(pr.valeur)}`}</strong>
+                  <small>{pr.usages}{pr.maxUsages ? `/${pr.maxUsages}` : ""} utilisations · dès le {pr.debut}{pr.fin ? ` jusqu'au ${pr.fin}` : ""}{pr.actif ? "" : " · ⚪ désactivé"}</small>
+                </span>
+                {superadmin && pr.actif && (
+                  <button className="adm-btn secondaire" onClick={() => action({ action: "promo.desactiver", id: pr.id })}>Désactiver</button>
+                )}
               </div>
             ))}
           </div>

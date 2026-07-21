@@ -94,6 +94,31 @@ export default function PriseRdv() {
   // l'espace pro via sessionStorage, vérifiée côté serveur (procuration).
   const [prefGenre, setPrefGenre] = useState("");
   const [ordonnance, setOrdonnance] = useState(null); // fichier joint (livraison)
+  const [pack, setPack] = useState(null); // pack forfaitaire choisi (/packs)
+  const [codePromo, setCodePromo] = useState("");
+  const [promoEtat, setPromoEtat] = useState(null); // null | ok | code d'erreur
+  useEffect(() => {
+    try {
+      const v = sessionStorage.getItem("asm_pack");
+      if (v) setPack(JSON.parse(v));
+      sessionStorage.removeItem("asm_pack");
+    } catch {}
+  }, []);
+  async function verifierPromo() {
+    if (!codePromo.trim()) return;
+    setPromoEtat(null);
+    try {
+      const r = await fetch("/api/promo", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ code: codePromo, service, telephone: normaliserTel(tel, indicatif) }),
+      });
+      const d = await r.json();
+      setPromoEtat(r.ok ? "ok" : d.erreur || "code_invalide");
+    } catch {
+      setPromoEtat("code_invalide");
+    }
+  }
   const [pourPatient, setPourPatient] = useState(null);
   useEffect(() => {
     try {
@@ -310,6 +335,8 @@ export default function PriseRdv() {
           service,
           pourPatient: pourPatient?.tel || undefined,
           prefGenre: prefGenre || undefined,
+          packId: pack?.id || undefined,
+          codePromo: codePromo.trim() || undefined,
           typeTrajet: service === "transport" ? typeTrajet : null,
           depart,
           destination,
@@ -429,6 +456,13 @@ export default function PriseRdv() {
           <div className="pour-patient">
             <span>👤 {t("pp_bandeau")} <strong>{pourPatient.nom}</strong></span>
             <button type="button" onClick={annulerPourPatient}>{t("annuler")}</button>
+          </div>
+        )}
+
+        {pack && (
+          <div className="pour-patient">
+            <span>🎁 {t("pk_bandeau")} <strong>{pack.nom}</strong> — {Number(pack.prix).toLocaleString("fr-FR")} DZD</span>
+            <button type="button" onClick={() => setPack(null)}>{t("annuler")}</button>
           </div>
         )}
 
@@ -732,7 +766,25 @@ export default function PriseRdv() {
         </div>
 
         {/* Prix estimé AVANT confirmation — mêmes règles que la facturation */}
+        {/* ---- Code promo / parrainage (appliqué à la facturation) ---- */}
+        <div className="champ">
+          <label>{t("promo_l")}</label>
+          <div className="tel-ligne">
+            <input value={codePromo} onChange={(e) => { setCodePromo(e.target.value.toUpperCase()); setPromoEtat(null); }} placeholder={t("promo_ph")} />
+            <button type="button" className="btn-secondaire" style={{ flex: "0 0 auto", width: "auto", padding: "0 14px" }} onClick={verifierPromo}>
+              {t("promo_verifier")}
+            </button>
+          </div>
+          {promoEtat === "ok" && <p className="fe-aide" style={{ color: "var(--vert-fonce)", marginBottom: 0 }}>✓ {t("promo_ok")}</p>}
+          {promoEtat && promoEtat !== "ok" && (
+            <p className="erreur" style={{ marginTop: 6 }}>
+              {t({ code_expire: "promo_expire", code_epuise: "promo_epuise", code_deja_utilise: "promo_deja", code_service: "promo_service", code_proprietaire: "promo_proprio" }[promoEtat] || "promo_invalide")}
+            </p>
+          )}
+        </div>
+
         <EstimationPrix
+          packId={pack?.id}
           t={t}
           service={service}
           jour={jourChoisi}
@@ -759,7 +811,7 @@ export default function PriseRdv() {
 // Interroge les tarifs en vigueur (mêmes règles que la facture finale) et la
 // remise du client connecté. N'affiche RIEN tant que la grille tarifaire
 // n'est pas configurée, ni pendant la saisie incomplète.
-function EstimationPrix({ t, service, jour, heure, duree, typeTrajet, prioritaire, visible }) {
+function EstimationPrix({ t, service, jour, heure, duree, typeTrajet, prioritaire, visible, packId }) {
   const [est, setEst] = useState(null);
 
   useEffect(() => {
@@ -772,6 +824,7 @@ function EstimationPrix({ t, service, jour, heure, duree, typeTrajet, prioritair
         u.set("date", `${jour}T${heure || "09:00"}`);
         if (typeTrajet) u.set("typeTrajet", typeTrajet);
         if (prioritaire) u.set("prioritaire", "1");
+        if (packId) u.set("pack", String(packId));
         let token = "";
         try {
           const { supabase } = await import("@/lib/supabase");
@@ -786,7 +839,7 @@ function EstimationPrix({ t, service, jour, heure, duree, typeTrajet, prioritair
       } catch {}
     })();
     return () => { annule = true; };
-  }, [visible, service, jour, heure, duree, typeTrajet, prioritaire]);
+  }, [visible, service, jour, heure, duree, typeTrajet, prioritaire, packId]);
 
   if (!est) return null;
   return (

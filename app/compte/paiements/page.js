@@ -263,6 +263,8 @@ export default function PaiementsFactures() {
         ))}
 
         {/* Points de paiement */}
+        <CarteParrainage t={t} />
+
         {d.points.length > 0 && (
           <>
             <h3 className="fin-titre">{t("pf_points")}</h3>
@@ -290,5 +292,28 @@ export default function PaiementsFactures() {
         </div>
       </div>
     </div>
+  );
+}
+
+// Parrainage : mon code personnel — le filleul est remis sur sa première
+// facture, le parrain est crédité automatiquement (RemiseClient).
+function CarteParrainage({ t }) {
+  const [d, setD] = useState(null);
+  useEffect(() => {
+    apiFinances("/api/promo").then(setD).catch(() => setD(null));
+  }, []);
+  if (!d?.code) return null;
+  return (
+    <>
+      <h3 className="fin-titre">{t("par_t")}</h3>
+      <div className="fin-bulle" style={{ borderColor: "var(--vert)" }}>
+        <strong style={{ fontSize: 18, letterSpacing: 1 }}>{d.code}</strong>
+        <span>{t("par_p").replace("{remise}", d.remiseFilleul).replace("{gain}", String(d.recompenseParrain))}</span>
+        <span>{t("par_filleuls")} : <b>{d.filleuls}</b></span>
+        <button className="fin-lien" onClick={() => {
+          try { navigator.clipboard.writeText(d.code); } catch {}
+        }}>{t("par_copier")}</button>
+      </div>
+    </>
   );
 }

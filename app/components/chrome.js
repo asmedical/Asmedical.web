@@ -328,8 +328,11 @@ export function BarreNav() {
 }
 
 export function PiedDePage() {
+  const { t } = useAsm();
   return (
     <footer>
+      <Link href="/packs">{t("pk_t")}</Link> · <Link href="/devis">{t("dv_t")}</Link>
+      <br />
       ASM — Bir Mourad Raïs, Alger · <ChoixAppel />
       <br />
       <a href="/confidentialite" style={{ fontSize: 12, color: "inherit", opacity: 0.75 }}>Confidentialité</a>

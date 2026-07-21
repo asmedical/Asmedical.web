@@ -170,6 +170,28 @@ ${points.map((pt) => `<tr><td>${pt.nom}</td><td>${[pt.adresse, pt.commune].filte
       return new NextResponse(page(`Relevé ${r.compte.numero}`, corps), { headers: { "Content-Type": "text/html; charset=utf-8" } });
     }
 
+    if (type === "devis") {
+      // Devis chiffré — réservé au staff (imprimé/envoyé au client).
+      if (!acces) return NextResponse.json({ erreur: "non autorisé" }, { status: 401 });
+      const dv = await prisma.devis.findUnique({ where: { id } });
+      if (!dv) return NextResponse.json({ erreur: "introuvable" }, { status: 404 });
+      const corps = `
+<h2>Devis ${dv.numero}</h2>
+<div class="grille">
+  <span><b>Client :</b> ${dv.nom}</span>
+  <span><b>Téléphone :</b> ${dv.telephone}</span>
+  ${dv.email ? `<span><b>Email :</b> ${dv.email}</span>` : ""}
+  <span><b>Date :</b> ${new Date(dv.creeLe).toLocaleDateString("fr-FR")}</span>
+  ${dv.service ? `<span><b>Service :</b> ${dv.service}</span>` : ""}
+  <span><b>Statut :</b> <span class="badge">${dv.statut}</span></span>
+</div>
+<p><b>Besoin exprimé :</b><br>${String(dv.besoin).replace(/</g, "&lt;")}</p>
+${dv.reponse ? `<p><b>Notre proposition :</b><br>${String(dv.reponse).replace(/</g, "&lt;")}</p>` : ""}
+${dv.montant ? `<table><tbody><tr class="tot"><td>TOTAL ESTIMÉ</td><td>${DA(dv.montant)}</td></tr></tbody></table>` : ""}
+<div class="avert">Devis indicatif valable 30 jours — le montant définitif est confirmé à la commande.</div>`;
+      return new NextResponse(page(`Devis ${dv.numero}`, corps), { headers: { "Content-Type": "text/html; charset=utf-8" } });
+    }
+
     return NextResponse.json({ erreur: "type inconnu" }, { status: 400 });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });

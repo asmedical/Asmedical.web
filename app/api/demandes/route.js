@@ -55,6 +55,20 @@ export async function POST(req) {
     const texte = (v, max) => (v ? String(v).slice(0, max) : null);
     const dateSlot = String(corps.date || "").slice(0, 16);
 
+    // Pack forfaitaire : vérifié serveur (actif + bon service) ; sa durée
+    // remplace la durée par défaut. Code promo : mémorisé en MAJUSCULES,
+    // validé et consommé à la facturation (jamais sur parole du client).
+    let packId = null;
+    let packDuree = null;
+    if (corps.packId) {
+      const pack = await prisma.pack.findUnique({ where: { id: Number(corps.packId) } });
+      if (pack?.actif && pack.service === String(service)) {
+        packId = pack.id;
+        packDuree = pack.dureeMin;
+      }
+    }
+    const codePromo = corps.codePromo ? String(corps.codePromo).trim().toUpperCase().slice(0, 30) : null;
+
     // Préférences de soin du patient : genre demandé pour CETTE réservation
     // (sinon préférence enregistrée) + intervenant favori — domicile.
     let prefGenre = ["homme", "femme"].includes(corps.prefGenre) ? corps.prefGenre : null;
@@ -75,6 +89,7 @@ export async function POST(req) {
 
     const serviceNorm = String(service).slice(0, 30);
     const duree = Math.min(Math.max(parseInt(corps.duree, 10) || 60, 15), 480);
+    const dureeEffective = packDuree || duree;
     const commune = texte(corps.commune, 80);
     const reglage = await getReglage();
 
@@ -83,7 +98,7 @@ export async function POST(req) {
     let capacite = null;
     if (dateSlot.includes("T") && serviceNorm !== "medicaments") {
       const res = await capaciteCreneau(serviceNorm, dateSlot, {
-        duree, commune, typeTrajet: corps.typeTrajet || undefined,
+        duree: dureeEffective, commune, typeTrajet: corps.typeTrajet || undefined,
       });
       capacite = res.capacite;
       if (capacite <= 0) return NextResponse.json({ erreur: "creneau_pris" }, { status: 409 });
@@ -126,6 +141,8 @@ export async function POST(req) {
             service: serviceNorm,
             typeTrajet: texte(corps.typeTrajet, 30),
             prefGenre,
+            packId,
+            codePromo,
             nom: texte(corps.nom, 80),
             telephone: String(telephone).slice(0, 20),
             depart: texte(corps.depart, 160),
@@ -139,7 +156,7 @@ export async function POST(req) {
             prioritaire: sousMode === "urgent",
             fenetre: texte(corps.fenetre, 60),
             pharmacie: texte(corps.pharmacie, 200),
-            dureeMin: duree,
+            dureeMin: dureeEffective,
             commune,
             parEtablissement,
             parEtabUserId,
@@ -161,7 +178,7 @@ export async function POST(req) {
     if (reglage.affectationAuto && dateSlot.includes("T") && serviceNorm !== "medicaments") {
       try {
         const choisi = await choisirIntervenant(serviceNorm, dateSlot, {
-          duree, commune, typeTrajet: corps.typeTrajet || undefined,
+          duree: dureeEffective, commune, typeTrajet: corps.typeTrajet || undefined,
           prefGenre: prefGenre || undefined, favoriId: favoriId || undefined,
         });
         if (choisi) {

@@ -14,6 +14,8 @@ model Demande {
   typeTrajet     String?  // simple | accompagne | medicalise
   prefGenre      String?  // souhait du patient : homme | femme (domicile)
   signaturePath  String?  // signature de fin d'intervention (chemin stockage privé)
+  packId         Int?     // pack forfaitaire choisi (facturé au prix du pack)
+  codePromo      String?  // code promo / parrainage saisi à la réservation
   nom            String?
   telephone      String
   depart         String?
@@ -196,6 +198,74 @@ model Notification {
 // Procuration / rattachement d'un patient à un établissement partenaire.
 // L'établissement ne peut agir POUR un patient que si un rattachement
 // ACCEPTE, non expiré et couvrant le service existe.
+// Pack de prestations : offre nommée à prix forfaitaire (« Pack Dialyse
+// mensuel »…). La facture d'une demande liée à un pack porte UNE ligne au
+// prix du pack — pas de suppléments surprises.
+model Pack {
+  id            Int      @id @default(autoincrement())
+  nom           String
+  nomAr         String?
+  description   String?
+  descriptionAr String?
+  service       String   // transport | domicile | medicaments
+  prix          Int      // DZD entiers, forfait tout compris
+  dureeMin      Int      @default(60)
+  actif         Boolean  @default(true)
+  ordre         Int      @default(0)
+  creePar       String?
+  creeLe        DateTime @default(now())
+}
+
+// Code promo / parrainage : validé et consommé CÔTÉ SERVEUR uniquement.
+model CodePromo {
+  id            Int      @id @default(autoincrement())
+  code          String   @unique // saisi par le client (majuscules)
+  type          String   // pourcentage | fixe
+  valeur        Int
+  plafond       Int?     // plafond DZD pour un pourcentage
+  service       String?  // null = tous services
+  debut         String   // AAAA-MM-JJ
+  fin           String?
+  maxUsages     Int?     // null = illimité
+  usages        Int      @default(0)
+  parrainUserId String?  // code de PARRAINAGE : compte du parrain récompensé
+  actif         Boolean  @default(true)
+  creePar       String?
+  creeLe        DateTime @default(now())
+  utilisations  CodePromoUsage[]
+}
+
+// Un code n'est utilisable qu'UNE fois par client (téléphone normalisé).
+model CodePromoUsage {
+  id        Int       @id @default(autoincrement())
+  codeId    Int
+  code      CodePromo @relation(fields: [codeId], references: [id], onDelete: Cascade)
+  telCle    String    // 8 derniers chiffres du client
+  demandeId Int?
+  creeLe    DateTime  @default(now())
+
+  @@unique([codeId, telCle])
+}
+
+// Demande de devis (établissements, familles, besoins récurrents).
+model Devis {
+  id        Int      @id @default(autoincrement())
+  numero    String   @unique // ASM-DV-000001
+  nom       String
+  telephone String
+  email     String?
+  service   String?
+  besoin    String   // description du besoin
+  statut    String   @default("NOUVEAU") // NOUVEAU | CHIFFRE | ACCEPTE | REFUSE
+  montant   Int?     // chiffrage (DZD)
+  reponse   String?  // détail du chiffrage affiché sur le document
+  chiffrePar String?
+  chiffreLe DateTime?
+  creeLe    DateTime @default(now())
+
+  @@index([statut])
+}
+
 // Document rattaché à UNE demande (ordonnance de livraison, bon…).
 // Le fichier vit dans le bucket privé « documents » ; ici les métadonnées.
 model DocumentDemande {

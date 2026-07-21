@@ -148,6 +148,15 @@ export async function GET(req) {
       return NextResponse.json({ comptes });
     }
 
+    if (vue === "offres") {
+      const [packs, devis, promos] = await Promise.all([
+        prisma.pack.findMany({ orderBy: [{ actif: "desc" }, { ordre: "asc" }] }),
+        prisma.devis.findMany({ orderBy: { creeLe: "desc" }, take: 100 }),
+        prisma.codePromo.findMany({ where: { parrainUserId: null }, orderBy: { creeLe: "desc" }, take: 100 }),
+      ]);
+      return NextResponse.json({ packs, devis, promos });
+    }
+
     if (vue === "mensuel") {
       // Facturation mensuelle des établissements : pour un mois donné,
       // chaque compte pro avec le nombre de prestations restant à facturer
@@ -532,6 +541,80 @@ export async function POST(req) {
       }
       await journaliser(acces.nomAffiche, "finance.mensuel.tous", "facture", 0, `${c.mois} · ${creees} facture(s) · ${montant} DZD`);
       return NextResponse.json({ ok: true, creees, montant });
+    }
+
+    // ---- Packs forfaitaires (création réservée au super admin) ----
+    if (action === "pack.creer" || action === "pack.maj") {
+      if (!superadmin) return refus();
+      const data = {
+        nom: String(c.nom || "").slice(0, 120),
+        nomAr: c.nomAr ? String(c.nomAr).slice(0, 120) : null,
+        description: c.description ? String(c.description).slice(0, 400) : null,
+        descriptionAr: c.descriptionAr ? String(c.descriptionAr).slice(0, 400) : null,
+        service: ["transport", "domicile", "medicaments"].includes(c.service) ? c.service : "transport",
+        prix: Math.max(0, parseInt(c.prix, 10) || 0),
+        dureeMin: Math.min(Math.max(parseInt(c.dureeMin, 10) || 60, 15), 480),
+        ordre: parseInt(c.ordre, 10) || 0,
+        actif: c.actif !== false,
+        creePar: acces.nomAffiche,
+      };
+      if (!data.nom || !data.prix) return NextResponse.json({ erreur: "nom et prix obligatoires" }, { status: 400 });
+      const pack = action === "pack.creer"
+        ? await prisma.pack.create({ data })
+        : await prisma.pack.update({ where: { id: Number(c.id) }, data });
+      await journaliser(acces.nomAffiche, "finance.pack", "pack", pack.id, `${pack.nom} · ${pack.prix} DZD`);
+      return NextResponse.json({ ok: true, pack });
+    }
+
+    // ---- Devis : chiffrage puis suivi de statut ----
+    if (action === "devis.chiffrer") {
+      if (!gestion) return refus();
+      const montant = Math.max(0, parseInt(c.montant, 10) || 0);
+      if (!montant) return NextResponse.json({ erreur: "montant requis" }, { status: 400 });
+      const devis = await prisma.devis.update({
+        where: { id: Number(c.id) },
+        data: {
+          montant, reponse: c.reponse ? String(c.reponse).slice(0, 1200) : null,
+          statut: "CHIFFRE", chiffrePar: acces.nomAffiche, chiffreLe: new Date(),
+        },
+      });
+      await journaliser(acces.nomAffiche, "finance.devis.chiffre", "devis", devis.id, `${devis.numero} · ${montant} DZD`);
+      return NextResponse.json({ ok: true, devis });
+    }
+    if (action === "devis.statut") {
+      if (!gestion) return refus();
+      const statut = ["ACCEPTE", "REFUSE", "NOUVEAU", "CHIFFRE"].includes(c.statut) ? c.statut : null;
+      if (!statut) return NextResponse.json({ erreur: "statut invalide" }, { status: 400 });
+      const devis = await prisma.devis.update({ where: { id: Number(c.id) }, data: { statut } });
+      await journaliser(acces.nomAffiche, "finance.devis.statut", "devis", devis.id, `${devis.numero} → ${statut}`);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ---- Codes promo (création réservée au super admin) ----
+    if (action === "promo.creer") {
+      if (!superadmin) return refus();
+      const code = String(c.code || "").trim().toUpperCase().slice(0, 30);
+      if (!code) return NextResponse.json({ erreur: "code requis" }, { status: 400 });
+      const promo = await prisma.codePromo.create({
+        data: {
+          code, type: c.type === "fixe" ? "fixe" : "pourcentage",
+          valeur: Math.max(1, parseInt(c.valeur, 10) || 0),
+          plafond: c.plafond ? parseInt(c.plafond, 10) : null,
+          service: ["transport", "domicile", "medicaments"].includes(c.service) ? c.service : null,
+          debut: c.debut || new Date().toISOString().slice(0, 10),
+          fin: c.fin || null,
+          maxUsages: c.maxUsages ? parseInt(c.maxUsages, 10) : null,
+          creePar: acces.nomAffiche,
+        },
+      });
+      await journaliser(acces.nomAffiche, "finance.promo.cree", "promo", promo.id, promo.code);
+      return NextResponse.json({ ok: true, promo }, { status: 201 });
+    }
+    if (action === "promo.desactiver") {
+      if (!superadmin) return refus();
+      await prisma.codePromo.update({ where: { id: Number(c.id) }, data: { actif: false } });
+      await journaliser(acces.nomAffiche, "finance.promo.off", "promo", Number(c.id), "");
+      return NextResponse.json({ ok: true });
     }
 
     if (action === "reglage.facturationAuto") {
