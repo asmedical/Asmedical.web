@@ -89,6 +89,8 @@ export default function PriseRdv() {
 
   // --- Commun ---
   const [telephone, setTelephone] = useState("");
+  const [telCompte, setTelCompte] = useState(""); // numéro du compte connecté
+  const [telAutre, setTelAutre] = useState(false); // saisir un autre numéro ?
   const [notes, setNotes] = useState("");
   const [commune, setCommune] = useState(""); // filtre de zone du moteur
   const [communeFiltre, setCommuneFiltre] = useState(""); // appliqué au blur
@@ -170,6 +172,7 @@ export default function PriseRdv() {
         const p = await chargerProfil(u.id);
         const tel = u.phone || p?.telephone || "";
         if (tel) {
+          setTelCompte(tel);
           setTelephone((actuel) => (actuel && actuel.trim() ? actuel : tel));
         }
       } catch {}
@@ -800,7 +803,30 @@ export default function PriseRdv() {
 
         <div className="champ">
           <label>{t("tel_l")}</label>
-          <input type="tel" placeholder={t("tel_ph")} value={telephone} onChange={(e) => setTelephone(e.target.value)} />
+          {telCompte && (
+            <div className="chips" style={{ marginBottom: 8 }}>
+              <button
+                type="button"
+                className={"chip" + (!telAutre ? " actif" : "")}
+                aria-pressed={!telAutre}
+                onClick={() => { setTelAutre(false); setTelephone(telCompte); }}
+              >
+                📱 {t("tel_compte")} · {telCompte}
+              </button>
+              <button
+                type="button"
+                className={"chip" + (telAutre ? " actif" : "")}
+                aria-pressed={telAutre}
+                onClick={() => { setTelAutre(true); setTelephone(""); }}
+              >
+                ➕ {t("tel_autre")}
+              </button>
+            </div>
+          )}
+          {(!telCompte || telAutre) && (
+            <input type="tel" placeholder={t("tel_ph")} value={telephone} onChange={(e) => setTelephone(e.target.value)} />
+          )}
+          {telCompte && !telAutre && <p className="precisions-aide">{t("tel_aide_compte")}</p>}
         </div>
 
         {/* ---- Précisions structurées (facultatives) ---- */}
