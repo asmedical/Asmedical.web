@@ -12,9 +12,9 @@ const verif = (nom, cond) => {
 const M = await import(process.cwd() + "/lib/assistantIA.js");
 
 // --- 1. Configuration pilotée par la variable d'environnement ---
-delete process.env.ANTHROPIC_API_KEY;
+delete process.env.GEMINI_API_KEY;
 verif("sans clé → assistant IA non configuré", M.assistantIAConfigure() === false);
-process.env.ANTHROPIC_API_KEY = "sk-test-xxx";
+process.env.GEMINI_API_KEY = "test-xxx";
 verif("avec clé → assistant IA configuré", M.assistantIAConfigure() === true);
 
 // --- 2. Contexte client (injecté côté serveur) ---
@@ -34,14 +34,17 @@ verif("contexte vide → mention « pas de demande »",
 verif("les actions clés sont autorisées",
   ["rdv", "suivi", "paiements", "appeler", "aucune"].every((a) => M.ACTIONS_IA.includes(a)));
 
-// --- 4. Appel IA : on stub fetch pour simuler la passerelle ---
-const stub = (payload, { statut = 200, stop } = {}) => {
+// --- 4. Appel IA : on stub fetch pour simuler la passerelle Gemini ---
+const stub = (payload, { statut = 200, finish, block } = {}) => {
   global.fetch = async () => ({
     ok: statut >= 200 && statut < 300,
     status: statut,
     json: async () => ({
-      stop_reason: stop || "end_turn",
-      content: [{ type: "text", text: typeof payload === "string" ? payload : JSON.stringify(payload) }],
+      promptFeedback: block ? { blockReason: block } : undefined,
+      candidates: [{
+        finishReason: finish || "STOP",
+        content: { parts: [{ text: typeof payload === "string" ? payload : JSON.stringify(payload) }] },
+      }],
     }),
   });
 };
@@ -67,11 +70,11 @@ stub('Voici: {"reponse":"Salut","action":"rdv"} merci');
 r = await M.demanderIA({ message: "y", langue: "fr" });
 verif("JSON noyé dans du texte → extrait", r.reponse === "Salut" && r.action === "rdv");
 
-// 4e. Refus de l'IA → erreur (l'appelant retombera sur le moteur guidé).
-stub({ reponse: "x", action: "aucune" }, { stop: "refusal" });
+// 4e. Contenu bloqué (sécurité Gemini) → erreur (repli guidé côté route).
+stub({ reponse: "x", action: "aucune" }, { finish: "SAFETY" });
 let leve = false;
 try { await M.demanderIA({ message: "z", langue: "fr" }); } catch { leve = true; }
-verif("refus IA → lève une erreur (repli côté route)", leve);
+verif("contenu bloqué → lève une erreur (repli côté route)", leve);
 
 // 4f. Erreur HTTP → erreur.
 stub({}, { statut: 500 });
@@ -80,7 +83,7 @@ try { await M.demanderIA({ message: "z", langue: "fr" }); } catch { leve = true;
 verif("erreur HTTP → lève une erreur (repli côté route)", leve);
 
 // 4g. Sans clé → lève immédiatement (pas d'appel réseau).
-delete process.env.ANTHROPIC_API_KEY;
+delete process.env.GEMINI_API_KEY;
 leve = false;
 try { await M.demanderIA({ message: "z", langue: "fr" }); } catch { leve = true; }
 verif("sans clé → lève sans appeler le réseau", leve);

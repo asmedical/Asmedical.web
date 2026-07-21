@@ -8,8 +8,8 @@ import { autorise } from "@/lib/ratelimit";
 export const dynamic = "force-dynamic";
 
 // Assistant conversationnel ASM. Deux cerveaux :
-//  - « ia » : Claude, quand ANTHROPIC_API_KEY est configurée en variable Vercel
-//    (comprend le langage libre + connaît le contexte réel du client).
+//  - « ia » : Google Gemini, quand GEMINI_API_KEY est configurée en variable
+//    Vercel (comprend le langage libre + connaît le contexte réel du client).
 //  - « guide » : moteur à mots-clés local, repli honnête (jamais d'appel externe,
 //    aucune clé). Utilisé si la clé manque, en cas d'erreur, ou si l'IA refuse.
 // Aucune clé n'apparaît côté navigateur : tout se joue ici, côté serveur.
