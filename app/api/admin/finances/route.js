@@ -135,6 +135,29 @@ export async function GET(req) {
       return NextResponse.json({ plans, souscriptions });
     }
 
+    // ---- Tickets prépayés d'agence (paiement à la réservation) ----
+    if (vue === "tickets") {
+      // Le ticket universel de TEST est créé automatiquement (une fois) —
+      // clairement marqué « test », à désactiver au lancement.
+      const test = await prisma.ticketPrepaye.findUnique({ where: { code: "ASM2026" } });
+      if (!test) {
+        await prisma.ticketPrepaye.create({
+          data: {
+            code: "ASM2026", libelle: "Ticket universel de TEST (toutes prestations)",
+            services: "", maxUsages: 1000, test: true, creePar: "système",
+          },
+        }).catch(() => {});
+      }
+      const [tickets, reglage] = await Promise.all([
+        prisma.ticketPrepaye.findMany({
+          orderBy: { creeLe: "desc" }, take: 200,
+          include: { utilisations: { orderBy: { creeLe: "desc" }, take: 10 } },
+        }),
+        prisma.reglage.findUnique({ where: { id: 1 } }),
+      ]);
+      return NextResponse.json({ tickets, simulation: Boolean(reglage?.paiementSimulation) });
+    }
+
     if (vue === "evenements") {
       if (!ROLES_GESTION_EQUIPE.includes(acces.profil.role)) return refus();
       return NextResponse.json({ evenements: await prisma.evenementPaiement.findMany({ orderBy: { creeLe: "desc" }, take: 100 }) });
@@ -396,8 +419,13 @@ export async function POST(req) {
       if (!superadmin) return refus();
       const data = {
         nom: String(c.nom || "").slice(0, 120), description: c.description || null,
+        nomAr: c.nomAr ? String(c.nomAr).slice(0, 120) : null,
+        descriptionAr: c.descriptionAr ? String(c.descriptionAr).slice(0, 500) : null,
         prix: Math.max(0, parseInt(c.prix, 10) || 0), frequence: c.frequence || "mensuel",
         service: c.service || null, quantiteIncluse: c.quantiteIncluse ? parseInt(c.quantiteIncluse, 10) : null,
+        reductionPct: Math.min(Math.max(parseInt(c.reductionPct, 10) || 0, 0), 100),
+        ordre: parseInt(c.ordre, 10) || 0,
+        populaire: Boolean(c.populaire),
         actif: c.actif !== false,
       };
       const plan = action === "plan.creer"
@@ -597,13 +625,16 @@ export async function POST(req) {
       if (!code) return NextResponse.json({ erreur: "code requis" }, { status: 400 });
       const promo = await prisma.codePromo.create({
         data: {
-          code, type: c.type === "fixe" ? "fixe" : "pourcentage",
-          valeur: Math.max(1, parseInt(c.valeur, 10) || 0),
+          code,
+          // gratuit = prestation offerte (un « trajet offert » = gratuit + service transport)
+          type: ["fixe", "gratuit"].includes(c.type) ? c.type : "pourcentage",
+          valeur: c.type === "gratuit" ? 100 : Math.max(1, parseInt(c.valeur, 10) || 0),
           plafond: c.plafond ? parseInt(c.plafond, 10) : null,
           service: ["transport", "domicile", "medicaments"].includes(c.service) ? c.service : null,
           debut: c.debut || new Date().toISOString().slice(0, 10),
           fin: c.fin || null,
           maxUsages: c.maxUsages ? parseInt(c.maxUsages, 10) : null,
+          cumulable: Boolean(c.cumulable),
           creePar: acces.nomAffiche,
         },
       });
@@ -614,6 +645,60 @@ export async function POST(req) {
       if (!superadmin) return refus();
       await prisma.codePromo.update({ where: { id: Number(c.id) }, data: { actif: false } });
       await journaliser(acces.nomAffiche, "finance.promo.off", "promo", Number(c.id), "");
+      return NextResponse.json({ ok: true });
+    }
+
+    // ---- Tickets prépayés : créer / modifier / activer / désactiver ----
+    if (action === "ticket.creer" || action === "ticket.maj") {
+      if (!superadmin) return refus();
+      const data = {
+        libelle: c.libelle ? String(c.libelle).slice(0, 120) : null,
+        services: String(c.services || "").split(",").map((x) => x.trim()).filter((x) => ["transport", "domicile", "medicaments"].includes(x)).join(","),
+        maxUsages: Math.min(Math.max(parseInt(c.maxUsages, 10) || 1, 1), 100000),
+        expireLe: /^\d{4}-\d{2}-\d{2}$/.test(c.expireLe || "") ? c.expireLe : null,
+        actif: c.actif !== false,
+      };
+      let ticket;
+      if (action === "ticket.creer") {
+        const code = String(c.code || "").trim().toUpperCase().replace(/[^A-Z0-9-]/g, "").slice(0, 30);
+        if (code.length < 4) return NextResponse.json({ erreur: "code trop court (4 caractères min.)" }, { status: 400 });
+        try {
+          ticket = await prisma.ticketPrepaye.create({ data: { ...data, code, creePar: acces.nomAffiche } });
+        } catch (e) {
+          if (String(e.code) === "P2002") return NextResponse.json({ erreur: "ce code existe déjà" }, { status: 409 });
+          throw e;
+        }
+      } else {
+        ticket = await prisma.ticketPrepaye.update({ where: { id: Number(c.id) }, data });
+      }
+      await journaliser(acces.nomAffiche, `finance.ticket.${action === "ticket.creer" ? "cree" : "maj"}`, "ticket", ticket.id, `${ticket.code} · ${ticket.maxUsages} usage(s) max`);
+      return NextResponse.json({ ok: true, ticket }, { status: action === "ticket.creer" ? 201 : 200 });
+    }
+    if (action === "ticket.supprimer") {
+      if (!superadmin) return refus();
+      const t = await prisma.ticketPrepaye.findUnique({ where: { id: Number(c.id) } });
+      if (!t) return NextResponse.json({ erreur: "introuvable" }, { status: 404 });
+      if (t.usages > 0) {
+        // Jamais de suppression d'un ticket déjà utilisé (traçabilité) :
+        // on le désactive.
+        await prisma.ticketPrepaye.update({ where: { id: t.id }, data: { actif: false } });
+        await journaliser(acces.nomAffiche, "finance.ticket.off", "ticket", t.id, t.code);
+        return NextResponse.json({ ok: true, desactive: true });
+      }
+      await prisma.ticketPrepaye.delete({ where: { id: t.id } });
+      await journaliser(acces.nomAffiche, "finance.ticket.supprime", "ticket", t.id, t.code);
+      return NextResponse.json({ ok: true });
+    }
+
+    // ---- Simulation de paiement (avant SATIM) : interrupteur superadmin ----
+    if (action === "reglage.paiementSimulation") {
+      if (!superadmin) return refus();
+      await prisma.reglage.upsert({
+        where: { id: 1 },
+        update: { paiementSimulation: !!c.actif },
+        create: { id: 1, paiementSimulation: !!c.actif },
+      });
+      await journaliser(acces.nomAffiche, "finance.simulation", "reglage", 1, c.actif ? "ACTIVÉE" : "désactivée");
       return NextResponse.json({ ok: true });
     }
 

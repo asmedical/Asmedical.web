@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE } from "@/lib/i18n";
 
@@ -47,7 +48,8 @@ const JOURS_SEMAINE = ["j_lun", "j_mar", "j_mer", "j_jeu", "j_ven", "j_sam", "j_
 //  Mode A (domicile)    : type d'acte + créneaux
 //  Mode C (médicaments) : jour + fenêtre de livraison + pharmacie
 export default function PriseRdv() {
-  const { t, langue, serviceEnCours, espaceChoisi } = useAsm();
+  const { t, langue, serviceEnCours, espaceChoisi, connecte } = useAsm();
+  const routeur = useRouter();
   const service = serviceEnCours || "transport";
 
   // --- Transport (Mode B) ---
@@ -114,7 +116,7 @@ export default function PriseRdv() {
       const r = await fetch("/api/promo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ code: codePromo, service, telephone: normaliserTel(tel, indicatif) }),
+        body: JSON.stringify({ code: codePromo, service, telephone }),
       });
       const d = await r.json();
       setPromoEtat(r.ok ? "ok" : d.erreur || "code_invalide");
@@ -392,10 +394,10 @@ export default function PriseRdv() {
         return;
       }
       if (!r.ok) throw new Error();
+      const dRep = await r.json().catch(() => ({}));
       // Ordonnance jointe : envoyée après la création (jamais bloquant).
       if (livraison && ordonnance) {
         try {
-          const dRep = await r.clone().json().catch(() => ({}));
           if (dRep?.id) {
             const fd = new FormData();
             fd.append("demandeId", String(dRep.id));
@@ -408,6 +410,14 @@ export default function PriseRdv() {
       }
       if (pourPatient) {
         try { sessionStorage.removeItem("asm_pour_patient"); } catch {}
+      }
+      // Écran de PAIEMENT obligatoire : la situation (abonné, gratuit, déjà
+      // réglé, ticket, à payer) est détectée côté serveur. Les réservations
+      // AU NOM d'un patient gardent l'écran de confirmation historique
+      // (le payeur reste le patient ou l'établissement facturé au mois).
+      if (dRep?.id && connecte && !pourPatient) {
+        routeur.push(`/paiement?demande=${dRep.id}`);
+        return;
       }
       setConfirme(urgent ? "urgent" : livraison ? "livraison" : "standard");
     } catch {

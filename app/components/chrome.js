@@ -331,7 +331,7 @@ export function PiedDePage() {
   const { t } = useAsm();
   return (
     <footer>
-      <Link href="/packs">{t("pk_t")}</Link> · <Link href="/devis">{t("dv_t")}</Link>
+      <Link href="/packs">{t("pk_t")}</Link> · <Link href="/abonnements">{t("abo_t2")}</Link> · <Link href="/devis">{t("dv_t")}</Link>
       <br />
       ASM — Bir Mourad Raïs, Alger · <ChoixAppel />
       <br />

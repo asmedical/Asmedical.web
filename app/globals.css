@@ -676,6 +676,27 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .fil-msg.equipe{border:1px solid var(--or);background:#FBF6EA}
 .fil-demande-saisie{display:flex;gap:8px;margin-top:8px}
 .fil-demande-saisie input{flex:1;border:1px solid var(--ligne);border-radius:10px;padding:10px 12px;font-size:15px}
+
+/* ---------- Paiement à la réservation & abonnements ---------- */
+.pay-montant{display:flex;justify-content:space-between;align-items:center;background:var(--vert-pale);border:1px solid var(--ligne);border-radius:14px;padding:14px 18px;margin-bottom:12px}
+.pay-montant b{font-size:22px;color:var(--vert-fonce)}
+.pay-carte{background:var(--blanc);border:1px solid var(--ligne);border-radius:14px;padding:16px 18px;margin-bottom:12px;box-shadow:var(--ombre)}
+.pay-carte.abonne{border:1.5px solid var(--or);background:#FDFAF2}
+.pay-carte .btn-action,.pay-carte .btn-secondaire{margin-top:10px}
+.pay-actions{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px;justify-content:center}
+.pay-resultat{text-align:center;background:var(--blanc);border:1px solid var(--ligne);border-radius:16px;padding:28px 20px;box-shadow:var(--ombre)}
+.pay-resultat-ico{font-size:44px;margin-bottom:8px}
+.pay-resultat h3{color:var(--vert-fonce);margin-bottom:6px}
+.abo-carte{position:relative;background:var(--blanc);border:1px solid var(--ligne);border-radius:16px;padding:18px;margin-bottom:14px;box-shadow:var(--ombre)}
+.abo-carte.populaire{border:2px solid var(--vert)}
+.abo-badge{position:absolute;top:-11px;inset-inline-end:14px;background:var(--vert);color:#fff;border-radius:99px;padding:2px 12px;font-size:12px;font-weight:800}
+.abo-tete{display:flex;justify-content:space-between;align-items:baseline;gap:10px;flex-wrap:wrap}
+.abo-prix{font-weight:800;font-size:20px;color:var(--vert-fonce)}
+.abo-prix small{font-size:12.5px;color:var(--gris);font-weight:600;margin-inline-start:3px}
+.abo-desc{color:var(--gris);font-size:14.5px;margin-top:4px}
+.abo-points{list-style:none;margin:10px 0 4px;padding:0}
+.abo-points li{padding:3px 0;font-size:14.5px}
+.abo-points li::before{content:"✓ ";color:var(--vert);font-weight:800}
 .adm-fiche>strong{font-size:16px;color:var(--vert-fonce)}
 .adm-photo{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}
 .adm-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--vert-pale);border:1px solid var(--ligne)}

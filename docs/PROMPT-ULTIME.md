@@ -136,6 +136,17 @@ points de paiement vides.
    transmise à l'utilisateur en discussion le 25/07/2026 (jamais écrite ici ni
    dans le code). À poser dans Vercel → protège `/api/rappels` (rappels de
    rendez-vous, cron quotidien 17h Algérie). Vérifier qu'elle est bien posée.
+3. **Système de paiement (avant SATIM)** : la SIMULATION de paiement par
+   carte est un réglage superadmin (Finances → Tickets d'agence), étiquetée
+   « simulation » partout — À DÉSACTIVER dès qu'une vraie passerelle
+   (SATIM/Chargily) est branchée (même couche lib/paiements, rien d'autre à
+   changer). Le ticket universel de test **ASM2026** (1000 usages, marqué
+   test) est à DÉSACTIVER au lancement (Finances → Tickets d'agence).
+4. **Guide tarifaire Auxiliaire de santé** : les PDF fournis par
+   l'utilisateur (guide V1 avec tarifs Alger + prompt V2 + liste complète de
+   prestations par catégories avec structure de fiche imposée) sont extraits
+   dans le scratchpad — chantier À VENIR : produire le guide complet puis
+   alimenter la grille tarifaire réelle du site (types d'actes + tarifs).
 
 ---
 

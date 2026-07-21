@@ -42,6 +42,7 @@ model Demande {
   transporteur   Transporteur? @relation(fields: [transporteurId], references: [id])
   abonnementId   Int?
   abonnement     Abonnement?   @relation(fields: [abonnementId], references: [id])
+  souscriptionId Int?     // prestation COUVERTE par cet abonnement financier (vérifié serveur)
   // --- Suivi d'avancement par l'intervenant (fiche mission) ---
   accepteeLe     DateTime?  // acceptée / confirmée par l'intervenant
   enRouteLe      DateTime?  // « je suis en route »
@@ -251,6 +252,7 @@ model CodePromo {
   maxUsages     Int?     // null = illimité
   usages        Int      @default(0)
   parrainUserId String?  // code de PARRAINAGE : compte du parrain récompensé
+  cumulable     Boolean  @default(false) // cumul avec d'autres bons UNIQUEMENT si autorisé
   actif         Boolean  @default(true)
   creePar       String?
   creeLe        DateTime @default(now())
@@ -495,6 +497,8 @@ model Reglage {
   // --- Rappels de rendez-vous automatiques ---
   rappelsAuto         Boolean   @default(true) // rappels veille + 2 h avant
   rappelsTickLe       DateTime? // verrou anti-rafale du déclencheur opportuniste
+  // --- Paiement à la réservation ---
+  paiementSimulation  Boolean   @default(false) // SIMULATION de paiement (avant SATIM) — clairement étiquetée
 }
 
 // Canal choisi par l'utilisateur pour recevoir son code de connexion
@@ -603,9 +607,10 @@ model Paiement {
   compteId       Int
   factureId      Int?
   facture        Facture? @relation(fields: [factureId], references: [id])
-  moyen          String   // especes | cib | edahabia | virement
-  fournisseur    String?  // interne | chargily | ...
-  refFournisseur String?  // id du checkout / référence virement
+  moyen          String   // especes | cib | edahabia | virement | ticket
+  fournisseur    String?  // interne | chargily | simulation | ...
+  refFournisseur String?  // id du checkout / référence virement / code ticket
+  demandeId      Int?     // prépaiement À LA RÉSERVATION — imputé à la facture à la clôture
   montant        Int
   statut         String   @default("EN_ATTENTE") // EN_ATTENTE|CONFIRME|ECHOUE|EXPIRE|ANNULE|PARTIELLEMENT_REMBOURSE|REMBOURSE
   encaissePar    String?  // caissier (espèces) / valideur (virement)
@@ -661,6 +666,37 @@ model RemiseClient {
   creeLe   DateTime @default(now())
 }
 
+// Ticket PRÉPAYÉ d'agence : le patient paie en agence ASM, l'agent lui
+// remet un code ; à la réservation, le code valide le paiement. Usage
+// strictement contrôlé (nombre maximal, expiration, services autorisés,
+// une seule fois par demande) et entièrement administrable.
+model TicketPrepaye {
+  id           Int      @id @default(autoincrement())
+  code         String   @unique // saisi par le patient (majuscules)
+  libelle      String?  // ex. « Payé agence Bir Mourad Raïs »
+  services     String   @default("") // csv (vide = toutes prestations)
+  maxUsages    Int      @default(1)
+  usages       Int      @default(0)
+  expireLe     String?  // AAAA-MM-JJ (null = sans expiration)
+  actif        Boolean  @default(true)
+  test         Boolean  @default(false) // ticket de TEST (ex. ASM2026) — à désactiver au lancement
+  creePar      String?
+  creeLe       DateTime @default(now())
+  utilisations TicketPrepayeUsage[]
+}
+
+model TicketPrepayeUsage {
+  id        Int      @id @default(autoincrement())
+  ticketId  Int
+  ticket    TicketPrepaye @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  demandeId Int
+  telCle    String   // client (8 derniers chiffres)
+  montant   Int      @default(0) // montant couvert (estimation au moment de l'usage)
+  creeLe    DateTime @default(now())
+
+  @@unique([ticketId, demandeId])
+}
+
 model PointPaiement {
   id          Int     @id @default(autoincrement())
   nom         String
@@ -691,12 +727,17 @@ model EvenementPaiement {
 model PlanAbonnement {
   id              Int     @id @default(autoincrement())
   nom             String
+  nomAr           String?
   description     String?
+  descriptionAr   String?
   prix            Int
   devise          String  @default("DZD")
   frequence       String  @default("mensuel")
-  service         String?
-  quantiteIncluse Int?
+  service         String?  // null = tous les services inclus
+  quantiteIncluse Int?     // prestations incluses par période (null = illimité)
+  reductionPct    Int     @default(0) // remise sur les prestations NON incluses
+  ordre           Int     @default(0)
+  populaire       Boolean @default(false) // mis en avant sur la page publique
   actif           Boolean @default(true)
   souscriptions   Souscription[]
   creeLe          DateTime @default(now())

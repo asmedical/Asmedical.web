@@ -12,7 +12,7 @@ const DA = (n) => `${Number(n || 0).toLocaleString("fr-FR")} DZD`;
 const ONGLTS = [
   ["bord", "Tableau de bord"], ["factures", "Factures"], ["paiements", "Paiements & tickets"],
   ["mensuel", "Établissements"], ["offres", "Offres & devis"], ["tarifs", "Tarifs"], ["remises", "Remises"],
-  ["plans", "Abonnements"], ["points", "Points de paiement"], ["evenements", "Événements"],
+  ["plans", "Abonnements"], ["tickets", "Tickets d'agence"], ["points", "Points de paiement"], ["evenements", "Événements"],
 ];
 
 function Cartes({ bord }) {
@@ -326,19 +326,27 @@ function FinancesContenu() {
             <button className="adm-btn" style={{ marginBottom: 10 }} onClick={async () => {
               const code = window.prompt("Code (ex. BIENVENUE10) :");
               if (!code) return;
-              const type = window.confirm("OK = POURCENTAGE · Annuler = MONTANT FIXE (DZD)") ? "pourcentage" : "fixe";
-              const valeur = window.prompt(type === "pourcentage" ? "Pourcentage (ex. 10) :" : "Montant (DZD) :");
-              if (!valeur) return;
+              const choix = (window.prompt("Type : 1 = pourcentage · 2 = montant fixe (DZD) · 3 = GRATUIT (prestation offerte)", "1") || "1").trim();
+              const type = choix === "2" ? "fixe" : choix === "3" ? "gratuit" : "pourcentage";
+              let valeur = "100";
+              if (type !== "gratuit") {
+                valeur = window.prompt(type === "pourcentage" ? "Pourcentage (ex. 10) :" : "Montant (DZD) :");
+                if (!valeur) return;
+              }
+              const service = type === "gratuit"
+                ? window.prompt("Limiter à un service ? (transport = trajet offert, medicaments = livraison offerte, vide = tout)") || ""
+                : window.prompt("Limiter à un service ? (transport / domicile / medicaments — vide = tous)") || "";
               const maxUsages = window.prompt("Nombre d'utilisations max (vide = illimité) :") || "";
-              await action({ action: "promo.creer", code, type, valeur, maxUsages });
+              const cumulable = window.confirm("Autoriser le CUMUL avec d'autres bons ? (OK = oui)");
+              await action({ action: "promo.creer", code, type, valeur, service, maxUsages, cumulable });
             }}>+ Nouveau code promo</button>
           )}
           <div className="adm-liste">
             {(d.promos || []).map((pr) => (
               <div className="adm-ligne" key={pr.id}>
                 <span className="adm-ligne-texte">
-                  <strong>{pr.code} — {pr.type === "pourcentage" ? `-${pr.valeur} %` : `-${DA(pr.valeur)}`}</strong>
-                  <small>{pr.usages}{pr.maxUsages ? `/${pr.maxUsages}` : ""} utilisations · dès le {pr.debut}{pr.fin ? ` jusqu'au ${pr.fin}` : ""}{pr.actif ? "" : " · ⚪ désactivé"}</small>
+                  <strong>{pr.code} — {pr.type === "gratuit" ? "GRATUIT" : pr.type === "pourcentage" ? `-${pr.valeur} %` : `-${DA(pr.valeur)}`}</strong>
+                  <small>{pr.usages}{pr.maxUsages ? `/${pr.maxUsages}` : ""} utilisations · {pr.service || "tous services"}{pr.cumulable ? " · cumulable" : ""} · dès le {pr.debut}{pr.fin ? ` jusqu'au ${pr.fin}` : ""}{pr.actif ? "" : " · ⚪ désactivé"}</small>
                 </span>
                 {superadmin && pr.actif && (
                   <button className="adm-btn secondaire" onClick={() => action({ action: "promo.desactiver", id: pr.id })}>Désactiver</button>
@@ -420,20 +428,34 @@ function FinancesContenu() {
         <>
           {superadmin && (
             <button className="adm-btn" style={{ marginBottom: 10 }} onClick={() => {
-              const nom = window.prompt("Nom du plan (ex. Forfait transports dialyse) :");
+              const nom = window.prompt("Nom du plan (ex. ASM Sérénité, ASM Dialyse…) :");
               if (!nom) return;
-              const prix = window.prompt("Prix mensuel (DZD) :");
+              const prix = window.prompt("Prix par période (DZD) :");
               if (!prix) return;
-              action({ action: "plan.creer", nom, prix });
+              const description = window.prompt("Description (affichée sur la page publique) :") || "";
+              const service = window.prompt("Service couvert (transport / domicile / medicaments — vide = tous) :") || "";
+              const quantiteIncluse = window.prompt("Prestations incluses par mois (vide = illimité) :") || "";
+              const reductionPct = window.prompt("Remise (%) sur les prestations NON incluses (vide = 0) :") || "";
+              const populaire = window.confirm("Mettre ce plan en avant (« Le plus choisi ») ?");
+              action({ action: "plan.creer", nom, prix, description, service, quantiteIncluse, reductionPct, populaire });
             }}>+ Créer un plan</button>
           )}
+          <p className="fe-aide" style={{ marginTop: 0 }}>
+            Les plans actifs sont affichés sur la page publique <b>/abonnements</b> ; la souscription
+            en ligne crée une facture de première période et l&apos;abonnement s&apos;active à son paiement.
+          </p>
           <h2 className="adm-sous-titre">Plans ({d.plans.length})</h2>
           <div className="adm-liste">
             {d.plans.map((pl) => (
               <div className="adm-ligne" key={pl.id}>
                 <span className="adm-ligne-texte">
-                  <strong>{pl.nom} — {DA(pl.prix)} / {pl.frequence}</strong>
-                  <small>{pl.description || "—"} · {pl._count.souscriptions} souscription(s) · {pl.actif ? "actif" : "fermé"}</small>
+                  <strong>{pl.populaire ? "⭐ " : ""}{pl.nom} — {DA(pl.prix)} / {pl.frequence}</strong>
+                  <small>
+                    {pl.description || "—"} · {pl.service || "tous services"} ·{" "}
+                    {pl.quantiteIncluse ? `${pl.quantiteIncluse} incluse(s)/mois` : "illimité"}
+                    {pl.reductionPct ? ` · −${pl.reductionPct} % sur le reste` : ""} ·{" "}
+                    {pl._count.souscriptions} souscription(s) · {pl.actif ? "actif" : "fermé"}
+                  </small>
                 </span>
                 <span style={{ display: "flex", gap: 6 }}>
                   <button className="adm-btn secondaire" onClick={() => {
@@ -463,6 +485,79 @@ function FinancesContenu() {
                   {s.statut === "SUSPENDU" && <button className="adm-btn secondaire" onClick={() => action({ action: "souscription.statut", id: s.id, statut: "ACTIF" })}>Réactiver</button>}
                   {s.statut !== "ANNULE" && <button className="adm-btn secondaire" onClick={() => action({ action: "souscription.statut", id: s.id, statut: "ANNULE" }, "Annuler cet abonnement ?")}>Annuler</button>}
                 </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {/* ================= TICKETS PRÉPAYÉS D'AGENCE ================= */}
+      {onglet === "tickets" && d?.tickets && (
+        <>
+          <p className="fe-aide" style={{ marginTop: 0 }}>
+            Un patient paie en agence → l&apos;agent lui remet un code → à la réservation, le code
+            valide le paiement. Un ticket utilisé au maximum de ses usages devient inutilisable.
+            Le ticket <b>ASM2026</b> est un ticket de TEST universel — à désactiver au lancement.
+          </p>
+          {superadmin && (
+            <div className="adm-fiche" style={{ marginBottom: 12 }}>
+              <strong>Interrupteurs (superadmin)</strong>
+              <label className="case-ligne" style={{ marginTop: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={!!d.simulation}
+                  onChange={(e) =>
+                    action(
+                      { action: "reglage.paiementSimulation", actif: e.target.checked },
+                      e.target.checked
+                        ? "ACTIVER la SIMULATION de paiement par carte ? Aucun débit réel — chaque opération est étiquetée « simulation ». À désactiver dès qu'une vraie passerelle (SATIM/Chargily) est branchée."
+                        : null
+                    )
+                  }
+                />
+                Simulation de paiement par carte (avant SATIM) — clairement étiquetée, aucun débit réel
+              </label>
+            </div>
+          )}
+          {superadmin && (
+            <button className="adm-btn" style={{ marginBottom: 10 }} onClick={() => {
+              const code = window.prompt("Code du ticket (4 à 30 caractères, ex. AG-0042) :");
+              if (!code) return;
+              const libelle = window.prompt("Libellé (ex. Payé agence Bir Mourad Raïs — M. Amrani) :") || "";
+              const maxUsages = window.prompt("Nombre maximal d'utilisations :", "1") || "1";
+              const services = window.prompt("Prestations autorisées (transport,domicile,medicaments — vide = toutes) :") || "";
+              const expireLe = window.prompt("Date d'expiration (AAAA-MM-JJ — vide = sans) :") || "";
+              action({ action: "ticket.creer", code, libelle, maxUsages, services, expireLe });
+            }}>+ Créer un ticket</button>
+          )}
+          <div className="adm-liste">
+            {d.tickets.map((tk) => (
+              <div className={"adm-ligne" + (!tk.actif ? " signale" : "")} key={tk.id}>
+                <span className="adm-ligne-texte">
+                  <strong>
+                    {tk.test ? "🧪 " : "🎟 "}{tk.code}
+                    {tk.libelle ? ` — ${tk.libelle}` : ""}
+                  </strong>
+                  <small>
+                    {tk.usages}/{tk.maxUsages} utilisé(s) · {tk.services || "toutes prestations"}
+                    {tk.expireLe ? ` · expire le ${tk.expireLe}` : ""} · {tk.actif ? "actif" : "désactivé"}
+                    {tk.utilisations.length > 0 ? ` · dernier usage : demande n°${tk.utilisations[0].demandeId}` : ""}
+                  </small>
+                </span>
+                {superadmin && (
+                  <span style={{ display: "flex", gap: 6 }}>
+                    <button className="adm-btn secondaire" onClick={() =>
+                      action({ action: "ticket.maj", id: tk.id, libelle: tk.libelle, services: tk.services, maxUsages: tk.maxUsages, expireLe: tk.expireLe, actif: !tk.actif })
+                    }>
+                      {tk.actif ? "Désactiver" : "Activer"}
+                    </button>
+                    <button className="adm-btn secondaire" onClick={() =>
+                      action({ action: "ticket.supprimer", id: tk.id }, tk.usages > 0 ? `Ce ticket a déjà servi : il sera DÉSACTIVÉ (jamais supprimé, traçabilité). Continuer ?` : `Supprimer le ticket ${tk.code} ?`)
+                    }>
+                      Supprimer
+                    </button>
+                  </span>
+                )}
               </div>
             ))}
           </div>
