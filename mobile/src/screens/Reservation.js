@@ -7,6 +7,7 @@ import { Bouton, Chip, Charge, SERVICES_LIB } from "../ui";
 import { useLangue } from "../i18n";
 import { apiGet, apiPost } from "../api";
 import { useAuth } from "../auth";
+import ChampAdresse from "../ChampAdresse";
 
 const FENETRES = [
   { id: "asap", fr: "au plus tôt" },
@@ -38,6 +39,8 @@ export default function Reservation({ route, navigation }) {
   const [jour, setJour] = useState(jours[0].iso);
   const [depart, setDepart] = useState("");
   const [destination, setDestination] = useState("");
+  const [departLieu, setDepartLieu] = useState(null); // coordonnées choisies
+  const [destLieu, setDestLieu] = useState(null);
   const [commune, setCommune] = useState(profil?.commune || "");
   const [typeTrajet, setTypeTrajet] = useState("aller_retour");
   const [notes, setNotes] = useState("");
@@ -104,6 +107,10 @@ export default function Reservation({ route, navigation }) {
         corps.date = `${jour}T${heure}`;
         corps.depart = depart.trim() || undefined;
         corps.destination = destination.trim() || undefined;
+        // Coordonnées choisies (Google Places) → le serveur calcule distance,
+        // itinéraire et prix au km, comme sur le site.
+        if (departLieu?.lat != null) { corps.departLat = departLieu.lat; corps.departLng = departLieu.lng; }
+        if (destLieu?.lat != null) { corps.destLat = destLieu.lat; corps.destLng = destLieu.lng; }
         if (service === "transport") corps.typeTrajet = typeTrajet;
       }
       const d = await apiPost("/api/demandes", corps);
@@ -135,10 +142,20 @@ export default function Reservation({ route, navigation }) {
         <>
           {service === "transport" && (
             <>
-              <Text style={S.label}>{t("depart_l")}</Text>
-              <TextInput style={S.champ} value={depart} onChangeText={setDepart} placeholder="Ex. domicile — Alger-Centre" placeholderTextColor={C.grisClair} />
-              <Text style={S.label}>{t("dest_l")}</Text>
-              <TextInput style={S.champ} value={destination} onChangeText={setDestination} placeholder="Ex. CHU Mustapha" placeholderTextColor={C.grisClair} />
+              <ChampAdresse
+                label={t("depart_l")}
+                valeur={depart}
+                onChange={setDepart}
+                onLieu={setDepartLieu}
+                placeholder="Ex. domicile — Alger-Centre"
+              />
+              <ChampAdresse
+                label={t("dest_l")}
+                valeur={destination}
+                onChange={setDestination}
+                onLieu={setDestLieu}
+                placeholder="Ex. CHU Mustapha"
+              />
               <View style={S.ligneChips}>
                 <Chip titre={t("aller_simple")} actif={typeTrajet === "aller_simple"} onPress={() => setTypeTrajet("aller_simple")} />
                 <Chip titre={t("aller_retour")} actif={typeTrajet === "aller_retour"} onPress={() => setTypeTrajet("aller_retour")} />
