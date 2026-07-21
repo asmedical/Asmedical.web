@@ -90,10 +90,17 @@ function FormulaireConnexion() {
     fetch("/api/otp-canal").then((r) => r.json()).then((d) => setWaActif(!!d?.whatsapp)).catch(() => {});
   }, []);
 
-  // Retour d'une connexion Google / Facebook / Apple : la session arrive
-  // dans l'URL, on attend qu'elle soit posée puis on aiguille par rôle.
+  // Retour d'une connexion Google / Facebook / Apple : déclenché par le
+  // paramètre ?oauth=retour OU par le drapeau posé avant le départ (robuste
+  // même si Supabase a redirigé ailleurs puis nous a ramenés ici). La
+  // session arrive dans l'URL ; on attend qu'elle soit posée puis on aiguille.
   useEffect(() => {
-    if (params.get("oauth") !== "retour" || !supabase) return;
+    if (!supabase) return;
+    let drapeau = false;
+    try { drapeau = sessionStorage.getItem("asm_oauth_retour") === "1"; } catch {}
+    if (params.get("oauth") !== "retour" && !drapeau) return;
+    try { sessionStorage.removeItem("asm_oauth_retour"); } catch {}
+    setOauthEnCours(true);
     let arret = false;
     (async () => {
       for (let i = 0; i < 25 && !arret; i++) {

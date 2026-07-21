@@ -91,6 +91,25 @@ export function AsmProvider({ children }) {
     }
   }, []);
 
+  // Filet de sécurité pour le retour des connexions externes (Google, etc.) :
+  // si le fournisseur nous a déposés ailleurs que sur /connexion (typiquement
+  // l'accueil, via la « Site URL » de Supabase), la session a bien été posée
+  // par Supabase (detectSessionInUrl) mais l'aiguillage n'a pas eu lieu. On
+  // ramène alors l'utilisateur sur /connexion, où le retour est finalisé et
+  // l'utilisateur redirigé selon son rôle. Le drapeau n'existe QUE pendant un
+  // retour OAuth (posé par connexionOAuth), donc aucune navigation normale
+  // n'est affectée.
+  useEffect(() => {
+    try {
+      if (
+        sessionStorage.getItem("asm_oauth_retour") === "1" &&
+        window.location.pathname !== "/connexion"
+      ) {
+        window.location.replace("/connexion");
+      }
+    } catch {}
+  }, []);
+
   // Restauration après rechargement
   useEffect(() => {
     try {
