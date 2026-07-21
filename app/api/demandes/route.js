@@ -55,6 +55,19 @@ export async function POST(req) {
     const texte = (v, max) => (v ? String(v).slice(0, max) : null);
     const dateSlot = String(corps.date || "").slice(0, 16);
 
+    // Préférences de soin du patient : genre demandé pour CETTE réservation
+    // (sinon préférence enregistrée) + intervenant favori — domicile.
+    let prefGenre = ["homme", "femme"].includes(corps.prefGenre) ? corps.prefGenre : null;
+    let favoriId = null;
+    if (String(service) === "domicile") {
+      try {
+        const { preferencesPourTel } = await import("@/lib/preferences");
+        const prefs = await preferencesPourTel(telephone);
+        if (!prefGenre && prefs?.prefGenre) prefGenre = prefs.prefGenre;
+        if (prefs?.soignantFavoriId) favoriId = prefs.soignantFavoriId;
+      } catch {}
+    }
+
     // Sous-mode du moteur de réservation (Mode B transport / Mode C livraison).
     // « urgent » passe automatiquement en tête de liste côté équipe.
     const SOUS_MODES = ["ponctuel", "urgent", "abonnement", "fenetre"];
@@ -112,6 +125,7 @@ export async function POST(req) {
           data: {
             service: serviceNorm,
             typeTrajet: texte(corps.typeTrajet, 30),
+            prefGenre,
             nom: texte(corps.nom, 80),
             telephone: String(telephone).slice(0, 20),
             depart: texte(corps.depart, 160),
@@ -148,6 +162,7 @@ export async function POST(req) {
       try {
         const choisi = await choisirIntervenant(serviceNorm, dateSlot, {
           duree, commune, typeTrajet: corps.typeTrajet || undefined,
+          prefGenre: prefGenre || undefined, favoriId: favoriId || undefined,
         });
         if (choisi) {
           const champ = serviceNorm === "domicile" ? "soignantId" : "transporteurId";

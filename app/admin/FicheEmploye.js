@@ -126,7 +126,7 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
       "typeRemuneration", "tauxHoraire", "tarifMission", "primes", "retenues", "notesPaie",
     ];
     return estSoignant
-      ? ["prenom", "nom", "qualification", "communes", ...communs]
+      ? ["prenom", "nom", "qualification", "genre", "communes", ...communs]
       : ["nom", "responsable", "typeTransport", "vehicule", "vehiculeCouleur", "vehiculeImmat", "zone", ...communs];
   }
 
@@ -273,6 +273,8 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
                   <Ligne label="Prénom">{data.prenom}</Ligne>
                   <Ligne label="Nom">{data.nom}</Ligne>
                   <Ligne label="Qualification">{QUALIFS[data.qualification]}</Ligne>
+                  <Ligne label="Genre">{data.genre === "femme" ? "Femme" : data.genre === "homme" ? "Homme" : "—"}</Ligne>
+                  <Ligne label="Avis patients">{data.noteMoyenne ? `⭐ ${data.noteMoyenne}/5 (${data.nbAvis})` : "Aucun avis"}</Ligne>
                 </>
               ) : (
                 <>
@@ -309,6 +311,7 @@ export default function FicheEmploye({ emploi, data, role, onFermer, onChange, m
               {estSoignant ? (
                 <>
                   <Champ label="Qualification" valeur={form.qualification} onChange={set("qualification")} options={Object.entries(QUALIFS)} />
+                  <Champ label="Genre (choix possible du patient)" valeur={form.genre} onChange={set("genre")} options={[["", "Non précisé"], ["femme", "Femme"], ["homme", "Homme"]]} />
                   <Champ label="Spécialités / soins" valeur={form.specialites} onChange={set("specialites")} placeholder="Ex. pansements, injections…" />
                 </>
               ) : (

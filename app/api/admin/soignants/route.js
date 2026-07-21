@@ -23,6 +23,19 @@ export async function GET(req) {
       ];
     }
     const soignants = await prisma.soignant.findMany({ where, orderBy: { creeLe: "desc" }, take: 200 });
+    // Note moyenne et nombre d'avis par intervenant (évaluations patients).
+    const notes = await prisma.avis.groupBy({
+      by: ["soignantId"],
+      where: { soignantId: { in: soignants.map((s) => s.id) } },
+      _avg: { note: true },
+      _count: true,
+    });
+    const parId = Object.fromEntries(notes.map((n) => [n.soignantId, n]));
+    for (const s of soignants) {
+      const n = parId[s.id];
+      s.noteMoyenne = n ? Math.round(n._avg.note * 10) / 10 : null;
+      s.nbAvis = n ? n._count : 0;
+    }
     return NextResponse.json({ soignants });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
@@ -44,6 +57,7 @@ export async function POST(req) {
         telephone: c.telephone ? String(c.telephone).slice(0, 20) : null,
         email: c.email ? String(c.email).slice(0, 120) : null,
         qualification: c.qualification === "infirmier" ? "infirmier" : "aide_soignant",
+        genre: ["homme", "femme"].includes(c.genre) ? c.genre : null,
         communes: c.communes ? String(c.communes).slice(0, 400) : "",
         statut: STATUTS.includes(c.statut) ? c.statut : "EN_ATTENTE",
       },
@@ -74,6 +88,7 @@ export async function PATCH(req) {
       if (c[k] !== undefined) data[k] = c[k] ? String(c[k]).slice(0, m) : VIDE.has(k) ? "" : null;
     }
     if (c.qualification) data.qualification = c.qualification === "infirmier" ? "infirmier" : "aide_soignant";
+    if (c.genre !== undefined) data.genre = ["homme", "femme"].includes(c.genre) ? c.genre : null;
     for (const k of ["heureDebut", "heureFin"]) {
       const v = parseInt(c[k], 10);
       if (Number.isFinite(v) && v >= 0 && v <= 24) data[k] = v;

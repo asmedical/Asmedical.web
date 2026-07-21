@@ -12,6 +12,7 @@ model Demande {
   id             Int      @id @default(autoincrement())
   service        String   // transport | domicile | medicaments
   typeTrajet     String?  // simple | accompagne | medicalise
+  prefGenre      String?  // souhait du patient : homme | femme (domicile)
   nom            String?
   telephone      String
   depart         String?
@@ -59,6 +60,7 @@ model Soignant {
   email         String?
   photoUrl      String?
   qualification String   @default("aide_soignant") // aide_soignant | infirmier
+  genre         String?  // homme | femme (choix possible du patient)
   userId        String?  @unique                   // compte de connexion Supabase lié (espace employé)
   communes      String   @default("")              // communes couvertes, séparées par des virgules
   heureDebut    Int      @default(7)               // horaires propres (défaut 7h-19h)
@@ -192,6 +194,24 @@ model Notification {
 // Procuration / rattachement d'un patient à un établissement partenaire.
 // L'établissement ne peut agir POUR un patient que si un rattachement
 // ACCEPTE, non expiré et couvrant le service existe.
+// Préférences de soin du patient : consignes pratiques (accès, allergies)
+// visibles UNIQUEMENT par l'intervenant affecté, préférence de genre et
+// intervenant favori (prioritaires à l'affectation automatique).
+model PreferencePatient {
+  id               Int      @id @default(autoincrement())
+  userId           String   @unique // compte propriétaire
+  telCle           String   // 8 derniers chiffres du téléphone (correspondance demandes)
+  allergies        String?
+  etage            String?
+  codePorte        String?
+  consignes        String?
+  prefGenre        String?  // homme | femme
+  soignantFavoriId Int?
+  majLe            DateTime @updatedAt @default(now())
+
+  @@index([telCle])
+}
+
 model Rattachement {
   id           Int       @id @default(autoincrement())
   patientTel   String    // téléphone du patient (identité de réservation)

@@ -300,6 +300,17 @@ export default function MonCompte() {
             </span>
           </Link>
           {!estPro && (
+            <Link className="item-liste lien-compte" href="/compte/preferences">
+              <span className="ico-service">
+                <IcoDocument />
+              </span>
+              <span>
+                <strong>{t("ps_t")}</strong>
+                <small>{t("ps_lien_s")}</small>
+              </span>
+            </Link>
+          )}
+          {!estPro && (
             <Link className="item-liste lien-compte" href="/compte/proches">
               <span className="ico-service">
                 <IcoPersonne />

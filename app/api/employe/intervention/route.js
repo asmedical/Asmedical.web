@@ -102,7 +102,14 @@ export async function GET(req) {
     if (!id) return NextResponse.json({ erreur: "id manquant" }, { status: 400 });
     const d = await prisma.demande.findUnique({ where: { id } });
     if (!possede(d, ctx)) return NextResponse.json({ erreur: "non autorisé" }, { status: 403 });
-    return NextResponse.json({ intervention: vueIntervenant(d), estChauffeur: ctx.estChauffeur });
+    // Consignes pratiques du patient (allergies, accès) — réservées à
+    // l'intervenant affecté à CETTE mission, jamais listées ailleurs.
+    let preferencesPatient = null;
+    try {
+      const { consignesIntervenant } = await import("@/lib/preferences");
+      preferencesPatient = await consignesIntervenant(d.telephone);
+    } catch {}
+    return NextResponse.json({ intervention: { ...vueIntervenant(d), preferencesPatient }, estChauffeur: ctx.estChauffeur });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
   }

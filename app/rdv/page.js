@@ -92,6 +92,7 @@ export default function PriseRdv() {
 
   // Réservation AU NOM d'un patient rattaché (établissement) : posée par
   // l'espace pro via sessionStorage, vérifiée côté serveur (procuration).
+  const [prefGenre, setPrefGenre] = useState("");
   const [pourPatient, setPourPatient] = useState(null);
   useEffect(() => {
     try {
@@ -307,6 +308,7 @@ export default function PriseRdv() {
         body: JSON.stringify({
           service,
           pourPatient: pourPatient?.tel || undefined,
+          prefGenre: prefGenre || undefined,
           typeTrajet: service === "transport" ? typeTrajet : null,
           depart,
           destination,
@@ -478,6 +480,21 @@ export default function PriseRdv() {
                 </option>
               ))}
             </select>
+          </div>
+        )}
+
+        {/* ---- Préférence d'intervenant(e) — respectée si possible ---- */}
+        {service === "domicile" && (
+          <div className="champ">
+            <label>{t("genre_l")}</label>
+            <div className="chips">
+              {[["", "genre_indif"], ["femme", "genre_femme"], ["homme", "genre_homme"]].map(([v, cle]) => (
+                <button type="button" key={cle} className={"chip" + (prefGenre === v ? " actif" : "")} onClick={() => setPrefGenre(v)}>
+                  {t(cle)}
+                </button>
+              ))}
+            </div>
+            <p className="fe-aide" style={{ marginBottom: 0 }}>{t("genre_aide")}</p>
           </div>
         )}
 

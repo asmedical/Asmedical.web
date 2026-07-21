@@ -157,6 +157,50 @@ function SuiviContenu() {
   );
 }
 
+// Signalement d'un problème sur la prestation — note interne + alerte équipe.
+function BlocSignalement({ demande, t }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [texte, setTexte] = useState("");
+  const [etat, setEtat] = useState(""); // "" | envoi | ok | erreur
+  if (etat === "ok") return <p className="suivi-info" style={{ color: "var(--vert-fonce)", fontWeight: 700 }}>{t("sig_ok")}</p>;
+  if (!ouvert) {
+    return (
+      <p className="lien-bas" style={{ textAlign: "start", marginTop: 10 }}>
+        <a onClick={() => setOuvert(true)}>⚠ {t("sig_b")}</a>
+      </p>
+    );
+  }
+  async function envoyer() {
+    setEtat("envoi");
+    try {
+      const { supabase } = await import("@/lib/supabase");
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch("/api/signalement", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({ demandeId: demande.id, texte: texte.trim() }),
+      });
+      if (!r.ok) throw new Error();
+      setEtat("ok");
+    } catch {
+      setEtat("erreur");
+    }
+  }
+  return (
+    <div className="champ" style={{ marginTop: 10 }}>
+      <label>{t("sig_l")}</label>
+      <textarea rows={3} value={texte} onChange={(e) => setTexte(e.target.value)} placeholder={t("sig_ph")} />
+      <div style={{ display: "flex", gap: 8, marginTop: 8 }}>
+        <button className="btn-action" style={{ padding: "10px 16px" }} onClick={envoyer} disabled={texte.trim().length < 5 || etat === "envoi"}>
+          {etat === "envoi" ? t("otp_envoi") : t("sig_envoyer")}
+        </button>
+        <button className="fin-lien" onClick={() => setOuvert(false)}>{t("annuler")}</button>
+      </div>
+      {etat === "erreur" && <p className="erreur">{t("sig_err")}</p>}
+    </div>
+  );
+}
+
 function FicheSuivi({ demande, t }) {
   const annulee = demande.statut === "ANNULEE";
   const etapeActive = INDEX[demande.statut] ?? 0;
@@ -243,6 +287,8 @@ function FicheSuivi({ demande, t }) {
       )}
 
       {(demande.statut === "TERMINEE" || demande.avis) && <BlocAvis demande={demande} t={t} />}
+
+      {!annulee && <BlocSignalement demande={demande} t={t} />}
 
       <div className="info-appel" style={{ marginTop: 16 }}>
         <span>{t("suivi_besoin")}</span> <ChoixAppel />

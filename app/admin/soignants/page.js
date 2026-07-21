@@ -127,7 +127,7 @@ export default function PageSoignants() {
               <Avatar mini url={x.photoUrl} nom={`${x.prenom} ${x.nom}`} />
               <span className="adm-ligne-texte">
                 <strong>{x.prenom} {x.nom}</strong>
-                <small>{QUALIFS[x.qualification]} · {x.telephone || "—"} {x.communes ? `· ${x.communes}` : ""}</small>
+                <small>{QUALIFS[x.qualification]}{x.genre ? ` · ${x.genre === "femme" ? "Femme" : "Homme"}` : ""}{x.noteMoyenne ? ` · ⭐ ${x.noteMoyenne} (${x.nbAvis})` : ""} · {x.telephone || "—"} {x.communes ? `· ${x.communes}` : ""}</small>
               </span>
               <Pastille statut={x.statut} table={LIBELLE_STATUT_INTERVENANT} />
             </div>

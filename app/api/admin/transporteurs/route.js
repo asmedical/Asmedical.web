@@ -23,6 +23,18 @@ export async function GET(req) {
       ];
     }
     const transporteurs = await prisma.transporteur.findMany({ where, orderBy: { creeLe: "desc" }, take: 200 });
+    const notes = await prisma.avis.groupBy({
+      by: ["transporteurId"],
+      where: { transporteurId: { in: transporteurs.map((t) => t.id) } },
+      _avg: { note: true },
+      _count: true,
+    });
+    const parId = Object.fromEntries(notes.map((n) => [n.transporteurId, n]));
+    for (const t of transporteurs) {
+      const n = parId[t.id];
+      t.noteMoyenne = n ? Math.round(n._avg.note * 10) / 10 : null;
+      t.nbAvis = n ? n._count : 0;
+    }
     return NextResponse.json({ transporteurs });
   } catch {
     return NextResponse.json({ erreur: "Erreur serveur" }, { status: 500 });
