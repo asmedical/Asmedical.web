@@ -57,6 +57,16 @@ model Demande {
   posLat         Float?     // dernière position GPS du chauffeur pendant le trajet
   posLng         Float?
   posLe          DateTime?  // horodatage de cette position
+  // --- Itinéraire Google Maps (calculé CÔTÉ SERVEUR, jamais sur parole client) ---
+  departLat      Float?
+  departLng      Float?
+  destLat        Float?
+  destLng        Float?
+  distanceKm     Float?     // distance de l'itinéraire (Routes API)
+  dureeRouteMin  Int?       // durée estimée de l'itinéraire (minutes)
+  itineraire     String?    // polyline encodée (affichage carte)
+  prixEstime     Int?       // prix estimé montré AVANT la réservation (DZD)
+  distanceReelleKm Float?   // distance réellement parcourue (GPS chauffeur)
   avis           Avis?
   documents      DocumentDemande[]
   creeLe         DateTime @default(now())
@@ -499,6 +509,8 @@ model Reglage {
   rappelsTickLe       DateTime? // verrou anti-rafale du déclencheur opportuniste
   // --- Paiement à la réservation ---
   paiementSimulation  Boolean   @default(false) // SIMULATION de paiement (avant SATIM) — clairement étiquetée
+  // --- Jours fériés (supplément tarifaire) : liste MM-JJ modifiable ---
+  joursFeries         String    @default("01-01,05-01,07-05,11-01")
 }
 
 // Canal choisi par l'utilisateur pour recevoir son code de connexion

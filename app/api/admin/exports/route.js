@@ -67,11 +67,13 @@ export async function GET(req) {
         },
       });
       const lignes = [
-        ["N°", "Date", "Heure", "Service", "Statut", "Client", "Téléphone", "Commune", "Départ", "Destination", "Durée (min)", "Fenêtre", "Intervenant", "Réservé par", "Prioritaire", "Créée le", "Avis (1-5)"],
+        ["N°", "Date", "Heure", "Service", "Statut", "Client", "Téléphone", "Commune", "Départ", "Destination", "Durée (min)", "Distance (km)", "Durée route (min)", "Prix estimé (DA)", "Distance réelle (km)", "Durée réelle (min)", "Fenêtre", "Intervenant", "Réservé par", "Prioritaire", "Créée le", "Avis (1-5)"],
         ...demandes.map((d) => [
           d.id, (d.date || "").slice(0, 10), (d.date || "").slice(11, 16),
           LIB_SERVICE[d.service] || d.service, d.statut, d.nom || "", d.telephone || "",
           d.commune || "", d.depart || "", d.destination || "", d.dureeMin || "",
+          d.distanceKm ?? "", d.dureeRouteMin ?? "", d.prixEstime ?? "", d.distanceReelleKm ?? "",
+          d.debutLe && d.finLe ? Math.max(1, Math.round((d.finLe - d.debutLe) / 60000)) : "",
           d.fenetre || "",
           d.soignant ? [d.soignant.prenom, d.soignant.nom].filter(Boolean).join(" ") : d.transporteur?.nom || "",
           d.parEtablissement || "", d.prioritaire ? "oui" : "", d.creeLe.toISOString().slice(0, 10),

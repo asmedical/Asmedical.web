@@ -93,6 +93,39 @@ export async function POST(req) {
     const commune = texte(corps.commune, 80);
     const reglage = await getReglage();
 
+    // ---- Itinéraire Google Maps (transport) : le client envoie les
+    // COORDONNÉES choisies, mais distance/durée/prix sont recalculés PAR LE
+    // SERVEUR (jamais sur parole du navigateur). Sans clé ou sans coordonnées,
+    // tout continue comme avant. Jamais bloquant.
+    const geo = {};
+    if (serviceNorm === "transport") {
+      const fini = (x) => Number.isFinite(Number(x));
+      if ([corps.departLat, corps.departLng, corps.destLat, corps.destLng].every(fini)) {
+        geo.departLat = Number(corps.departLat);
+        geo.departLng = Number(corps.departLng);
+        geo.destLat = Number(corps.destLat);
+        geo.destLng = Number(corps.destLng);
+        try {
+          const { calculerItineraire } = await import("@/lib/googleMaps");
+          const route = await calculerItineraire({
+            deLat: geo.departLat, deLng: geo.departLng, aLat: geo.destLat, aLng: geo.destLng,
+          });
+          if (route) {
+            geo.distanceKm = route.km;
+            geo.dureeRouteMin = route.minutes;
+            geo.itineraire = route.polyline;
+            const { estimerPrestation } = await import("@/lib/finances");
+            const est = await estimerPrestation({
+              service: serviceNorm, date: dateSlot, dureeMin: dureeEffective,
+              typeTrajet: corps.typeTrajet || undefined, prioritaire: sousMode === "urgent",
+              packId, distanceKm: route.km, details: texte(corps.details, 1500),
+            });
+            if (est) geo.prixEstime = est.total;
+          }
+        } catch {}
+      }
+    }
+
     // Capacité RÉELLE du créneau (ressources éligibles et libres — ou
     // capacité globale de repli si aucune ressource n'est configurée).
     let capacite = null;
@@ -160,6 +193,7 @@ export async function POST(req) {
             commune,
             parEtablissement,
             parEtabUserId,
+            ...geo,
           },
         });
       });

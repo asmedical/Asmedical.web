@@ -697,6 +697,18 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .abo-points{list-style:none;margin:10px 0 4px;padding:0}
 .abo-points li{padding:3px 0;font-size:14.5px}
 .abo-points li::before{content:"✓ ";color:var(--vert);font-weight:800}
+
+/* ---------- Adresses Google & carte ---------- */
+.champ-adresse{position:relative}
+.adresse-suggestions{position:absolute;z-index:30;top:100%;inset-inline:0;background:var(--blanc);border:1px solid var(--ligne);border-radius:12px;box-shadow:var(--ombre-flottant);overflow:hidden;margin-top:4px}
+.adresse-suggestions button{display:block;width:100%;text-align:start;padding:10px 14px;border:0;background:none;cursor:pointer;border-bottom:1px solid var(--ligne)}
+.adresse-suggestions button:last-child{border-bottom:0}
+.adresse-suggestions button:hover{background:var(--vert-pale)}
+.adresse-suggestions strong{display:block;font-size:14.5px}
+.adresse-suggestions small{color:var(--gris);font-size:12.5px}
+.carte-trajet{width:100%;border-radius:14px;border:1px solid var(--ligne);overflow:hidden;margin-top:10px}
+.trajet-resume{display:flex;gap:14px;flex-wrap:wrap;background:var(--vert-pale);border:1px solid var(--ligne);border-radius:12px;padding:10px 14px;margin-top:10px;font-size:14.5px}
+.trajet-resume b{color:var(--vert-fonce)}
 .adm-fiche>strong{font-size:16px;color:var(--vert-fonce)}
 .adm-photo{display:flex;align-items:center;gap:14px;margin-top:12px;flex-wrap:wrap}
 .adm-avatar{width:64px;height:64px;border-radius:50%;object-fit:cover;flex-shrink:0;background:var(--vert-pale);border:1px solid var(--ligne)}

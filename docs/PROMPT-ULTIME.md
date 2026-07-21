@@ -115,7 +115,13 @@ VAPID_PRIVATE_KEY, ANDROID_PACKAGE_NAME, ANDROID_ASSETLINKS_SHA256,
 [WHATSAPP_TEMPLATE_RAPPEL] (modèle utilitaire Meta approuvé — active le
 canal WhatsApp des rappels de rendez-vous), [MAPS_PROVIDER] (réservé),
 [DEMO_TEL, DEMO_CODE] (compte de démonstration whitelisté pour les examens
-Google/Apple — remplace OTP_TEST_CODE, à supprimer une fois DEMO_* posés)`.
+Google/Apple — remplace OTP_TEST_CODE, à supprimer une fois DEMO_* posés),
+[GOOGLE_MAPS_SERVER_API_KEY] (Places New + Geocoding + Routes — serveur
+uniquement, restriction PAR API), [NEXT_PUBLIC_GOOGLE_MAPS_JS_KEY] (Maps
+JavaScript API — cartes, restriction par domaine asm-sante.com). Sans ces
+deux clés : adresses libres + estimation horaire, aucune régression.
+App native plus tard : GOOGLE_MAPS_ANDROID_API_KEY / GOOGLE_MAPS_IOS_API_KEY
+(voir mobile/GOOGLE-MAPS.md)`.
 
 ### État au 25/07/2026
 Play Store : test fermé actif (12 testeurs, fin ~31/07). Apple : adhésion en

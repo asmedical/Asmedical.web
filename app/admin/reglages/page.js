@@ -164,6 +164,14 @@ export default function PageReglages() {
           />
           Rappels de rendez-vous automatiques : la veille + 2 h avant (notification, push, SMS si crédit, WhatsApp si configuré)
         </label>
+        <label className="adm-champ-reglage" style={{ marginTop: 10, display: "block", maxWidth: 420 }}>
+          Jours fériés (MM-JJ, séparés par des virgules — supplément « jour férié » du tarif)
+          <input
+            value={reglage.joursFeries ?? ""}
+            onChange={(e) => setReglage({ ...reglage, joursFeries: e.target.value })}
+            placeholder="01-01,05-01,07-05,11-01"
+          />
+        </label>
         <button className="adm-btn" style={{ marginTop: 12 }} onClick={enregistrer} disabled={occupe}>
           {occupe ? "Enregistrement…" : "Enregistrer"}
         </button>

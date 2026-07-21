@@ -109,6 +109,12 @@ export async function GET(req) {
     }
 
     if (vue === "tarifs") {
+      // Tarification kilométrique (Google Maps) : les codes manquants sont
+      // ajoutés une fois, modifiables/versionnés comme les autres.
+      try {
+        const { completerTarifsDistance } = await import("@/lib/finances");
+        await completerTarifsDistance(acces.nomAffiche);
+      } catch {}
       const tous = p.get("tous") === "1";
       const tarifs = tous
         ? await prisma.tarif.findMany({ orderBy: [{ code: "asc" }, { debut: "desc" }], take: 300 })

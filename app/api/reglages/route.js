@@ -39,6 +39,12 @@ export async function PATCH(req) {
     }
     if (c.affectationAuto !== undefined) data.affectationAuto = Boolean(c.affectationAuto);
     if (c.rappelsAuto !== undefined) data.rappelsAuto = Boolean(c.rappelsAuto);
+    // Jours fériés (MM-JJ, séparés par des virgules) — supplément tarifaire.
+    if (c.joursFeries !== undefined) {
+      data.joursFeries = String(c.joursFeries)
+        .split(",").map((s) => s.trim()).filter((s) => /^\d{2}-\d{2}$/.test(s))
+        .slice(0, 30).join(",");
+    }
     const maj = await prisma.reglage.update({ where: { id: 1 }, data });
     return NextResponse.json({ ok: true, reglage: maj });
   } catch {

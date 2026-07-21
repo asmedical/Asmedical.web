@@ -179,6 +179,16 @@ function PageDemandes() {
             <p><b>Client :</b> {d.nom || "—"} · <a href={`tel:${d.telephone}`}>{d.telephone}</a></p>
             {d.sousMode && <p><b>Mode :</b> {LIB_SOUS_MODE[d.sousMode] || d.sousMode}{d.prioritaire ? " · 🔴 prioritaire" : ""}</p>}
             {(d.depart || d.destination) && <p><b>Trajet :</b> {d.depart || "?"} → {d.destination || "?"}</p>}
+            {(d.distanceKm != null || d.prixEstime != null || d.distanceReelleKm != null) && (
+              <p>
+                <b>Itinéraire :</b>{" "}
+                {d.distanceKm != null ? `${d.distanceKm} km` : "—"}
+                {d.dureeRouteMin != null ? ` · ~${d.dureeRouteMin} min` : ""}
+                {d.prixEstime != null ? ` · prix estimé ${Number(d.prixEstime).toLocaleString("fr-FR")} DZD` : ""}
+                {d.distanceReelleKm != null ? ` · réel : ${d.distanceReelleKm} km` : ""}
+                {d.debutLe && d.finLe ? ` · durée réelle ${Math.max(1, Math.round((new Date(d.finLe) - new Date(d.debutLe)) / 60000))} min` : ""}
+              </p>
+            )}
             <p><b>Date :</b> {d.date?.replace("T", " à ")} · <b>Récurrence :</b> {d.recurrence}</p>
             {(d.fenetre || d.pharmacie) && (
               <p><b>Livraison :</b> {d.fenetre || "—"}{d.pharmacie ? ` · Pharmacie : ${d.pharmacie}` : " · Pharmacie : au choix d'ASM"}</p>

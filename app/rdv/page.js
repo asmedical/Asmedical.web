@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE } from "@/lib/i18n";
+import ChampAdresse from "@/app/components/adresse";
+import CarteTrajet from "@/app/components/carte";
 
 const CLES_SERVICE = {
   transport: "rdv_service_transport",
@@ -57,6 +59,21 @@ export default function PriseRdv() {
   const [typeTrajet, setTypeTrajet] = useState("simple");
   const [depart, setDepart] = useState("");
   const [destination, setDestination] = useState("");
+  // Coordonnées choisies via les suggestions Google (null = adresse libre)
+  const [departLieu, setDepartLieu] = useState(null);
+  const [destLieu, setDestLieu] = useState(null);
+  const [itineraire, setItineraire] = useState(null); // { km, minutes, polyline }
+  useEffect(() => {
+    setItineraire(null);
+    if (service !== "transport" || !departLieu || !destLieu) return;
+    let annule = false;
+    fetch(`/api/geo?type=itineraire&deLat=${departLieu.lat}&deLng=${departLieu.lng}&aLat=${destLieu.lat}&aLng=${destLieu.lng}`)
+      .then((r) => r.json())
+      .then((d) => !annule && d.itineraire && setItineraire(d.itineraire))
+      .catch(() => {});
+    return () => { annule = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [departLieu, destLieu, service]);
   const [aboJours, setAboJours] = useState([]);
   const [aboHeure, setAboHeure] = useState("08:00");
   const [aboRetour, setAboRetour] = useState(true);
@@ -271,6 +288,7 @@ export default function PriseRdv() {
     const d = {
       ...extra,
       besoins: besoins.map((cle) => t(cle)),
+      besoinsCles: besoins.length ? besoins : undefined, // clés brutes (tarification suppléments)
       acces: acces.trim() || undefined,
       code: code.trim() || undefined,
       prevenirNom: prevenirNom.trim() || undefined,
@@ -358,6 +376,8 @@ export default function PriseRdv() {
           pharmacie: livraison ? pharmacie.trim() || undefined : undefined,
           duree: dureeActuelle,
           commune: commune.trim() || undefined,
+          departLat: departLieu?.lat, departLng: departLieu?.lng,
+          destLat: destLieu?.lat, destLng: destLieu?.lng,
         }),
       });
       if (r.status === 409) {
@@ -567,23 +587,42 @@ export default function PriseRdv() {
           </div>
         )}
 
-        {/* ---- Adresses ---- */}
+        {/* ---- Adresses (suggestions Google quand la clé est configurée) ---- */}
         {service === "transport" ? (
           <>
-            <div className="champ">
-              <label>{t("depart_l")}</label>
-              <input type="text" placeholder={t("depart_ph")} value={depart} onChange={(e) => setDepart(e.target.value)} />
-            </div>
-            <div className="champ">
-              <label>{sousMode === "abonnement" ? t("abo_centre_l") : t("dest_l")}</label>
-              <input type="text" placeholder={t("dest_ph")} value={destination} onChange={(e) => setDestination(e.target.value)} />
-            </div>
+            <ChampAdresse
+              label={t("depart_l")}
+              placeholder={t("depart_ph")}
+              valeur={depart}
+              onChange={setDepart}
+              onLieu={setDepartLieu}
+            />
+            <ChampAdresse
+              label={sousMode === "abonnement" ? t("abo_centre_l") : t("dest_l")}
+              placeholder={t("dest_ph")}
+              valeur={destination}
+              onChange={setDestination}
+              onLieu={setDestLieu}
+            />
+            {/* Itinéraire calculé : distance, durée, carte */}
+            {itineraire && sousMode !== "abonnement" && (
+              <>
+                <div className="trajet-resume">
+                  <span>📏 <b>{String(itineraire.km).replace(".", ",")} km</b></span>
+                  <span>⏱ <b>~{itineraire.minutes} {t("duree_min")}</b>{typeTrajet === "aller_retour" ? "" : ""}</span>
+                </div>
+                <CarteTrajet depart={departLieu} destination={destLieu} polyline={itineraire.polyline} hauteur={220} />
+              </>
+            )}
           </>
         ) : (
-          <div className="champ">
-            <label>{t("adresse_l")}</label>
-            <input type="text" placeholder={t("adresse_ph")} value={depart} onChange={(e) => setDepart(e.target.value)} />
-          </div>
+          <ChampAdresse
+            label={t("adresse_l")}
+            placeholder={t("adresse_ph")}
+            valeur={depart}
+            onChange={setDepart}
+            onLieu={setDepartLieu}
+          />
         )}
 
         {/* Commune : filtre de zone du moteur (domicile + transport) */}
@@ -812,6 +851,8 @@ export default function PriseRdv() {
           duree={dureeActuelle}
           typeTrajet={service === "transport" ? typeTrajet : undefined}
           prioritaire={service === "transport" && sousMode === "urgent"}
+          km={itineraire?.km}
+          besoins={besoins}
           visible={sousMode !== "abonnement"}
         />
 
@@ -874,7 +915,7 @@ export default function PriseRdv() {
 // Interroge les tarifs en vigueur (mêmes règles que la facture finale) et la
 // remise du client connecté. N'affiche RIEN tant que la grille tarifaire
 // n'est pas configurée, ni pendant la saisie incomplète.
-function EstimationPrix({ t, service, jour, heure, duree, typeTrajet, prioritaire, visible, packId }) {
+function EstimationPrix({ t, service, jour, heure, duree, typeTrajet, prioritaire, visible, packId, km, besoins }) {
   const [est, setEst] = useState(null);
 
   useEffect(() => {
@@ -888,6 +929,8 @@ function EstimationPrix({ t, service, jour, heure, duree, typeTrajet, prioritair
         if (typeTrajet) u.set("typeTrajet", typeTrajet);
         if (prioritaire) u.set("prioritaire", "1");
         if (packId) u.set("pack", String(packId));
+        if (Number.isFinite(km)) u.set("km", String(km));
+        if (besoins?.length) u.set("besoins", besoins.join(","));
         let token = "";
         try {
           const { supabase } = await import("@/lib/supabase");
@@ -902,7 +945,8 @@ function EstimationPrix({ t, service, jour, heure, duree, typeTrajet, prioritair
       } catch {}
     })();
     return () => { annule = true; };
-  }, [visible, service, jour, heure, duree, typeTrajet, prioritaire, packId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [visible, service, jour, heure, duree, typeTrajet, prioritaire, packId, km, besoins?.join(",")]);
 
   if (!est) return null;
   return (

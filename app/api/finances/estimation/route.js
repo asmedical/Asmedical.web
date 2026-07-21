@@ -44,6 +44,11 @@ export async function GET(req) {
       prioritaire: p.get("prioritaire") === "1",
       compteId,
       packId: p.get("pack") ? Number(p.get("pack")) : undefined,
+      // Distance (itinéraire Google) : indicatif à l'écran — le prix
+      // DÉFINITIF repose sur la distance recalculée par le serveur à la
+      // réservation, jamais sur ce paramètre.
+      distanceKm: Number.isFinite(parseFloat(p.get("km"))) ? Math.min(Math.max(parseFloat(p.get("km")), 0), 2000) : undefined,
+      details: p.get("besoins") ? JSON.stringify({ besoinsCles: String(p.get("besoins")).split(",").slice(0, 12) }) : undefined,
     });
     if (!estimation) return NextResponse.json({ disponible: false });
     return NextResponse.json({ disponible: true, ...estimation });

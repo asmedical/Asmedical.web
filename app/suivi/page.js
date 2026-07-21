@@ -8,6 +8,8 @@ import ChoixAppel from "@/app/components/appel";
 import { chargerMesDemandes, supabase } from "@/lib/supabase";
 import { IcoPersonne, IcoTelephone } from "@/app/components/icones";
 import FilDemande from "@/app/components/fil-demande";
+import ChampAdresse from "@/app/components/adresse";
+import CarteTrajet, { carteDisponible } from "@/app/components/carte";
 
 // Bloc d'avis : le patient note son intervention terminée (une seule fois).
 function BlocAvis({ demande, t }) {
@@ -242,6 +244,131 @@ function BlocSignalement({ demande, t }) {
   );
 }
 
+// Carte du trajet (Google Maps) : itinéraire A→B, position du véhicule en
+// direct et heure d'arrivée réelle (Routes API, calculée par NOTRE serveur,
+// mise en cache). Ne s'affiche que si la clé carte est configurée ET que la
+// demande porte un itinéraire — sinon, le bloc texte historique prend le relais.
+function BlocCarte({ demande, t }) {
+  const [donnees, setDonnees] = useState(null);
+  const enCourse = demande.enRouteLe && !demande.finLe && !["TERMINEE", "ANNULEE", "ABSENT"].includes(demande.statut);
+
+  useEffect(() => {
+    let annule = false;
+    async function charger() {
+      try {
+        const { data: { session } } = await supabase.auth.getSession();
+        const r = await fetch(`/api/geo?type=suivi&demande=${demande.id}`, {
+          headers: { Authorization: `Bearer ${session?.access_token || ""}` },
+        });
+        if (r.ok && !annule) setDonnees(await r.json());
+      } catch {}
+    }
+    charger();
+    // Position + ETA rafraîchies pendant la course uniquement.
+    const minuteur = enCourse ? setInterval(charger, 30000) : null;
+    return () => { annule = true; if (minuteur) clearInterval(minuteur); };
+  }, [demande.id, enCourse]);
+
+  if (!donnees?.depart) return null;
+  return (
+    <div style={{ marginTop: 12 }}>
+      <div className="trajet-resume">
+        {demande.distanceKm != null && <span>📏 <b>{String(demande.distanceKm).replace(".", ",")} {t("trj_km")}</b></span>}
+        {demande.dureeRouteMin != null && <span>⏱ <b>~{demande.dureeRouteMin} {t("trj_min")}</b></span>}
+        {donnees.eta && (
+          <span>🚗 <b>{t("trj_eta")} ~{donnees.eta.minutes} {t("trj_min")}</b></span>
+        )}
+      </div>
+      <CarteTrajet
+        depart={donnees.depart}
+        destination={donnees.destination}
+        polyline={donnees.polyline}
+        position={donnees.pos && enCourse ? { lat: donnees.pos.lat, lng: donnees.pos.lng } : null}
+      />
+    </div>
+  );
+}
+
+// Modification de la destination PAR LE PATIENT : nouvelle adresse →
+// aperçu du nouveau prix (recalculé serveur) → confirmation explicite.
+function BlocModifierDestination({ demande, t }) {
+  const [ouvert, setOuvert] = useState(false);
+  const [texte, setTexte] = useState("");
+  const [lieu, setLieu] = useState(null);
+  const [apercu, setApercu] = useState(null);
+  const [etat, setEtat] = useState(""); // "" | envoi | ok | erreur
+
+  async function appeler(confirmer) {
+    setEtat("envoi");
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const r = await fetch("/api/demandes/modifier-trajet", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${session?.access_token || ""}` },
+        body: JSON.stringify({
+          demandeId: demande.id, destination: texte.trim(),
+          lat: lieu?.lat, lng: lieu?.lng, confirmer,
+        }),
+      });
+      const d = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error();
+      if (d.apercu) {
+        setApercu(d);
+        setEtat("");
+      } else if (d.ok) {
+        setEtat("ok");
+      }
+    } catch {
+      setEtat("erreur");
+    }
+  }
+
+  if (etat === "ok") {
+    return <p className="suivi-info" style={{ marginTop: 10, color: "var(--vert-fonce)", fontWeight: 700 }}>{t("mod_ok")}</p>;
+  }
+  if (!ouvert) {
+    return (
+      <p className="lien-bas" style={{ textAlign: "start", marginTop: 10 }}>
+        <a onClick={() => setOuvert(true)}>🧭 {t("mod_b")}</a>
+      </p>
+    );
+  }
+  return (
+    <div className="pay-carte" style={{ marginTop: 10 }}>
+      <strong>🧭 {t("mod_t")}</strong>
+      <ChampAdresse
+        label={t("mod_l")}
+        placeholder={t("dest_ph")}
+        valeur={texte}
+        onChange={(v) => { setTexte(v); setApercu(null); }}
+        onLieu={(l) => { setLieu(l); setApercu(null); }}
+      />
+      {apercu && (
+        <div className="trajet-resume">
+          {apercu.itineraire && <span>📏 <b>{String(apercu.itineraire.km).replace(".", ",")} {t("trj_km")}</b></span>}
+          {apercu.prixEstime != null && (
+            <span>💰 <b>{Number(apercu.prixEstime).toLocaleString("fr-FR")} DZD</b>{apercu.ancienPrix != null ? ` (${t("mod_avant")} ${Number(apercu.ancienPrix).toLocaleString("fr-FR")})` : ""}</span>
+          )}
+          {!apercu.itineraire && <span>{t("mod_sans_calcul")}</span>}
+        </div>
+      )}
+      <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+        {!apercu ? (
+          <button className="btn-action" style={{ padding: "10px 16px" }} disabled={etat === "envoi" || texte.trim().length < 3} onClick={() => appeler(false)}>
+            {etat === "envoi" ? t("otp_envoi") : t("mod_calculer")}
+          </button>
+        ) : (
+          <button className="btn-action" style={{ padding: "10px 16px" }} disabled={etat === "envoi"} onClick={() => appeler(true)}>
+            {t("mod_confirmer")}
+          </button>
+        )}
+        <button className="fin-lien" onClick={() => { setOuvert(false); setApercu(null); }}>{t("annuler")}</button>
+      </div>
+      {etat === "erreur" && <p className="erreur">{t("mod_err")}</p>}
+    </div>
+  );
+}
+
 // Trajet en direct (transport) : le chauffeur partage sa position pendant
 // qu'il roule vers le patient. L'arrivée estimée est calculée ICI, sur le
 // téléphone du patient (haversine + vitesse moyenne) : sa position ne
@@ -428,10 +555,23 @@ function FicheSuivi({ demande, t }) {
         </div>
       )}
 
-      {/* Trajet en direct : chauffeur en route vers le patient. */}
+      {/* Carte Google du trajet (itinéraire, véhicule, ETA réelle). */}
+      {demande.service === "transport" && demande.departLat != null && carteDisponible() &&
+        !["ANNULEE", "ABSENT"].includes(demande.statut) && (
+          <BlocCarte demande={demande} t={t} />
+        )}
+
+      {/* Trajet en direct (repli texte quand la carte n'est pas configurée). */}
       {demande.service === "transport" && demande.enRouteLe && !demande.arriveeLe && !demande.finLe &&
+        !(demande.departLat != null && carteDisponible()) &&
         !["TERMINEE", "ANNULEE", "ABSENT"].includes(demande.statut) && (
           <BlocTrajet demande={demande} t={t} />
+        )}
+
+      {/* Changer la destination (transport actif) : recalcul + confirmation. */}
+      {demande.service === "transport" && !demande.finLe &&
+        !["TERMINEE", "ANNULEE", "ABSENT"].includes(demande.statut) && (
+          <BlocModifierDestination demande={demande} t={t} />
         )}
 
       {/* « Je suis prêt » : transport en cours (rendez-vous du patient). */}
