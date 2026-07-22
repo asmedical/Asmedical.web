@@ -3,7 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, TextInput, ScrollView, Image, TouchableOpacity, Linking, KeyboardAvoidingView, Platform } from "react-native";
 import { C, S } from "../theme";
-import { Bouton, Chip, proposerAppel } from "../ui";
+import { Bouton, Chip, proposerAppel, ChampMotDePasse } from "../ui";
 import { useLangue, TEL_AFFICHE, TEL_LIEN } from "../i18n";
 import { envoyerCode, verifierCode, connexionIdentifiant, normaliserTel } from "../supabase";
 import { API_BASE, apiPost, apiGet } from "../api";
@@ -161,7 +161,7 @@ export default function Connexion() {
             <Text style={S.label}>{t("id_l")}</Text>
             <TextInput style={S.champ} autoCapitalize="none" value={identifiant} onChangeText={setIdentifiant} />
             <Text style={S.label}>{t("mdp2_l")}</Text>
-            <TextInput style={S.champ} secureTextEntry value={motDePasse} onChangeText={setMotDePasse} />
+            <ChampMotDePasse value={motDePasse} onChangeText={setMotDePasse} placeholder="••••••••" />
             <Bouton titre={t("connexion_b")} onPress={validerIdentifiant} charge={occupe} />
           </>
         )}

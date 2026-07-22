@@ -1,7 +1,37 @@
 // Petits composants partagés (charte ASM).
 import React from "react";
-import { View, Text, TouchableOpacity, ActivityIndicator } from "react-native";
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import { C, S } from "./theme";
+
+// Champ mot de passe avec œil pour afficher / masquer la saisie.
+export function ChampMotDePasse({ value, onChangeText, placeholder, onSubmitEditing, returnKeyType }) {
+  const [voir, setVoir] = React.useState(false);
+  return (
+    <View style={{ marginBottom: 12, position: "relative" }}>
+      <TextInput
+        style={[S.champ, { marginBottom: 0, paddingRight: 48 }]}
+        secureTextEntry={!voir}
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={C.grisClair}
+        autoCapitalize="none"
+        autoCorrect={false}
+        onSubmitEditing={onSubmitEditing}
+        returnKeyType={returnKeyType}
+      />
+      <TouchableOpacity
+        onPress={() => setVoir((v) => !v)}
+        style={{ position: "absolute", right: 6, top: 0, bottom: 0, width: 42, alignItems: "center", justifyContent: "center" }}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+        accessibilityRole="button"
+        accessibilityLabel={voir ? "Masquer le mot de passe" : "Afficher le mot de passe"}
+      >
+        <Text style={{ fontSize: 20 }}>{voir ? "🙈" : "👁️"}</Text>
+      </TouchableOpacity>
+    </View>
+  );
+}
 
 export function Bouton({ titre, onPress, charge, desactive, secondaire }) {
   return (

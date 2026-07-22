@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import ChampMotDePasse from "@/app/components/motdepasse";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { changerMotDePasse } from "@/lib/supabase";
@@ -65,7 +66,7 @@ export default function ProfilEmploye() {
       ) : (
         <div className="fe-carte">
           <label className="fe-champ"><span>Nouveau mot de passe</span>
-            <input type="password" value={mdp} onChange={(e) => setMdp(e.target.value)} placeholder="••••••••" />
+            <ChampMotDePasse value={mdp} onChange={(e) => setMdp(e.target.value)} placeholder="••••••••" />
           </label>
           <div style={{ marginTop: 12, display: "flex", gap: 8 }}>
             <button className={"adm-btn" + (occupe ? " btn-charge" : "")} onClick={changer} disabled={occupe}>Enregistrer</button>

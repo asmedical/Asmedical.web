@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import ChampMotDePasse from "@/app/components/motdepasse";
 import { useRouter } from "next/navigation";
 import { definirMotDePasseDefinitif } from "@/lib/supabase";
 import { useEmploye } from "../layout";
@@ -47,11 +48,11 @@ export default function MotDePasseObligatoire() {
 
       <label className="fe-champ">
         <span>Nouveau mot de passe</span>
-        <input type="password" value={mdp} onChange={(e) => setMdp(e.target.value)} placeholder="••••••••" autoFocus />
+        <ChampMotDePasse value={mdp} onChange={(e) => setMdp(e.target.value)} placeholder="••••••••" autoFocus />
       </label>
       <label className="fe-champ" style={{ marginTop: 12 }}>
         <span>Confirmez le mot de passe</span>
-        <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" onKeyDown={(e) => e.key === "Enter" && valider()} />
+        <ChampMotDePasse value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" onKeyDown={(e) => e.key === "Enter" && valider()} />
       </label>
 
       <ul className="emp-regles">

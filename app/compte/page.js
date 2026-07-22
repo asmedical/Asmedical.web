@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import ChampMotDePasse from "@/app/components/motdepasse";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
@@ -254,11 +255,11 @@ export default function MonCompte() {
           <div className="titre-section">{t("sec_securite")}</div>
           <div className="champ">
             <label>{t("mdp_nouveau_l")}</label>
-            <input type="password" value={mdp1} onChange={(e) => setMdp1(e.target.value)} placeholder={t("mdp2_ph")} />
+            <ChampMotDePasse value={mdp1} onChange={(e) => setMdp1(e.target.value)} placeholder={t("mdp2_ph")} />
           </div>
           <div className="champ">
             <label>{t("mdp_conf_l")}</label>
-            <input type="password" value={mdp2} onChange={(e) => setMdp2(e.target.value)} placeholder={t("mdp2_ph")} />
+            <ChampMotDePasse value={mdp2} onChange={(e) => setMdp2(e.target.value)} placeholder={t("mdp2_ph")} />
           </div>
           {msgMdp.texte && (
             <p className={msgMdp.type === "ok" ? "msg-ok" : "erreur"}>{msgMdp.texte}</p>

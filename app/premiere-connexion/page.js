@@ -1,5 +1,6 @@
 "use client";
 import { useState } from "react";
+import ChampMotDePasse from "@/app/components/motdepasse";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { supabase, chargerProfil, utilisateurCourant } from "@/lib/supabase";
@@ -50,11 +51,11 @@ export default function PremiereConnexion() {
 
         <div className="champ">
           <label>{t("mdp_nouveau_l")}</label>
-          <input type="password" value={mdp} onChange={(e) => setMdp(e.target.value)} placeholder="••••••••" autoFocus />
+          <ChampMotDePasse value={mdp} onChange={(e) => setMdp(e.target.value)} placeholder="••••••••" autoFocus />
         </div>
         <div className="champ">
           <label>{t("mdp_conf_l")}</label>
-          <input type="password" value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" onKeyDown={(e) => e.key === "Enter" && valider()} />
+          <ChampMotDePasse value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="••••••••" onKeyDown={(e) => e.key === "Enter" && valider()} />
         </div>
         <p className="precisions-aide">{t("pc_regle")}</p>
 

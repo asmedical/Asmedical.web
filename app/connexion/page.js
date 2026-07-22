@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import ChampMotDePasse from "@/app/components/motdepasse";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
@@ -476,8 +477,7 @@ function FormulaireConnexion() {
             </div>
             <div className="champ">
               <label>{t("mdp2_l")}</label>
-              <input
-                type="password"
+              <ChampMotDePasse
                 placeholder={t("mdp2_ph")}
                 value={motDePasse}
                 onChange={(e) => setMotDePasse(e.target.value)}

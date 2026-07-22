@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import ChampMotDePasse from "@/app/components/motdepasse";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
@@ -153,8 +154,7 @@ export default function InscriptionPro() {
             {t("mdp2_l")}
             <Etoile />
           </label>
-          <input
-            type="password"
+          <ChampMotDePasse
             placeholder={t("mdp2_ph")}
             value={motDePasse}
             onChange={(e) => setMotDePasse(e.target.value)}
