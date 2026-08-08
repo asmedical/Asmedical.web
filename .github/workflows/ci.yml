@@ -1,19 +1,22 @@
 name: CI — garde-fou
 
-# Filet de sécurité : à chaque push et pull request, on vérifie que le site
-# compile (next build) et que les tests unitaires passent. Rien n'est déployé
-# ici — c'est Vercel qui déploie sur push vers `main`. En activant la
-# protection de branche (Settings → Branches → main → « Require status checks »),
-# un merge devient impossible tant que ce CI n'est pas vert.
+# Filet de sécurité : on vérifie que le site compile (next build) et que les
+# tests unitaires passent avant tout déploiement. Rien n'est déployé ici —
+# c'est Vercel qui déploie sur push vers `main`. En activant la protection de
+# branche (Settings → Branches → main → « Require status checks »), un merge
+# devient impossible tant que ce CI (« Build + tests ») n'est pas vert.
 #
 # Aucun secret requis : le build ignore proprement la base de données quand
 # DATABASE_URL est absente (voir scripts/sync-base.js), et les tests unitaires
 # (test/*.test.js) ne dépendent pas de la base.
+#
+# Déclencheurs resserrés pour ne tourner qu'UNE fois par changement :
+#   - pull_request : à chaque PR (et à chaque nouveau commit dessus)
+#   - push sur main : la vérification post-merge
 
 on:
-  push:
-    branches: ["**"]
   pull_request:
+  push:
     branches: [main]
 
 # Annule un run précédent encore en cours sur la même branche/PR.
