@@ -15,4 +15,21 @@ if (!process.env.DATABASE_URL) {
   process.exit(0);
 }
 
-execSync("npx prisma db push --accept-data-loss", { stdio: "inherit" });
+// La synchro du schéma est un CONFORT au build, pas une condition de
+// déploiement. Si `prisma db push` échoue (base momentanément injoignable,
+// limite de connexions Railway, hoquet réseau…), on NE casse PAS le
+// déploiement : on avertit et on continue. Le code déployé n'exige pas la
+// synchro ; en cas de vrai changement de schéma non appliqué, l'API le
+// signalera au runtime plutôt que de bloquer toute la mise en ligne.
+try {
+  execSync("npx prisma db push --accept-data-loss", { stdio: "inherit" });
+} catch (e) {
+  console.warn(
+    "\n⚠️  Synchronisation de la base échouée (prisma db push) — déploiement\n" +
+      "   poursuivi quand même. Vérifiez la connexion à la base (Railway) si le\n" +
+      "   problème persiste ; relancez ensuite un redéploiement pour appliquer\n" +
+      "   d'éventuels changements de schéma.\n" +
+      "   Détail : " + (e && e.message ? e.message : e) + "\n"
+  );
+  process.exit(0);
+}
