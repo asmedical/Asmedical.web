@@ -67,11 +67,12 @@ function FormulaireConnexion() {
   const { t, espaceChoisi, serviceEnCours, seConnecter } = useAsm();
   const routeur = useRouter();
   const params = useSearchParams();
-  const gate = params.get("gate") === "1";
 
-  const [mode, setMode] = useState(params.get("mode") === "identifiant" ? "identifiant" : "sms"); // sms | identifiant
-  const [intention, setIntention] = useState("connexion"); // connexion | creer
-  const [etape, setEtape] = useState("tel"); // tel | code | nouveau (mode sms)
+  // Onglets : Connexion (mot de passe, par défaut) ou Inscription (création par SMS).
+  const [onglet, setOnglet] = useState(params.get("mode") === "inscription" ? "inscription" : "connexion"); // connexion | inscription
+  // Dans l'onglet Connexion : mot de passe (défaut) ou méthode rapide SMS/WhatsApp.
+  const [methode, setMethode] = useState(params.get("mode") === "sms" ? "sms" : "mdp"); // mdp | sms
+  const [etape, setEtape] = useState("tel"); // tel | code | nouveau (flux SMS / e-mail)
   const [indicatif, setIndicatif] = useState("+213");
   const [tel, setTel] = useState("");
   const [phoneE164, setPhoneE164] = useState("");
@@ -150,8 +151,6 @@ function FormulaireConnexion() {
     if (!profil) {
       // Compte tout neuf (SMS ou Google/Facebook/Apple) : proposer la création.
       if (!phoneE164) setPhoneE164(user?.phone || user?.email || "");
-      setMode("sms");
-      setIntention("connexion");
       setEtape("nouveau");
       return;
     }
@@ -262,12 +261,6 @@ function FormulaireConnexion() {
     }
   }
 
-  const sousTitre = gate
-    ? t("connexion_s_gate")
-    : espaceChoisi === "pro"
-    ? t("connexion_s_pro")
-    : t("otp_sous_tel");
-
   if (oauthEnCours) {
     return (
       <div className="page">
@@ -279,206 +272,173 @@ function FormulaireConnexion() {
     );
   }
 
+  // Bloc OTP partagé (téléphone/e-mail → code) : utilisé par la « connexion
+  // rapide » (creation=false) et par l'onglet Inscription (creation=true).
+  function blocOtp(creation) {
+    if (etape === "code") {
+      return (
+        <>
+          <p className="sous-page">
+            {t("otp_envoye_a")} <strong dir="ltr">{phoneE164}</strong>
+          </p>
+          <div className="champ">
+            <label>{t("code_l")}</label>
+            <input
+              type="tel"
+              inputMode="numeric"
+              maxLength={6}
+              className="champ-code"
+              placeholder={t("code_ph")}
+              value={code}
+              onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
+              onKeyDown={(e) => e.key === "Enter" && validerCode()}
+              autoFocus
+            />
+          </div>
+          <button className="btn-action" onClick={validerCode} disabled={occupe || code.length < 4}>
+            {occupe ? t("otp_verif") : t("otp_valider")}
+          </button>
+          <p className="lien-bas">
+            <a onClick={() => { setEtape("tel"); setCode(""); setErreur(""); }}>{t("otp_changer")}</a>
+            {" · "}
+            <a onClick={demanderCode}>{t("otp_renvoyer")}</a>
+          </p>
+        </>
+      );
+    }
+    // etape === "tel"
+    return (
+      <>
+        <p className="sous-page">{creation ? t("creer_sous") : t("autre_methode_s")}</p>
+        {viaEmail ? (
+          <div className="champ">
+            <label>{t("email_l")}</label>
+            <input
+              type="email"
+              inputMode="email"
+              placeholder={t("email_ph")}
+              value={emailOtp}
+              onChange={(e) => setEmailOtp(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && demanderCode()}
+            />
+          </div>
+        ) : (
+          <div className="champ">
+            <label>{t("tel_l")}</label>
+            <div className="tel-ligne">
+              <select
+                className="tel-indicatif"
+                value={indicatif}
+                onChange={(e) => setIndicatif(e.target.value)}
+                aria-label={t("indicatif_l")}
+              >
+                {INDICATIFS.map((i) => (
+                  <option value={i.code} key={i.code}>
+                    {i.drapeau} {i.code}
+                  </option>
+                ))}
+              </select>
+              <input
+                type="tel"
+                inputMode="tel"
+                placeholder={t("tel_ph")}
+                value={tel}
+                onChange={(e) => setTel(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && demanderCode()}
+              />
+            </div>
+          </div>
+        )}
+        {!viaEmail && waActif && (
+          <div className="canal-choix">
+            <span>{t("canal_l")}</span>
+            <div className="canal-chips">
+              <button type="button" className={canal === "sms" ? "actif" : ""} onClick={() => setCanal("sms")}>SMS</button>
+              <button type="button" className={canal === "whatsapp" ? "actif" : ""} onClick={() => setCanal("whatsapp")}>
+                <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="#25D366" d="M12 0a12 12 0 0 0-10.4 18L0 24l6.2-1.6A12 12 0 1 0 12 0zm0 21.8a9.7 9.7 0 0 1-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4A9.8 9.8 0 1 1 12 21.8zm5.4-7.3c-.3-.2-1.8-.9-2-1s-.5-.2-.7.1-.8 1-1 1.2-.4.2-.7.1a8 8 0 0 1-2.4-1.5 8.9 8.9 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6c.1-.2.2-.3.3-.5s0-.4 0-.5-.7-1.6-.9-2.2-.5-.5-.7-.5h-.6a1.1 1.1 0 0 0-.8.4A3.4 3.4 0 0 0 5.8 9c0 1.5 1.1 3 1.2 3.2a13.3 13.3 0 0 0 5.1 4.5c.7.3 1.3.5 1.7.6a4 4 0 0 0 1.9.1 3.1 3.1 0 0 0 2-1.4 2.5 2.5 0 0 0 .2-1.4c-.1-.1-.3-.2-.5-.1z"/></svg>
+                WhatsApp
+              </button>
+            </div>
+          </div>
+        )}
+        <button className="btn-action" onClick={demanderCode} disabled={occupe}>
+          {occupe ? t("otp_envoi") : creation ? t("nouveau_b") : t("otp_envoyer")}
+        </button>
+        <p className="lien-bas">
+          <a onClick={() => { setViaEmail(!viaEmail); setErreur(""); }}>
+            {viaEmail ? t("otp_par_tel") : t("otp_par_email")}
+          </a>
+        </p>
+        {!creation && (
+          <p className="lien-bas">
+            <a onClick={() => { setMethode("mdp"); setEtape("tel"); setErreur(""); }}>{t("retour_mdp")}</a>
+          </p>
+        )}
+      </>
+    );
+  }
+
+  // Étape de confirmation d'un nouveau compte : plein écran, sans onglets.
+  if (etape === "nouveau") {
+    return (
+      <div className="page">
+        <div className="contenu-page" style={{ maxWidth: 420 }}>
+          <h3 className="titre-nouveau">{t("nouveau_t")}</h3>
+          <p className="sous-page">
+            <strong dir="ltr">{phoneE164}</strong> {t("nouveau_p")}
+          </p>
+          <p className="sous-page">{t("nouveau_q")}</p>
+          <button className="btn-action" onClick={creerMonCompte}>{t("nouveau_b")}</button>
+          <p className="lien-bas">
+            <a onClick={annulerNouveau}>{t("nouveau_pasmoi")}</a>
+          </p>
+          <div className="info-appel">
+            <span>{t("urgence")}</span> <ChoixAppel />
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="page">
       <div className="contenu-page" style={{ maxWidth: 420 }}>
-        {/* En mode CRÉATION, le titre change et les onglets de connexion
-            disparaissent : aucune confusion possible avec « Se connecter ». */}
-        {intention === "creer" && mode === "sms" ? (
-          <h2 className="titre-page">{t("nouveau_t")}</h2>
-        ) : (
-          <>
-            <h2 className="titre-page">{t("connexion_t")}</h2>
-            <div className="onglets-connexion">
-              <button
-                className={mode === "sms" ? "actif" : ""}
-                onClick={() => {
-                  setMode("sms");
-                  setErreur("");
-                }}
-              >
-                {t("onglet_sms")}
-              </button>
-              <button
-                className={mode === "identifiant" ? "actif" : ""}
-                onClick={() => {
-                  setMode("identifiant");
-                  setErreur("");
-                }}
-              >
-                {t("onglet_id")}
-              </button>
-            </div>
-          </>
-        )}
+        <h2 className="titre-page">{t("connexion_t")}</h2>
 
-        {/* ---- Connexion par SMS ---- */}
-        {mode === "sms" && etape === "tel" && (
-          <>
-            <p className="sous-page">{intention === "creer" ? t("creer_sous") : sousTitre}</p>
-            {viaEmail ? (
-              <div className="champ">
-                <label>{t("email_l")}</label>
-                <input
-                  type="email"
-                  inputMode="email"
-                  placeholder={t("email_ph")}
-                  value={emailOtp}
-                  onChange={(e) => setEmailOtp(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && demanderCode()}
-                />
-              </div>
-            ) : (
-            <div className="champ">
-              <label>{t("tel_l")}</label>
-              <div className="tel-ligne">
-                <select
-                  className="tel-indicatif"
-                  value={indicatif}
-                  onChange={(e) => setIndicatif(e.target.value)}
-                  aria-label={t("indicatif_l")}
-                >
-                  {INDICATIFS.map((i) => (
-                    <option value={i.code} key={i.code}>
-                      {i.drapeau} {i.code}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  type="tel"
-                  inputMode="tel"
-                  placeholder={t("tel_ph")}
-                  value={tel}
-                  onChange={(e) => setTel(e.target.value)}
-                  onKeyDown={(e) => e.key === "Enter" && demanderCode()}
-                />
-              </div>
-            </div>
-            )}
-            {!viaEmail && waActif && (
-              <div className="canal-choix">
-                <span>{t("canal_l")}</span>
-                <div className="canal-chips">
-                  <button type="button" className={canal === "sms" ? "actif" : ""} onClick={() => setCanal("sms")}>SMS</button>
-                  <button type="button" className={canal === "whatsapp" ? "actif" : ""} onClick={() => setCanal("whatsapp")}>
-                    <svg viewBox="0 0 24 24" width="15" height="15" aria-hidden="true"><path fill="#25D366" d="M12 0a12 12 0 0 0-10.4 18L0 24l6.2-1.6A12 12 0 1 0 12 0zm0 21.8a9.7 9.7 0 0 1-5-1.4l-.4-.2-3.7 1 1-3.6-.2-.4A9.8 9.8 0 1 1 12 21.8zm5.4-7.3c-.3-.2-1.8-.9-2-1s-.5-.2-.7.1-.8 1-1 1.2-.4.2-.7.1a8 8 0 0 1-2.4-1.5 8.9 8.9 0 0 1-1.6-2c-.2-.3 0-.5.1-.6l.5-.6c.1-.2.2-.3.3-.5s0-.4 0-.5-.7-1.6-.9-2.2-.5-.5-.7-.5h-.6a1.1 1.1 0 0 0-.8.4A3.4 3.4 0 0 0 5.8 9c0 1.5 1.1 3 1.2 3.2a13.3 13.3 0 0 0 5.1 4.5c.7.3 1.3.5 1.7.6a4 4 0 0 0 1.9.1 3.1 3.1 0 0 0 2-1.4 2.5 2.5 0 0 0 .2-1.4c-.1-.1-.3-.2-.5-.1z"/></svg>
-                    WhatsApp
-                  </button>
-                </div>
-              </div>
-            )}
-            <button className="btn-action" onClick={demanderCode} disabled={occupe}>
-              {occupe ? t("otp_envoi") : intention === "creer" ? t("nouveau_b") : t("otp_envoyer")}
-            </button>
-            <p className="lien-bas">
-              <a
-                onClick={() => {
-                  setViaEmail(!viaEmail);
-                  setErreur("");
-                }}
-              >
-                {viaEmail ? t("otp_par_tel") : t("otp_par_email")}
-              </a>
-            </p>
+        {/* Onglets Connexion / Inscription */}
+        <div className="onglets-connexion">
+          <button
+            className={onglet === "connexion" ? "actif" : ""}
+            onClick={() => { setOnglet("connexion"); setMethode("mdp"); setEtape("tel"); setErreur(""); }}
+          >
+            {t("onglet_connexion")}
+          </button>
+          <button
+            className={onglet === "inscription" ? "actif" : ""}
+            onClick={() => { setOnglet("inscription"); setEtape("tel"); setViaEmail(false); setErreur(""); }}
+          >
+            {t("onglet_inscription")}
+          </button>
+        </div>
 
-            {intention === "connexion" ? (
-              <p className="creer-compte-ligne">
-                {t("creer_hint")}{" "}
-                <a
-                  onClick={() => {
-                    setIntention("creer");
-                    setErreur("");
-                  }}
-                >
-                  {t("creer_cta")}
-                </a>
-              </p>
-            ) : (
-              <p className="lien-bas">
-                <a
-                  onClick={() => {
-                    setIntention("connexion");
-                    setErreur("");
-                  }}
-                >
-                  {t("retour_connexion")}
-                </a>
-              </p>
-            )}
-          </>
-        )}
-
-        {mode === "sms" && etape === "code" && (
-          <>
-            <p className="sous-page">
-              {t("otp_envoye_a")} <strong dir="ltr">{phoneE164}</strong>
-            </p>
-            <div className="champ">
-              <label>{t("code_l")}</label>
-              <input
-                type="tel"
-                inputMode="numeric"
-                maxLength={6}
-                className="champ-code"
-                placeholder={t("code_ph")}
-                value={code}
-                onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
-                onKeyDown={(e) => e.key === "Enter" && validerCode()}
-                autoFocus
-              />
-            </div>
-            <button className="btn-action" onClick={validerCode} disabled={occupe || code.length < 4}>
-              {occupe ? t("otp_verif") : t("otp_valider")}
-            </button>
-            <p className="lien-bas">
-              <a
-                onClick={() => {
-                  setEtape("tel");
-                  setCode("");
-                  setErreur("");
-                }}
-              >
-                {t("otp_changer")}
-              </a>
-              {" · "}
-              <a onClick={demanderCode}>{t("otp_renvoyer")}</a>
-            </p>
-          </>
-        )}
-
-        {/* ---- Nouveau numéro : confirmation avant création de compte ---- */}
-        {mode === "sms" && etape === "nouveau" && (
-          <>
-            <h3 className="titre-nouveau">{t("nouveau_t")}</h3>
-            <p className="sous-page">
-              <strong dir="ltr">{phoneE164}</strong> {t("nouveau_p")}
-            </p>
-            <p className="sous-page">{t("nouveau_q")}</p>
-            <button className="btn-action" onClick={creerMonCompte}>
-              {t("nouveau_b")}
-            </button>
-            <p className="lien-bas">
-              <a onClick={annulerNouveau}>{t("nouveau_pasmoi")}</a>
-            </p>
-          </>
-        )}
-
-        {/* ---- Connexion par identifiant ---- */}
-        {mode === "identifiant" && (
+        {/* ===== CONNEXION — mot de passe (par défaut, le plus simple) ===== */}
+        {onglet === "connexion" && methode === "mdp" && (
           <>
             <div className="champ">
-              <label>{t("id_l")}</label>
+              <label>{t("id_tel_email_l")}</label>
               <input
                 type="text"
-                placeholder={t("id_ph")}
+                autoComplete="username"
+                placeholder={t("id_tel_email_ph")}
                 value={identifiant}
                 onChange={(e) => setIdentifiant(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && validerIdentifiant()}
               />
             </div>
             <div className="champ">
               <label>{t("mdp2_l")}</label>
               <ChampMotDePasse
-                placeholder={t("mdp2_ph")}
+                placeholder={t("mdp_ph")}
                 value={motDePasse}
                 onChange={(e) => setMotDePasse(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && validerIdentifiant()}
@@ -487,14 +447,26 @@ function FormulaireConnexion() {
             <button className="btn-action" onClick={validerIdentifiant} disabled={occupe}>
               {occupe ? t("otp_verif") : t("connexion_b")}
             </button>
+
+            {/* Seulement deux liens : aide + autre méthode */}
+            <p className="liens-connexion">
+              <Link href="/aide-connexion">{t("aide_lien")}</Link>
+              <a onClick={() => { setMethode("sms"); setEtape("tel"); setErreur(""); }}>{t("autre_methode")}</a>
+            </p>
           </>
         )}
+
+        {/* ===== CONNEXION — méthode rapide SMS / WhatsApp ===== */}
+        {onglet === "connexion" && methode === "sms" && blocOtp(false)}
+
+        {/* ===== INSCRIPTION — création du compte par SMS / e-mail ===== */}
+        {onglet === "inscription" && blocOtp(true)}
 
         {erreur && <p className="erreur">{erreur}</p>}
         {!supabaseConfigured && <p className="erreur">{t("err_config")}</p>}
 
         {/* ---- Connexion Google / Facebook / Apple (si activés) ---- */}
-        {OAUTH_PROVIDERS.length > 0 && etape !== "nouveau" && (
+        {OAUTH_PROVIDERS.length > 0 && (
           <>
             <div className="oauth-sep"><span>{t("oauth_ou")}</span></div>
             <div className="oauth-liste">
@@ -517,12 +489,6 @@ function FormulaireConnexion() {
               ))}
             </div>
           </>
-        )}
-
-        {etape !== "nouveau" && (
-          <p className="lien-probleme">
-            <Link href="/aide-connexion">{t("pb_lien")}</Link>
-          </p>
         )}
 
         <div className="info-appel">

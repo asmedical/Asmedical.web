@@ -127,6 +127,11 @@ header.principal{background:var(--blanc);border-bottom:1px solid var(--ligne);po
 .creer-compte-ligne a{color:var(--gris);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .creer-compte-ligne a:hover{color:var(--vert)}
 
+/* ---- Deux liens soulignés sous la connexion (aide + autre méthode) ---- */
+.liens-connexion{display:flex;justify-content:center;gap:24px;flex-wrap:wrap;margin-top:20px}
+.liens-connexion a{color:var(--gris);font-size:15px;font-weight:700;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.liens-connexion a:hover{color:var(--vert)}
+
 /* ---- Lien « Problème de connexion ? » ---- */
 .lien-probleme{text-align:center;margin-top:16px}
 .lien-probleme a{color:var(--gris);font-size:14.5px;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
