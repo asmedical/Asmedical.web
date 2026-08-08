@@ -1,0 +1,45 @@
+name: CI — garde-fou
+
+# Filet de sécurité : à chaque push et pull request, on vérifie que le site
+# compile (next build) et que les tests unitaires passent. Rien n'est déployé
+# ici — c'est Vercel qui déploie sur push vers `main`. En activant la
+# protection de branche (Settings → Branches → main → « Require status checks »),
+# un merge devient impossible tant que ce CI n'est pas vert.
+#
+# Aucun secret requis : le build ignore proprement la base de données quand
+# DATABASE_URL est absente (voir scripts/sync-base.js), et les tests unitaires
+# (test/*.test.js) ne dépendent pas de la base.
+
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+    branches: [main]
+
+# Annule un run précédent encore en cours sur la même branche/PR.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verifier:
+    name: Build + tests
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Compiler le site (garde-fou principal)
+        run: npm run build
+
+      - name: Tests unitaires
+        run: npm run test
