@@ -45,7 +45,10 @@ export default function Reservation({ route, navigation }) {
   const { profil, user } = useAuth();
   const livraison = service === "medicaments";
 
-  const jours = useMemo(() => joursProchains(), []);
+  // Horizon de réservation : lu dans les réglages du back-office, comme le
+  // site (il était figé à 10 jours dans l'application).
+  const [horizon, setHorizon] = useState(14);
+  const jours = useMemo(() => joursProchains(horizon), [horizon]);
   const [jour, setJour] = useState(jours[0].iso);
   const [depart, setDepart] = useState("");
   const [destination, setDestination] = useState("");
@@ -102,6 +105,14 @@ export default function Reservation({ route, navigation }) {
     }
     return () => { annule = true; };
   }, [service, jour, commune, typeTrajet, livraison]);
+
+  // Réglages du moteur de réservation (horizon de jours) — même source que
+  // le site : /api/creneaux sans paramètre renvoie le réglage courant.
+  useEffect(() => {
+    apiGet("/api/creneaux")
+      .then((d) => setHorizon(d?.reglage?.joursHorizon || 14))
+      .catch(() => {});
+  }, []);
 
   // Proches autorisés du compte : on ne garde QUE les autorisations acceptées
   // et non expirées — même filtre que le site. Réserver au nom de quelqu'un

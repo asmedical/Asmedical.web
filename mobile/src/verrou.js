@@ -40,11 +40,22 @@ export function VerrouProvider({ children }) {
   }, []);
 
   // Re-verrouillage au retour d'arrière-plan (au-delà du délai).
+  //
+  // L'horodatage est REMIS À ZÉRO dès qu'on revient au premier plan. Sans
+  // cela il restait en mémoire : chaque retour suivant — y compris celui que
+  // provoque l'invite Face ID elle-même — retrouvait un délai déjà dépassé et
+  // reverrouillait aussitôt. L'application repartait alors en boucle sans fin,
+  // sans que l'utilisateur puisse en sortir.
   useEffect(() => {
     const abo = AppState.addEventListener("change", (etat) => {
-      if (etat === "background") enFond.current = Date.now();
-      if (etat === "active" && actif && enFond.current && Date.now() - enFond.current > DELAI_REVERROU_MS) {
-        setVerrouille(true);
+      if (etat === "background") {
+        enFond.current = Date.now();
+        return;
+      }
+      if (etat === "active") {
+        const depuis = enFond.current;
+        enFond.current = 0; // consommé : ne resservira pas
+        if (actif && depuis && Date.now() - depuis > DELAI_REVERROU_MS) setVerrouille(true);
       }
     });
     return () => abo.remove();
@@ -79,14 +90,26 @@ export function VerrouProvider({ children }) {
 
   async function deverrouiller(invite, annuler) {
     if (await authentifier(invite, annuler)) {
+      enFond.current = 0; // rien ne doit reverrouiller juste après
       setVerrouille(false);
       return true;
     }
     return false;
   }
 
+  // Sortie de secours : si la biométrie ne passe plus (capteur, masque,
+  // visage non reconnu), l'utilisateur doit pouvoir quitter l'application
+  // plutôt que rester enfermé dehors. On lève le verrou ET la préférence :
+  // il se reconnectera normalement, par mot de passe ou par code.
+  async function abandonner() {
+    await AsyncStorage.removeItem(CLE).catch(() => {});
+    enFond.current = 0;
+    setActif(false);
+    setVerrouille(false);
+  }
+
   return (
-    <Ctx.Provider value={{ actif, verrouille, activer, desactiver, deverrouiller }}>
+    <Ctx.Provider value={{ actif, verrouille, activer, desactiver, deverrouiller, abandonner }}>
       {children}
     </Ctx.Provider>
   );

@@ -67,6 +67,16 @@ export const T = {
     err_champs: "Remplissez tous les champs.",
     err_identifiant: "Identifiant ou mot de passe incorrect.",
     urgence: "Urgence ? Appelez-nous :",
+    // --- Navigation / documentation / verrou ---
+    retour: "Retour",
+    bio_abandon: "Désactiver et se reconnecter autrement",
+    doc_t: "Documentation",
+    doc_s: "Nos offres et informations, sur le site ASM.",
+    doc_packs: "Nos packs",
+    doc_abonnements: "Abonnements ASM",
+    doc_devis: "Demander un devis",
+    doc_connaitre: "Nous connaître",
+    doc_confidentialite: "Confidentialité",
     // --- Espace employé (terrain) ---
     emp_t: "Mes interventions",
     emp_bonjour: "Bonjour",
@@ -319,6 +329,16 @@ export const T = {
     err_champs: "املأ جميع الحقول.",
     err_identifiant: "المعرّف أو كلمة المرور غير صحيحة.",
     urgence: "حالة عاجلة؟ اتصلوا بنا:",
+    // --- التنقّل / الوثائق / القفل ---
+    retour: "رجوع",
+    bio_abandon: "التعطيل والدخول بطريقة أخرى",
+    doc_t: "الوثائق",
+    doc_s: "عروضنا ومعلوماتنا، على موقع ASM.",
+    doc_packs: "باقاتنا",
+    doc_abonnements: "اشتراكات ASM",
+    doc_devis: "طلب عرض سعر",
+    doc_connaitre: "من نحن",
+    doc_confidentialite: "الخصوصية",
     // --- فضاء الموظف (الميدان) ---
     emp_t: "تدخّلاتي",
     emp_bonjour: "مرحباً",
