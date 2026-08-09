@@ -21,8 +21,11 @@ export default function Demarrage() {
           دائماً قريبون منكم
         </p>
         <p className="sous-dem">{t("dem_s")}</p>
+        {/* L'écrasante majorité des visiteurs sont des patients : leur espace
+            est le choix PRINCIPAL, mis en avant. L'espace professionnel reste
+            présent, mais en second plan. */}
         <div className="grille-role" style={{ width: "100%", maxWidth: 440 }}>
-          <button className="carte-role" onClick={() => aller("patient")}>
+          <button className="carte-role carte-role-vedette" onClick={() => aller("patient")}>
             <span className="ico-service">
               <IcoPersonne />
             </span>
@@ -31,7 +34,7 @@ export default function Demarrage() {
               <small>{t("esp_patient_d")}</small>
             </span>
           </button>
-          <button className="carte-role carte-role-pro" onClick={() => aller("pro")}>
+          <button className="carte-role carte-role-pro carte-role-discret" onClick={() => aller("pro")}>
             <span className="ico-service">
               <IcoEtablissement />
             </span>
