@@ -46,7 +46,17 @@
       ]
     ],
     "extra": {
-      "apiUrl": "https://www.asm-sante.com"
+      "apiUrl": "https://www.asm-sante.com",
+      "eas": {
+        "projectId": "a3f85fc4-d36f-4a55-80d2-b02438f29400"
+      }
+    },
+    "owner": "asm-sante",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/a3f85fc4-d36f-4a55-80d2-b02438f29400"
     }
   }
 }
