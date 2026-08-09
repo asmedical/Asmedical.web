@@ -18,8 +18,19 @@ import {
   supabaseConfigure,
 } from "../supabase";
 import { API_BASE, apiPost, apiGet } from "../api";
+import { useAuth } from "../auth";
 
 const INDICATIFS = ["+213", "+33", "+216", "+212", "+32", "+41", "+49", "+44", "+1", "+34", "+39"];
+
+// Types d'établissement — même liste que le site (app/inscription/pro/page.js).
+// La valeur enregistrée reste en français : c'est elle qui part en base.
+const TYPES_ETAB = [
+  { valeur: "Hôpital", cle: "type_hopital" },
+  { valeur: "Clinique", cle: "type_clinique" },
+  { valeur: "Laboratoire", cle: "type_labo" },
+  { valeur: "Pharmacie", cle: "type_pharma" },
+  { valeur: "Centre de soins", cle: "type_centre" },
+];
 
 const EST_EMAIL = (v) => /\S+@\S+\.\S+/.test((v || "").trim());
 const EST_TEL = (v) => {
@@ -65,6 +76,7 @@ function ItemAide({ titre, onPress }) {
 
 export default function Connexion() {
   const { t } = useLangue();
+  const { rafraichirProfil } = useAuth();
 
   const [onglet, setOnglet] = useState("connexion"); // connexion | inscription
   const [vue, setVue] = useState("principal"); // principal | sms
@@ -85,9 +97,14 @@ export default function Connexion() {
   const [identifiant, setIdentifiant] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   // Inscription : le strict minimum.
+  const [espace, setEspace] = useState("patient"); // patient | pro
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
   const [contact, setContact] = useState("");
+  // Champs propres à l'espace Établissement.
+  const [etablissement, setEtablissement] = useState("");
+  const [typeEtab, setTypeEtab] = useState("Hôpital");
+  const [responsable, setResponsable] = useState("");
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
 
@@ -101,18 +118,30 @@ export default function Connexion() {
     return e?.message === "config" ? t("err_app_config") : t(defaut);
   }
 
-  // Nom / prénom saisis à l'inscription : enregistrés dès l'ouverture de la
+  // Identité saisie à l'inscription : enregistrée dès l'ouverture de la
   // session. Jamais bloquant — un échec ne doit pas empêcher d'entrer.
+  // Le rôle suit l'espace choisi : c'est lui qui décide, ensuite, de l'écran
+  // d'accueil (patient ou établissement), exactement comme sur le site.
   async function enregistrerIdentite() {
-    if (!prenom.trim() && !nom.trim()) return;
+    const pro = espace === "pro";
+    if (!pro && !prenom.trim() && !nom.trim()) return;
+    if (pro && !etablissement.trim()) return;
+    const commun = {
+      telephone: phoneE164 && !phoneE164.includes("@") ? phoneE164 : null,
+      email: phoneE164 && phoneE164.includes("@") ? phoneE164 : null,
+    };
     try {
-      await enregistrerProfil({
-        role: "patient",
-        prenom: prenom.trim(),
-        nom: nom.trim(),
-        telephone: phoneE164 && !phoneE164.includes("@") ? phoneE164 : null,
-        email: phoneE164 && phoneE164.includes("@") ? phoneE164 : null,
-      });
+      await enregistrerProfil(
+        pro
+          ? {
+              role: "pro",
+              etablissement: etablissement.trim(),
+              type_etab: typeEtab,
+              contact: responsable.trim(),
+              ...commun,
+            }
+          : { role: "patient", prenom: prenom.trim(), nom: nom.trim(), ...commun }
+      );
     } catch {}
   }
 
@@ -157,6 +186,9 @@ export default function Connexion() {
       if (viaEmail) await verifierCodeEmail(phoneE164, code.trim());
       else await verifierCode(phoneE164, code.trim());
       await enregistrerIdentite();
+      // Le rôle vient d'être écrit : on le relit pour que la navigation parte
+      // sur le bon espace dès maintenant.
+      await rafraichirProfil();
       // La session déclenche la navigation (App.js écoute l'état d'auth).
     } catch (e) {
       setErreur(messageErreur(e, "err_code"));
@@ -177,12 +209,16 @@ export default function Connexion() {
     }
   }
 
-  // Inscription : nom + prénom + (email OU téléphone), sans que l'utilisateur
-  // ait à comprendre la différence — on détecte et on emprunte le bon parcours.
+  // Inscription : identité + (email OU téléphone), sans que l'utilisateur ait
+  // à comprendre la différence — on détecte et on emprunte le bon parcours.
   async function creerCompte() {
     if (occupe) return;
     setErreur("");
-    if (!prenom.trim() || !nom.trim()) return setErreur(t("err_nom_prenom"));
+    if (espace === "pro") {
+      if (!etablissement.trim() || !responsable.trim()) return setErreur(t("err_champs"));
+    } else if (!prenom.trim() || !nom.trim()) {
+      return setErreur(t("err_nom_prenom"));
+    }
     const c = contact.trim();
     if (EST_EMAIL(c)) {
       setOccupe(true);
@@ -234,7 +270,11 @@ export default function Connexion() {
       />
       <Text style={{ fontSize: 27, fontWeight: "800", color: C.vertFonce }}>{t("auth_bienvenue")}</Text>
       <Text style={{ fontSize: 15.5, color: C.gris, marginTop: 6, textAlign: "center" }}>
-        {onglet === "inscription" ? t("auth_sous_inscription") : t("auth_sous_connexion")}
+        {onglet !== "inscription"
+          ? t("auth_sous_connexion")
+          : espace === "pro"
+          ? t("insc_pro_s")
+          : t("auth_sous_inscription")}
       </Text>
     </View>
   );
@@ -381,12 +421,46 @@ export default function Connexion() {
           </>
         ) : (
           <>
-            <Text style={S.label}>{t("nom2_l")}</Text>
-            <TextInput style={S.champ} placeholder={t("nom2_ph")} placeholderTextColor={C.grisClair}
-                       value={nom} onChangeText={setNom} />
-            <Text style={S.label}>{t("prenom_l")}</Text>
-            <TextInput style={S.champ} placeholder={t("prenom_ph")} placeholderTextColor={C.grisClair}
-                       value={prenom} onChangeText={setPrenom} />
+            {/* Choix de l'espace — le site l'affiche avant l'inscription, on
+                le pose ici pour que l'établissement puisse créer son compte
+                depuis l'application et pas seulement depuis le navigateur. */}
+            <Text style={S.label}>{t("dem_s")}</Text>
+            <View style={S.ligneChips}>
+              <Chip titre={t("esp_patient")} actif={espace === "patient"}
+                    onPress={() => { setEspace("patient"); setErreur(""); }} />
+              <Chip titre={t("esp_pro")} actif={espace === "pro"}
+                    onPress={() => { setEspace("pro"); setErreur(""); }} />
+            </View>
+            <Text style={{ color: C.gris, fontSize: 13.5, marginTop: 6 }}>
+              {espace === "pro" ? t("esp_pro_d") : t("esp_patient_d")}
+            </Text>
+
+            {espace === "pro" ? (
+              <>
+                <Text style={S.label}>{t("etab_l")}</Text>
+                <TextInput style={S.champ} placeholder={t("etab_ph")} placeholderTextColor={C.grisClair}
+                           value={etablissement} onChangeText={setEtablissement} />
+                <Text style={S.label}>{t("type_l")}</Text>
+                <View style={S.ligneChips}>
+                  {TYPES_ETAB.map((ty) => (
+                    <Chip key={ty.valeur} titre={t(ty.cle)} actif={typeEtab === ty.valeur}
+                          onPress={() => setTypeEtab(ty.valeur)} />
+                  ))}
+                </View>
+                <Text style={S.label}>{t("contact_l")}</Text>
+                <TextInput style={S.champ} placeholder={t("contact_ph")} placeholderTextColor={C.grisClair}
+                           value={responsable} onChangeText={setResponsable} />
+              </>
+            ) : (
+              <>
+                <Text style={S.label}>{t("nom2_l")}</Text>
+                <TextInput style={S.champ} placeholder={t("nom2_ph")} placeholderTextColor={C.grisClair}
+                           value={nom} onChangeText={setNom} />
+                <Text style={S.label}>{t("prenom_l")}</Text>
+                <TextInput style={S.champ} placeholder={t("prenom_ph")} placeholderTextColor={C.grisClair}
+                           value={prenom} onChangeText={setPrenom} />
+              </>
+            )}
             <Text style={S.label}>{t("auth_contact_l")}</Text>
             <TextInput
               style={S.champ}
