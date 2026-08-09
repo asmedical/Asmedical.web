@@ -2,7 +2,7 @@
   "expo": {
     "name": "ASM — Assistance Sociale Médicale",
     "slug": "asm-sante",
-    "version": "1.2.0",
+    "version": "1.3.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -42,6 +42,13 @@
             "targetSdkVersion": 36,
             "buildToolsVersion": "36.0.0"
           }
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "ASM accède à vos photos pour joindre une ordonnance ou un bon de transport à votre dossier.",
+          "cameraPermission": "ASM utilise l’appareil photo pour photographier une ordonnance ou un bon de transport."
         }
       ]
     ],

@@ -129,7 +129,7 @@ const ICONES_ONGLET = {
 };
 const LIBELLE_ONGLET = {
   RendezVous: "Rendez-vous", Messages: "Messages", Reserver: "Réserver",
-  Documents: "Documentation", MoiTab: "Mon profil",
+  Documents: "Mes documents", MoiTab: "Mon profil",
   Interventions: "Mes interventions", Etablissement: "Établissement",
 };
 

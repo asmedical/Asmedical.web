@@ -1,6 +1,6 @@
 // Profil : informations du compte, langue, notifications, déconnexion.
 import React, { useCallback, useState } from "react";
-import { View, Text, TextInput, ScrollView, Alert } from "react-native";
+import { View, Text, TextInput, ScrollView, Alert, TouchableOpacity, Linking } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { C, S } from "../theme";
 import { Bouton, Chip, Charge, ChampMotDePasse } from "../ui";
@@ -8,7 +8,19 @@ import { useLangue } from "../i18n";
 import { useAuth } from "../auth";
 import { useVerrou, typeBiometrie } from "../verrou";
 import { deconnexion, definirEmailMotDePasse } from "../supabase";
-import { apiGet, apiPost } from "../api";
+import { apiGet, apiPost, API_BASE } from "../api";
+
+// Pages d'information (offres, devis, confidentialité). Elles vivent sur le
+// site : plutôt qu'une copie qui divergerait, on y renvoie. Leur place est
+// ici, dans les réglages — pas dans la barre du bas, réservée à ce qu'on
+// utilise vraiment tous les jours.
+const PAGES_INFOS = [
+  { cle: "doc_packs", chemin: "/packs" },
+  { cle: "doc_abonnements", chemin: "/abonnements" },
+  { cle: "doc_devis", chemin: "/devis" },
+  { cle: "doc_connaitre", chemin: "/connaitre" },
+  { cle: "doc_confidentialite", chemin: "/confidentialite" },
+];
 
 function Ligne({ label, valeur }) {
   return (
@@ -158,6 +170,19 @@ export default function Profil() {
           </View>
         </>
       )}
+
+      <Text style={S.h2}>{t("infos_t")}</Text>
+      {PAGES_INFOS.map((p) => (
+        <TouchableOpacity
+          key={p.cle}
+          accessibilityRole="link"
+          onPress={() => Linking.openURL(`${API_BASE}${p.chemin}`).catch(() => {})}
+          style={[S.carte, { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8, minHeight: 54 }]}
+        >
+          <Text style={{ flex: 1, color: C.encre, fontWeight: "700", fontSize: 15 }}>{t(p.cle)}</Text>
+          <Text style={{ color: C.gris, fontSize: 18 }}>›</Text>
+        </TouchableOpacity>
+      ))}
 
       <Text style={S.h2}>{t("notif_t")}</Text>
       {notifs === null && <Charge />}
