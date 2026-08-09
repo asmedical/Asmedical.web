@@ -48,6 +48,9 @@ export default function Reservation({ route, navigation }) {
   const [heure, setHeure] = useState("");
   const [fenetres, setFenetres] = useState(null);
   const [fenetre, setFenetre] = useState("asap");
+  // Livraison : pharmacie souhaitée (facultatif — sinon la plus proche),
+  // comme sur le site. Le patient garde le choix de SA pharmacie.
+  const [pharmacie, setPharmacie] = useState("");
   const [estimation, setEstimation] = useState(null);
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
@@ -103,6 +106,7 @@ export default function Reservation({ route, navigation }) {
       if (livraison) {
         corps.date = `${jour}T09:00`;
         corps.fenetre = FENETRES.find((f) => f.id === fenetre)?.fr;
+        corps.pharmacie = pharmacie.trim() || undefined;
       } else {
         corps.date = `${jour}T${heure}`;
         corps.depart = depart.trim() || undefined;
@@ -176,6 +180,14 @@ export default function Reservation({ route, navigation }) {
 
       {livraison ? (
         <>
+          <Text style={S.label}>{t("pharmacie_l")}</Text>
+          <TextInput
+            style={S.champ}
+            placeholder={t("pharmacie_ph")}
+            placeholderTextColor={C.grisClair}
+            value={pharmacie}
+            onChangeText={setPharmacie}
+          />
           <Text style={S.label}>{t("fenetre_l")}</Text>
           {fenetres === null && <Charge />}
           <View style={S.ligneChips}>
