@@ -3,10 +3,21 @@
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { supabase, chargerProfil } from "./supabase";
 
-const AuthContexte = createContext({ pret: false, user: null, profil: null });
+const AuthContexte = createContext({ pret: false, user: null, profil: null, rafraichirProfil: async () => {} });
 
 export function AuthProvider({ children }) {
   const [etat, setEtat] = useState({ pret: false, user: null, profil: null });
+
+  // Le profil est écrit juste APRÈS l'ouverture de session (inscription) :
+  // sans relecture explicite, un établissement qui vient de créer son compte
+  // atterrirait dans l'espace patient jusqu'au prochain lancement.
+  async function rafraichirProfil() {
+    if (!supabase) return;
+    const { data: { session } } = await supabase.auth.getSession();
+    const user = session?.user || null;
+    const profil = user ? await chargerProfil(user.id) : null;
+    setEtat({ pret: true, user, profil });
+  }
 
   useEffect(() => {
     if (!supabase) {
@@ -29,7 +40,7 @@ export function AuthProvider({ children }) {
     };
   }, []);
 
-  return <AuthContexte.Provider value={etat}>{children}</AuthContexte.Provider>;
+  return <AuthContexte.Provider value={{ ...etat, rafraichirProfil }}>{children}</AuthContexte.Provider>;
 }
 
 export const useAuth = () => useContext(AuthContexte);

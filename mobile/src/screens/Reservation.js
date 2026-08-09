@@ -45,7 +45,10 @@ export default function Reservation({ route, navigation }) {
   const { profil, user } = useAuth();
   const livraison = service === "medicaments";
 
-  const jours = useMemo(() => joursProchains(), []);
+  // Horizon de réservation : lu dans les réglages du back-office, comme le
+  // site (il était figé à 10 jours dans l'application).
+  const [horizon, setHorizon] = useState(14);
+  const jours = useMemo(() => joursProchains(horizon), [horizon]);
   const [jour, setJour] = useState(jours[0].iso);
   const [depart, setDepart] = useState("");
   const [destination, setDestination] = useState("");
@@ -94,14 +97,27 @@ export default function Reservation({ route, navigation }) {
     } else {
       setCreneaux(null);
       const u = new URLSearchParams({ service, jour, duree: "60" });
-      if (commune.trim()) u.set("commune", commune.trim());
+      // La commune n'est PAS transmise ici, comme sur le site : elle sert à
+      // renseigner la demande, pas à filtrer les créneaux. Envoyée, elle
+      // restreignait la recherche aux intervenants dont la zone correspond
+      // exactement — et l'application n'affichait plus aucun créneau là où
+      // le site en proposait. Le filtre reste possible côté serveur, mais il
+      // ne doit pas s'appliquer par défaut sans que le patient l'ait demandé.
       if (service === "transport") u.set("typeTrajet", typeTrajet);
       apiGet(`/api/creneaux?${u.toString()}`)
         .then((d) => !annule && setCreneaux(d.creneaux || []))
         .catch(() => !annule && setCreneaux([]));
     }
     return () => { annule = true; };
-  }, [service, jour, commune, typeTrajet, livraison]);
+  }, [service, jour, typeTrajet, livraison]);
+
+  // Réglages du moteur de réservation (horizon de jours) — même source que
+  // le site : /api/creneaux sans paramètre renvoie le réglage courant.
+  useEffect(() => {
+    apiGet("/api/creneaux")
+      .then((d) => setHorizon(d?.reglage?.joursHorizon || 14))
+      .catch(() => {});
+  }, []);
 
   // Proches autorisés du compte : on ne garde QUE les autorisations acceptées
   // et non expirées — même filtre que le site. Réserver au nom de quelqu'un

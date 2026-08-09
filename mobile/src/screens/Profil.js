@@ -1,13 +1,13 @@
 // Profil : informations du compte, langue, notifications, déconnexion.
 import React, { useCallback, useState } from "react";
-import { View, Text, ScrollView, Alert } from "react-native";
+import { View, Text, TextInput, ScrollView, Alert } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { C, S } from "../theme";
-import { Bouton, Chip, Charge } from "../ui";
+import { Bouton, Chip, Charge, ChampMotDePasse } from "../ui";
 import { useLangue } from "../i18n";
 import { useAuth } from "../auth";
 import { useVerrou, typeBiometrie } from "../verrou";
-import { deconnexion } from "../supabase";
+import { deconnexion, definirEmailMotDePasse } from "../supabase";
 import { apiGet, apiPost } from "../api";
 
 function Ligne({ label, valeur }) {
@@ -21,11 +21,37 @@ function Ligne({ label, valeur }) {
 
 export default function Profil() {
   const { t, langue, setLangue } = useLangue();
-  const { profil, user } = useAuth();
+  const { profil, user, rafraichirProfil } = useAuth();
   const [notifs, setNotifs] = useState(null);
   const [suppEnCours, setSuppEnCours] = useState(false);
   const verrou = useVerrou();
   const [bio, setBio] = useState(null); // "faceid" | "empreinte" | null
+
+  const estPro = profil?.role === "pro";
+  // Un compte ouvert par code (SMS ou e-mail) n'a pas de mot de passe : on
+  // propose de lui en donner un, sinon il ne pourrait pas se connecter par
+  // mot de passe sur le site.
+  const [mdpEmail, setMdpEmail] = useState("");
+  const [mdpNouveau, setMdpNouveau] = useState("");
+  const [mdpOccupe, setMdpOccupe] = useState(false);
+  const [mdpErreur, setMdpErreur] = useState("");
+
+  async function enregistrerMotDePasse() {
+    setMdpErreur("");
+    const em = (mdpEmail || profil?.email || user?.email || "").trim();
+    if (!/\S+@\S+\.\S+/.test(em)) return setMdpErreur(t("err_email"));
+    if (mdpNouveau.length < 6) return setMdpErreur(t("err_mdp"));
+    setMdpOccupe(true);
+    try {
+      await definirEmailMotDePasse(em, mdpNouveau);
+      await rafraichirProfil();
+      setMdpNouveau("");
+      Alert.alert("ASM", t("mdpdef_ok"));
+    } catch (e) {
+      setMdpErreur(e?.code === "email_exists" ? t("err_email_pris") : t("mdpdef_err"));
+    }
+    setMdpOccupe(false);
+  }
 
   useFocusEffect(useCallback(() => { typeBiometrie().then(setBio); }, []));
   const bioLib = bio === "faceid" ? "Face ID" : t("bio_empreinte");
@@ -76,10 +102,39 @@ export default function Profil() {
       <Text style={S.h1}>{t("profil_t")}</Text>
 
       <View style={S.carte}>
-        <Ligne label="Nom" valeur={[profil?.prenom, profil?.nom].filter(Boolean).join(" ")} />
+        {estPro ? (
+          <>
+            <Ligne label={t("etab_l")} valeur={profil?.etablissement} />
+            <Ligne label={t("type_l")} valeur={profil?.type_etab} />
+            <Ligne label={t("contact_l")} valeur={profil?.contact} />
+          </>
+        ) : (
+          <Ligne label="Nom" valeur={[profil?.prenom, profil?.nom].filter(Boolean).join(" ")} />
+        )}
         <Ligne label={t("tel_l")} valeur={profil?.telephone || user?.phone} />
         <Ligne label="Email" valeur={profil?.email || user?.email} />
         <Ligne label={t("commune_l")} valeur={profil?.commune} />
+      </View>
+
+      {/* Mot de passe : proposé tant que le compte n'en a pas (créé par code). */}
+      <Text style={S.h2}>{t("mdpdef_t")}</Text>
+      <View style={S.carte}>
+        <Text style={{ color: C.gris, lineHeight: 20 }}>{t("mdpdef_p")}</Text>
+        <Text style={S.label}>{t("email_l")}</Text>
+        <TextInput
+          style={S.champ}
+          autoCapitalize="none"
+          autoCorrect={false}
+          keyboardType="email-address"
+          placeholder={t("email_ph")}
+          placeholderTextColor={C.grisClair}
+          value={mdpEmail || profil?.email || user?.email || ""}
+          onChangeText={setMdpEmail}
+        />
+        <Text style={S.label}>{t("mdp2_l")}</Text>
+        <ChampMotDePasse value={mdpNouveau} onChangeText={setMdpNouveau} placeholder={t("mdp_ph")} />
+        {!!mdpErreur && <Text style={S.erreur}>{mdpErreur}</Text>}
+        <Bouton titre={t("mdpdef_b")} onPress={enregistrerMotDePasse} charge={mdpOccupe} />
       </View>
 
       <Text style={S.h2}>{t("langue_l")}</Text>

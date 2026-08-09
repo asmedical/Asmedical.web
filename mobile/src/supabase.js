@@ -132,6 +132,34 @@ export async function enregistrerProfil(champs) {
   if (error) throw error;
 }
 
+// Rattache un e-mail + un mot de passe à un compte ouvert par code (SMS ou
+// e-mail). Même route serveur que le site (/api/finaliser-compte, qui vérifie
+// le jeton) : sans cela, un compte créé depuis l'application n'aurait aucun
+// mot de passe et ne pourrait pas se connecter par mot de passe sur le site.
+export async function definirEmailMotDePasse(email, password) {
+  if (!supabase) throw new Error("config");
+  const { API_BASE } = require("./api");
+  const { data: { session } } = await supabase.auth.getSession();
+  const token = session?.access_token;
+  if (!token) throw new Error("session");
+
+  const r = await fetch(`${API_BASE}/api/finaliser-compte`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ access_token: token, email, password }),
+  });
+  if (!r.ok) {
+    const d = await r.json().catch(() => ({}));
+    const err = new Error(d.erreur || "echec");
+    if (d.erreur === "email_pris") err.code = "email_exists";
+    throw err;
+  }
+  // Le changement de mot de passe côté serveur invalide la session en cours :
+  // on en rouvre une proprement, sinon l'utilisateur serait éjecté.
+  const { error } = await supabase.auth.signInWithPassword({ email, password });
+  if (error) throw error;
+}
+
 export async function deconnexion() {
   if (supabase) await supabase.auth.signOut();
 }
