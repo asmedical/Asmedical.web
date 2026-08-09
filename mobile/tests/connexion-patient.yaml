@@ -1,0 +1,23 @@
+# Espace Patient : l'écran de connexion reste minimal — un champ de contact,
+# un mot de passe, et les deux accordéons FERMÉS par défaut.
+appId: com.asm_sante.twa
+tags:
+  - structure
+---
+- launchApp:
+    clearState: true
+- tapOn: "Espace Patient"
+- assertVisible: "Bienvenue"
+- assertVisible: "Connexion"
+- assertVisible: "Inscription"
+- assertVisible: "Email ou numéro de téléphone"
+- assertVisible: "Mot de passe"
+# Accordéons repliés : leur contenu ne doit PAS être visible à l'ouverture.
+- assertVisible: "Autres options de connexion"
+- assertVisible: "Besoin d'aide ?"
+- assertNotVisible: "Connexion rapide par SMS"
+- assertNotVisible: "Mot de passe oublié"
+- takeScreenshot: 02-connexion-patient
+# On déplie, puis on vérifie que le contenu apparaît.
+- tapOn: "Autres options de connexion"
+- assertVisible: "Connexion rapide par SMS"

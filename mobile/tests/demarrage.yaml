@@ -1,0 +1,13 @@
+# L'écran d'orientation doit s'ouvrir en premier, avec les deux espaces.
+# C'est la structure d'entrée du site : elle doit exister à l'identique ici.
+appId: com.asm_sante.twa
+tags:
+  - structure
+---
+- launchApp:
+    clearState: true
+- assertVisible: "Bienvenue chez ASM"
+- assertVisible: "Choisissez votre espace"
+- assertVisible: "Espace Patient"
+- assertVisible: "Espace Professionnel"
+- takeScreenshot: 01-demarrage
