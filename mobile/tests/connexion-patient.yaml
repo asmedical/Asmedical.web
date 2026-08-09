@@ -6,6 +6,9 @@ tags:
 ---
 - launchApp:
     clearState: true
+- extendedWaitUntil:
+    visible: "Choisissez votre espace"
+    timeout: 30000
 - tapOn: "Espace Patient"
 - assertVisible: "Bienvenue"
 - assertVisible: "Connexion"
