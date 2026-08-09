@@ -256,8 +256,8 @@ function FormulaireConnexion() {
         await envoyerCodeEmailCreation(em);
         setPhoneE164(em);
         setEtape("code");
-      } catch {
-        setErreur(t("err_envoi_email"));
+      } catch (e) {
+        setErreur(messageErreur(e, "err_envoi_email"));
       } finally {
         setOccupe(false);
       }
@@ -279,8 +279,8 @@ function FormulaireConnexion() {
       await envoyerCode(p);
       setPhoneE164(p);
       setEtape("code");
-    } catch {
-      setErreur(t("err_sms"));
+    } catch (e) {
+      setErreur(messageErreur(e, "err_sms"));
     } finally {
       setOccupe(false);
     }
@@ -295,8 +295,8 @@ function FormulaireConnexion() {
         ? await verifierCodeEmail(phoneE164, code.trim())
         : await verifierCode(phoneE164, code.trim());
       await apresConnexion(user);
-    } catch {
-      setErreur(t("err_code"));
+    } catch (e) {
+      setErreur(messageErreur(e, "err_code"));
     } finally {
       setOccupe(false);
     }
@@ -310,8 +310,8 @@ function FormulaireConnexion() {
     try {
       const user = await connexionIdentifiant(identifiant, motDePasse);
       await apresConnexion(user);
-    } catch {
-      setErreur(t("err_identifiant"));
+    } catch (e) {
+      setErreur(messageErreur(e, "err_identifiant"));
     } finally {
       setOccupe(false);
     }
@@ -335,8 +335,8 @@ function FormulaireConnexion() {
         setPhoneE164(c);
         setVue("sms");
         setEtape("code");
-      } catch {
-        setErreur(t("err_envoi_email"));
+      } catch (e) {
+        setErreur(messageErreur(e, "err_envoi_email"));
       } finally {
         setOccupe(false);
       }
@@ -362,14 +362,21 @@ function FormulaireConnexion() {
         setPhoneE164(p);
         setVue("sms");
         setEtape("code");
-      } catch {
-        setErreur(t("err_sms"));
+      } catch (e) {
+        setErreur(messageErreur(e, "err_sms"));
       } finally {
         setOccupe(false);
       }
       return;
     }
     setErreur(t("err_contact"));
+  }
+
+  // Une application mal configurée (clés Supabase absentes du build) ne doit
+  // JAMAIS accuser le mot de passe de l'utilisateur : le message doit dire
+  // ce qui se passe réellement.
+  function messageErreur(e, defaut) {
+    return e?.message === "config" ? t("err_app_config") : t(defaut);
   }
 
   async function lancerOAuth(prov) {
@@ -599,7 +606,7 @@ function FormulaireConnexion() {
         )}
 
         {erreur && <p className="erreur">{erreur}</p>}
-        {!supabaseConfigured && <p className="erreur">{t("err_config")}</p>}
+        {!supabaseConfigured && <p className="erreur">{t("err_app_config")}</p>}
 
         {/* ---- Accordéon 1 : autres options de connexion (fermé par défaut) ---- */}
         <div className="acc">

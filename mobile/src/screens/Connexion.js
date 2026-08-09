@@ -15,6 +15,7 @@ import {
   connexionIdentifiant,
   enregistrerProfil,
   normaliserTel,
+  supabaseConfigure,
 } from "../supabase";
 import { API_BASE, apiPost, apiGet } from "../api";
 
@@ -94,6 +95,12 @@ export default function Connexion() {
     apiGet("/api/otp-canal").then((d) => setWaActif(!!d?.whatsapp)).catch(() => {});
   }, []);
 
+  // Une application mal configurée (clés Supabase absentes du build) ne doit
+  // JAMAIS accuser le mot de passe de l'utilisateur.
+  function messageErreur(e, defaut) {
+    return e?.message === "config" ? t("err_app_config") : t(defaut);
+  }
+
   // Nom / prénom saisis à l'inscription : enregistrés dès l'ouverture de la
   // session. Jamais bloquant — un échec ne doit pas empêcher d'entrer.
   async function enregistrerIdentite() {
@@ -120,8 +127,8 @@ export default function Connexion() {
         await envoyerCodeEmailCreation(em);
         setPhoneE164(em);
         setEtape("code");
-      } catch {
-        setErreur(t("err_envoi_email"));
+      } catch (e) {
+        setErreur(messageErreur(e, "err_envoi_email"));
       }
       setOccupe(false);
       return;
@@ -136,8 +143,8 @@ export default function Connexion() {
       await envoyerCode(p);
       setPhoneE164(p);
       setEtape("code");
-    } catch {
-      setErreur(t("err_sms"));
+    } catch (e) {
+      setErreur(messageErreur(e, "err_sms"));
     }
     setOccupe(false);
   }
@@ -151,8 +158,8 @@ export default function Connexion() {
       else await verifierCode(phoneE164, code.trim());
       await enregistrerIdentite();
       // La session déclenche la navigation (App.js écoute l'état d'auth).
-    } catch {
-      setErreur(t("err_code"));
+    } catch (e) {
+      setErreur(messageErreur(e, "err_code"));
       setOccupe(false);
     }
   }
@@ -164,8 +171,8 @@ export default function Connexion() {
     setOccupe(true);
     try {
       await connexionIdentifiant(identifiant, motDePasse);
-    } catch {
-      setErreur(t("err_identifiant"));
+    } catch (e) {
+      setErreur(messageErreur(e, "err_identifiant"));
       setOccupe(false);
     }
   }
@@ -186,8 +193,8 @@ export default function Connexion() {
         setPhoneE164(c);
         setVue("sms");
         setEtape("code");
-      } catch {
-        setErreur(t("err_envoi_email"));
+      } catch (e) {
+        setErreur(messageErreur(e, "err_envoi_email"));
       }
       setOccupe(false);
       return;
@@ -205,8 +212,8 @@ export default function Connexion() {
         setPhoneE164(p);
         setVue("sms");
         setEtape("code");
-      } catch {
-        setErreur(t("err_sms"));
+      } catch (e) {
+        setErreur(messageErreur(e, "err_sms"));
       }
       setOccupe(false);
       return;
@@ -394,6 +401,9 @@ export default function Connexion() {
           </>
         )}
 
+        {/* Clés Supabase absentes du build : on le dit tout de suite, au lieu
+            de laisser croire à un mauvais mot de passe. */}
+        {!supabaseConfigure && <Text style={S.erreur}>{t("err_app_config")}</Text>}
         {!!erreur && <Text style={S.erreur}>{erreur}</Text>}
 
         {/* Accordéon 1 : autres options. Google/Facebook/Apple ne sont pas
