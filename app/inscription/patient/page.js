@@ -28,6 +28,16 @@ export default function InscriptionPatient() {
   const [voirUser, setVoirUser] = useState(false); // nom d'utilisateur (facultatif)
 
   useEffect(() => {
+    // Nom / prénom déjà saisis à l'inscription : on ne les redemande pas.
+    try {
+      const brut = sessionStorage.getItem("asm_insc_identite");
+      if (brut) {
+        const d = JSON.parse(brut);
+        if (d?.prenom) setPrenom(d.prenom);
+        if (d?.nom) setNom(d.nom);
+        sessionStorage.removeItem("asm_insc_identite");
+      }
+    } catch {}
     utilisateurCourant()
       .then((u) => {
         if (u?.phone) {

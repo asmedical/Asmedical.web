@@ -1,8 +1,8 @@
 "use client";
 import Link from "next/link";
 import ChampMotDePasse from "@/app/components/motdepasse";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
 import ChoixAppel from "@/app/components/appel";
@@ -18,11 +18,16 @@ import { IcoPersonne, IcoBulle, IcoTelephone, IcoEnvoyer } from "@/app/component
 // solutions claires : mot de passe oublié (récupération par email + code),
 // identifiant/email oublié (→ SMS), code SMS non reçu (astuces + email),
 // et appeler un conseiller. Aucune donnée technique visible.
-export default function AideConnexion() {
+function AideConnexionContenu() {
   const { t, seConnecter } = useAsm();
   const routeur = useRouter();
+  const params = useSearchParams();
 
-  const [vue, setVue] = useState("menu"); // menu | mdp | code_sms
+  // Ouverture directe d'un sujet depuis « Besoin d'aide ? » (page de connexion).
+  const sujet = params.get("sujet");
+  const [vue, setVue] = useState(
+    sujet === "mdp" || sujet === "code_sms" ? sujet : "menu"
+  ); // menu | mdp | code_sms
   const [etape, setEtape] = useState("email"); // email | code | nouveau | ok
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -134,7 +139,7 @@ export default function AideConnexion() {
               </span>
             </button>
 
-            <Link className="aide-option" href="/connexion">
+            <Link className="aide-option" href="/connexion?mode=sms">
               <span className="aide-ico">
                 <IcoPersonne />
               </span>
@@ -276,5 +281,13 @@ export default function AideConnexion() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function AideConnexion() {
+  return (
+    <Suspense>
+      <AideConnexionContenu />
+    </Suspense>
   );
 }
