@@ -1,0 +1,222 @@
+#!/usr/bin/env node
+// Passerelle OAuth devant un serveur MCP local (Maestro, exposé par
+// supergateway sur 127.0.0.1:8765).
+//
+// Pourquoi : claude.ai refuse d'ajouter un connecteur distant qui n'expose
+// aucun service d'authentification. Il cherche les métadonnées OAuth, tente
+// un enregistrement dynamique de client, puis un échange de jeton. Un
+// serveur MCP nu ne répond à rien de tout cela — d'où le message
+// « Impossible de s'inscrire auprès du service de connexion ».
+//
+// Ce fichier implémente le strict nécessaire du protocole (OAuth 2.1 avec
+// PKCE et enregistrement dynamique), puis relaie tout le reste au serveur
+// MCP local. Aucune dépendance : uniquement les modules de Node.
+//
+// L'accès est protégé par une phrase de passe, demandée UNE fois au moment
+// d'ajouter le connecteur. Sans elle, l'adresse publique du tunnel donnerait
+// le contrôle de l'émulateur à quiconque la connaît.
+//
+// Utilisation :
+//   MCP_BASE_URL=https://xxx.trycloudflare.com \
+//   MCP_PASSPHRASE=une_phrase_a_vous \
+//   node tools/mcp-oauth-proxy.js
+//
+// Variables facultatives : PORT (8766), CIBLE_PORT (8765).
+
+const http = require("http");
+const crypto = require("crypto");
+const { URL } = require("url");
+
+const PORT = Number(process.env.PORT || 8766);
+const CIBLE_PORT = Number(process.env.CIBLE_PORT || 8765);
+const BASE = (process.env.MCP_BASE_URL || "").replace(/\/+$/, "");
+const PHRASE = process.env.MCP_PASSPHRASE || "";
+
+if (!BASE || !PHRASE) {
+  console.error("MCP_BASE_URL et MCP_PASSPHRASE sont obligatoires.");
+  process.exit(1);
+}
+
+// Mémoire volatile : tout est perdu au redémarrage, et c'est voulu — un
+// jeton oublié ne doit pas survivre au processus.
+const clients = new Map(); // client_id -> { redirect_uris }
+const codes = new Map(); // code -> { client_id, redirect_uri, defi, expire }
+const jetons = new Set(); // jetons d'accès valides
+
+const b64url = (b) => b.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const alea = () => b64url(crypto.randomBytes(32));
+
+function json(rep, code, corps, entetes = {}) {
+  const texte = JSON.stringify(corps);
+  rep.writeHead(code, {
+    "Content-Type": "application/json",
+    "Cache-Control": "no-store",
+    "Access-Control-Allow-Origin": "*",
+    "Access-Control-Allow-Headers": "*",
+    "Access-Control-Allow-Methods": "GET,POST,OPTIONS",
+    ...entetes,
+  });
+  rep.end(texte);
+}
+
+function lireCorps(req) {
+  return new Promise((resolve) => {
+    let d = "";
+    req.on("data", (c) => (d += c));
+    req.on("end", () => resolve(d));
+  });
+}
+
+function analyser(texte, type) {
+  if (!texte) return {};
+  if ((type || "").includes("json")) {
+    try { return JSON.parse(texte); } catch { return {}; }
+  }
+  return Object.fromEntries(new URLSearchParams(texte));
+}
+
+// Page de saisie de la phrase de passe. Volontairement dépouillée : elle
+// n'apparaît qu'une fois, dans un onglet ouvert par claude.ai.
+function pageAutorisation(params, erreur) {
+  const champs = Object.entries(params)
+    .map(([c, v]) => `<input type="hidden" name="${c}" value="${String(v).replace(/"/g, "&quot;")}">`)
+    .join("");
+  return `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ASM — autorisation</title>
+<style>body{font-family:system-ui,sans-serif;max-width:420px;margin:12vh auto;padding:0 20px;color:#14311f}
+h1{font-size:20px;color:#0E6B3F}input[type=password]{width:100%;padding:14px;font-size:16px;border:1px solid #ccd6cf;border-radius:10px}
+button{width:100%;margin-top:12px;padding:14px;font-size:16px;font-weight:700;color:#fff;background:#0E6B3F;border:0;border-radius:10px}
+p.err{color:#B03A3A;font-weight:600}</style>
+<h1>Connexion à Maestro ASM</h1>
+<p>Saisissez la phrase de passe pour autoriser Claude à piloter l'émulateur.</p>
+${erreur ? '<p class="err">Phrase incorrecte.</p>' : ""}
+<form method="POST">${champs}
+<input type="password" name="phrase" autofocus autocomplete="current-password" placeholder="Phrase de passe">
+<button type="submit">Autoriser</button></form>`;
+}
+
+const serveur = http.createServer(async (req, rep) => {
+  const u = new URL(req.url, BASE);
+  const chemin = u.pathname;
+
+  if (req.method === "OPTIONS") return json(rep, 204, {});
+
+  // --- Métadonnées : c'est ce que claude.ai interroge en premier.
+  if (chemin === "/.well-known/oauth-protected-resource" ||
+      chemin.startsWith("/.well-known/oauth-protected-resource/")) {
+    return json(rep, 200, { resource: BASE, authorization_servers: [BASE] });
+  }
+  if (chemin === "/.well-known/oauth-authorization-server" ||
+      chemin === "/.well-known/openid-configuration" ||
+      chemin.startsWith("/.well-known/oauth-authorization-server/")) {
+    return json(rep, 200, {
+      issuer: BASE,
+      authorization_endpoint: `${BASE}/authorize`,
+      token_endpoint: `${BASE}/token`,
+      registration_endpoint: `${BASE}/register`,
+      response_types_supported: ["code"],
+      grant_types_supported: ["authorization_code"],
+      code_challenge_methods_supported: ["S256"],
+      token_endpoint_auth_methods_supported: ["none"],
+      scopes_supported: ["mcp"],
+    });
+  }
+
+  // --- Enregistrement dynamique du client (RFC 7591).
+  if (chemin === "/register" && req.method === "POST") {
+    const corps = analyser(await lireCorps(req), req.headers["content-type"]);
+    const client_id = alea();
+    clients.set(client_id, { redirect_uris: corps.redirect_uris || [] });
+    return json(rep, 201, {
+      client_id,
+      client_id_issued_at: Math.floor(Date.now() / 1000),
+      redirect_uris: corps.redirect_uris || [],
+      token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code"],
+      response_types: ["code"],
+    });
+  }
+
+  // --- Autorisation : formulaire, puis redirection avec le code.
+  if (chemin === "/authorize") {
+    if (req.method === "GET") {
+      const p = Object.fromEntries(u.searchParams.entries());
+      rep.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
+      return rep.end(pageAutorisation(p, false));
+    }
+    if (req.method === "POST") {
+      const p = analyser(await lireCorps(req), req.headers["content-type"]);
+      const attendue = Buffer.from(PHRASE);
+      const fournie = Buffer.from(String(p.phrase || ""));
+      const bonne =
+        attendue.length === fournie.length && crypto.timingSafeEqual(attendue, fournie);
+      if (!bonne) {
+        delete p.phrase;
+        rep.writeHead(401, { "Content-Type": "text/html; charset=utf-8" });
+        return rep.end(pageAutorisation(p, true));
+      }
+      const code = alea();
+      codes.set(code, {
+        client_id: p.client_id,
+        redirect_uri: p.redirect_uri,
+        defi: p.code_challenge || "",
+        expire: Date.now() + 5 * 60 * 1000,
+      });
+      const dest = new URL(p.redirect_uri);
+      dest.searchParams.set("code", code);
+      if (p.state) dest.searchParams.set("state", p.state);
+      rep.writeHead(302, { Location: dest.toString() });
+      return rep.end();
+    }
+  }
+
+  // --- Échange du code contre un jeton, avec vérification PKCE.
+  if (chemin === "/token" && req.method === "POST") {
+    const p = analyser(await lireCorps(req), req.headers["content-type"]);
+    const enr = codes.get(p.code);
+    codes.delete(p.code);
+    if (!enr || enr.expire < Date.now()) {
+      return json(rep, 400, { error: "invalid_grant" });
+    }
+    if (enr.defi) {
+      const calcule = b64url(crypto.createHash("sha256").update(String(p.code_verifier || "")).digest());
+      if (calcule !== enr.defi) return json(rep, 400, { error: "invalid_grant" });
+    }
+    const jeton = alea();
+    jetons.add(jeton);
+    return json(rep, 200, { access_token: jeton, token_type: "Bearer", expires_in: 86400, scope: "mcp" });
+  }
+
+  // --- Tout le reste appartient au serveur MCP : jeton exigé.
+  const entete = req.headers.authorization || "";
+  const jeton = entete.replace(/^Bearer\s+/i, "");
+  if (!jetons.has(jeton)) {
+    return json(rep, 401, { error: "invalid_token" }, {
+      "WWW-Authenticate": `Bearer resource_metadata="${BASE}/.well-known/oauth-protected-resource"`,
+    });
+  }
+
+  // Relais vers le serveur MCP local. Le flux SSE doit rester ouvert : on
+  // se contente de tuyauter, sans jamais mettre en tampon.
+  const entetes = { ...req.headers };
+  delete entetes.authorization;
+  entetes.host = `127.0.0.1:${CIBLE_PORT}`;
+  const amont = http.request(
+    { host: "127.0.0.1", port: CIBLE_PORT, path: req.url, method: req.method, headers: entetes },
+    (r) => {
+      rep.writeHead(r.statusCode || 502, r.headers);
+      r.pipe(rep);
+    }
+  );
+  amont.on("error", (e) => {
+    if (!rep.headersSent) json(rep, 502, { error: "mcp_indisponible", detail: String(e.message) });
+    else rep.end();
+  });
+  req.pipe(amont);
+});
+
+serveur.listen(PORT, "127.0.0.1", () => {
+  console.log(`Passerelle OAuth sur http://127.0.0.1:${PORT}`);
+  console.log(`Adresse publique annoncée : ${BASE}`);
+  console.log(`Serveur MCP relayé : http://127.0.0.1:${CIBLE_PORT}`);
+});
