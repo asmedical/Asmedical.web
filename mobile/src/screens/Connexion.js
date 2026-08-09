@@ -12,7 +12,10 @@ const INDICATIFS = ["+213", "+33", "+216", "+212", "+32", "+41", "+49", "+44", "
 
 export default function Connexion() {
   const { t } = useLangue();
-  const [mode, setMode] = useState("sms"); // sms | identifiant
+  // Écran par défaut : le plus simple possible (téléphone ou e-mail + mot de
+  // passe), comme sur le site. La connexion rapide par SMS / WhatsApp est
+  // rangée derrière « Autre méthode de connexion ».
+  const [mode, setMode] = useState("mdp"); // mdp | sms
   const [etape, setEtape] = useState("tel"); // tel | code
   const [indicatif, setIndicatif] = useState("+213");
   const [tel, setTel] = useState("");
@@ -77,22 +80,40 @@ export default function Connexion() {
         <Image source={require("../../assets/icon.png")} style={{ width: 72, height: 72, borderRadius: 20, alignSelf: "center", marginBottom: 16 }} />
         <Text style={[S.h1, { textAlign: "center" }]}>{t("connexion_t")}</Text>
 
-        {/* Onglets SMS / identifiant */}
-        <View style={{ flexDirection: "row", backgroundColor: C.vertPale, borderRadius: 14, padding: 4, marginVertical: 14 }}>
-          {[["sms", t("onglet_sms")], ["identifiant", t("onglet_id")]].map(([m, lib]) => (
-            <TouchableOpacity
-              key={m}
-              style={{ flex: 1, paddingVertical: 10, borderRadius: 11, alignItems: "center", backgroundColor: mode === m ? C.blanc : "transparent" }}
-              onPress={() => { setMode(m); setErreur(""); }}
-            >
-              <Text style={{ fontWeight: "800", fontSize: 13.5, color: mode === m ? C.vertFonce : C.gris }}>{lib}</Text>
-            </TouchableOpacity>
-          ))}
-        </View>
+        <View style={{ height: 14 }} />
+
+        {/* ---- Écran par défaut : téléphone ou e-mail + mot de passe ---- */}
+        {mode === "mdp" && (
+          <>
+            <Text style={S.label}>{t("id_tel_email_l")}</Text>
+            <TextInput
+              style={S.champ}
+              autoCapitalize="none"
+              autoCorrect={false}
+              placeholder={t("id_tel_email_ph")}
+              placeholderTextColor={C.grisClair}
+              value={identifiant}
+              onChangeText={setIdentifiant}
+            />
+            <Text style={S.label}>{t("mdp2_l")}</Text>
+            <ChampMotDePasse value={motDePasse} onChangeText={setMotDePasse} placeholder={t("mdp_ph")} />
+            <Bouton titre={t("connexion_b")} onPress={validerIdentifiant} charge={occupe} />
+
+            {/* Deux liens seulement : aide + autre méthode. */}
+            <View style={{ flexDirection: "row", justifyContent: "center", flexWrap: "wrap", gap: 20, marginTop: 20 }}>
+              <TouchableOpacity onPress={() => proposerAppel(t)}>
+                <Text style={{ color: C.gris, fontWeight: "700", textDecorationLine: "underline" }}>{t("aide_lien")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => { setMode("sms"); setEtape("tel"); setErreur(""); }}>
+                <Text style={{ color: C.gris, fontWeight: "700", textDecorationLine: "underline" }}>{t("autre_methode")}</Text>
+              </TouchableOpacity>
+            </View>
+          </>
+        )}
 
         {mode === "sms" && etape === "tel" && (
           <>
-            <Text style={S.sous}>{t("otp_sous_tel")}</Text>
+            <Text style={S.sous}>{t("autre_methode_s")}</Text>
             <Text style={S.label}>{t("tel_l")}</Text>
             <View style={{ flexDirection: "row", gap: 8 }}>
               <View style={{ width: 92 }}>
@@ -128,6 +149,12 @@ export default function Connexion() {
               </>
             )}
             <Bouton titre={t("otp_envoyer")} onPress={demanderCode} charge={occupe} />
+            <TouchableOpacity
+              onPress={() => { setMode("mdp"); setEtape("tel"); setErreur(""); }}
+              style={{ alignItems: "center", marginTop: 18 }}
+            >
+              <Text style={{ color: C.vert, fontWeight: "700" }}>{t("retour_mdp")}</Text>
+            </TouchableOpacity>
           </>
         )}
 
@@ -153,16 +180,6 @@ export default function Connexion() {
                 <Text style={{ color: C.vert, fontWeight: "700" }}>{t("otp_renvoyer")}</Text>
               </TouchableOpacity>
             </View>
-          </>
-        )}
-
-        {mode === "identifiant" && (
-          <>
-            <Text style={S.label}>{t("id_l")}</Text>
-            <TextInput style={S.champ} autoCapitalize="none" value={identifiant} onChangeText={setIdentifiant} />
-            <Text style={S.label}>{t("mdp2_l")}</Text>
-            <ChampMotDePasse value={motDePasse} onChangeText={setMotDePasse} placeholder="••••••••" />
-            <Bouton titre={t("connexion_b")} onPress={validerIdentifiant} charge={occupe} />
           </>
         )}
 
