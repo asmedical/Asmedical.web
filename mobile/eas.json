@@ -7,11 +7,21 @@
     "apercu": {
       "channel": "apercu",
       "distribution": "internal",
-      "ios": { "simulator": false }
+      "ios": { "simulator": false },
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://pdlczjqncsbpdrzmngkk.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkbGN6anFuY3NicGRyem1uZ2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxODY4MTQsImV4cCI6MjA5ODc2MjgxNH0.82t0wjQC-oA006EegVjVW-ff5whCBZzemMxuMuXyTsE",
+        "EXPO_PUBLIC_API_URL": "https://www.asm-sante.com"
+      }
     },
     "production": {
       "channel": "production",
-      "autoIncrement": true
+      "autoIncrement": true,
+      "env": {
+        "EXPO_PUBLIC_SUPABASE_URL": "https://pdlczjqncsbpdrzmngkk.supabase.co",
+        "EXPO_PUBLIC_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InBkbGN6anFuY3NicGRyem1uZ2trIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODMxODY4MTQsImV4cCI6MjA5ODc2MjgxNH0.82t0wjQC-oA006EegVjVW-ff5whCBZzemMxuMuXyTsE",
+        "EXPO_PUBLIC_API_URL": "https://www.asm-sante.com"
+      }
     }
   },
   "submit": {
