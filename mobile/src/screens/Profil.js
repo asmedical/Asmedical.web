@@ -3,12 +3,12 @@ import React, { useCallback, useState } from "react";
 import { View, Text, TextInput, ScrollView, Alert, TouchableOpacity, Linking } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { C, S } from "../theme";
-import { Bouton, Chip, Charge, ChampMotDePasse } from "../ui";
+import { Bouton, Chip, ChampMotDePasse } from "../ui";
 import { useLangue } from "../i18n";
 import { useAuth } from "../auth";
 import { useVerrou, typeBiometrie } from "../verrou";
 import { deconnexion, definirEmailMotDePasse } from "../supabase";
-import { apiGet, apiPost, API_BASE } from "../api";
+import { apiPost, API_BASE } from "../api";
 
 // Pages d'information (offres, devis, confidentialité). Elles vivent sur le
 // site : plutôt qu'une copie qui divergerait, on y renvoie. Leur place est
@@ -34,7 +34,6 @@ function Ligne({ label, valeur }) {
 export default function Profil() {
   const { t, langue, setLangue } = useLangue();
   const { profil, user, rafraichirProfil } = useAuth();
-  const [notifs, setNotifs] = useState(null);
   const [suppEnCours, setSuppEnCours] = useState(false);
   const verrou = useVerrou();
   const [bio, setBio] = useState(null); // "faceid" | "empreinte" | null
@@ -103,11 +102,6 @@ export default function Profil() {
       },
     ]);
   }
-
-  const charger = useCallback(() => {
-    apiGet("/api/notifications").then((d) => setNotifs(d.notifications || [])).catch(() => setNotifs([]));
-  }, []);
-  useFocusEffect(useCallback(() => { charger(); }, [charger]));
 
   return (
     <ScrollView style={S.ecran} contentContainerStyle={S.contenu}>
@@ -184,18 +178,9 @@ export default function Profil() {
         </TouchableOpacity>
       ))}
 
-      <Text style={S.h2}>{t("notif_t")}</Text>
-      {notifs === null && <Charge />}
-      {notifs?.length === 0 && <Text style={S.vide}>{t("aucune_notif")}</Text>}
-      {(notifs || []).slice(0, 20).map((n) => (
-        <View key={n.id} style={[S.carte, n.statut === "NON_LU" && { borderColor: C.vert, backgroundColor: C.vertPale }]}>
-          <Text style={{ fontWeight: "800", color: C.encre }}>{n.titre}</Text>
-          {!!n.corps && <Text style={{ color: C.gris, marginTop: 3, lineHeight: 20 }}>{n.corps}</Text>}
-          <Text style={{ color: C.grisClair, fontSize: 12, marginTop: 5 }}>
-            {n.auteur} · {new Date(n.creeLe).toLocaleString("fr-FR")}
-          </Text>
-        </View>
-      ))}
+      {/* Les notifications ASM ne sont plus ici : elles vivent dans la
+          messagerie, comme sur le site. Un même contenu à deux endroits,
+          c'est un endroit de trop. */}
 
       <View style={{ height: 16 }} />
       <Bouton

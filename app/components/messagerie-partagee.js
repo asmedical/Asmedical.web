@@ -23,10 +23,40 @@ async function jeton() {
 
 const ICO_TYPE = { message: IcoBulle, document: IcoDocument, rdv: IcoCalendrier, rappel: IcoCloche };
 
+// Bandeau à deux onglets, présent dans les DEUX vues : écrire à l'équipe ne
+// doit jamais demander de trouver une carte au milieu d'une liste.
+function OngletsMessagerie({ vue, setVue, t, nonLus }) {
+  return (
+    <div className="onglets-connexion" role="tablist">
+      <button
+        role="tab"
+        aria-selected={vue === "chat"}
+        className={vue === "chat" ? "actif" : ""}
+        onClick={() => setVue("chat")}
+      >
+        {t("msg_onglet_chat")}
+        {(nonLus?.chat || 0) > 0 ? ` (${nonLus.chat})` : ""}
+      </button>
+      <button
+        role="tab"
+        aria-selected={vue === "centre"}
+        className={vue === "centre" ? "actif" : ""}
+        onClick={() => setVue("centre")}
+      >
+        {t("msg_onglet_notifs")}
+        {(nonLus?.notifs || 0) > 0 ? ` (${nonLus.notifs})` : ""}
+      </button>
+    </div>
+  );
+}
+
 export default function CentreMessages() {
   const { t, connecte, nonLus, rafraichirNonLus } = useAsm();
   const params = useSearchParams();
-  const [vue, setVue] = useState(params.get("chat") ? "chat" : "centre"); // centre | chat
+  // La conversation s'ouvre par défaut : c'est ce que les gens viennent
+  // faire ici. On ne bascule sur les notifications que si un lien pointe
+  // explicitement vers l'une d'elles (?n=<id> depuis la cloche).
+  const [vue, setVue] = useState(params.get("n") ? "centre" : "chat"); // centre | chat
   const [etat, setEtat] = useState("chargement"); // chargement | anonyme | pret | erreur
   const [notifications, setNotifications] = useState([]);
   const [ouverte, setOuverte] = useState(null); // id notification dépliée
@@ -88,7 +118,19 @@ export default function CentreMessages() {
   }
 
   if (vue === "chat") {
-    return <Chat retour={() => { setVue("centre"); rafraichirNonLus(); }} t={t} />;
+    return (
+      <Chat
+        t={t}
+        onglets={
+          <OngletsMessagerie
+            vue={vue}
+            setVue={(v) => { setVue(v); rafraichirNonLus(); }}
+            t={t}
+            nonLus={nonLus}
+          />
+        }
+      />
+    );
   }
 
   return (
@@ -96,6 +138,8 @@ export default function CentreMessages() {
       <div className="contenu-page" style={{ maxWidth: 520 }}>
         <h2 className="titre-page">{t("mamsg_t")}</h2>
         <p className="sous-page">{t("mamsg_s")}</p>
+
+        <OngletsMessagerie vue={vue} setVue={setVue} t={t} nonLus={nonLus} />
 
         {etat === "chargement" && <p className="sous-page">{t("compte_charge")}</p>}
 
@@ -117,18 +161,6 @@ export default function CentreMessages() {
         {etat === "pret" && (
           <>
             <BoutonPush />
-
-            {/* ---- Carte d'accès au chat instantané (design conservé) ---- */}
-            <button className="carte-chat" onClick={() => setVue("chat")}>
-              <span className="ico-service">
-                <IcoBulle />
-              </span>
-              <span>
-                <strong>{t("chat_carte_t")}</strong>
-                <small>{t("chat_carte_s")}</small>
-              </span>
-              {(nonLus?.chat || 0) > 0 && <span className="badge-nonlu">{nonLus.chat}</span>}
-            </button>
 
             {/* ---- Messages officiels ASM ---- */}
             <div className="titre-section">{t("notif_section")}</div>
@@ -204,7 +236,7 @@ function lienDocuments() {
 }
 
 // ---- Chat instantané — design et logique conservés à l'identique ----
-function Chat({ retour, t }) {
+function Chat({ onglets, t }) {
   const [etat, setEtat] = useState("chargement");
   const [messages, setMessages] = useState([]);
   const [saisie, setSaisie] = useState("");
@@ -266,13 +298,22 @@ function Chat({ retour, t }) {
   return (
     <div className="page">
       <div className="contenu-page" style={{ maxWidth: 520 }}>
-        <button className="btn-retour" onClick={retour}>
-          {t("retour")}
-        </button>
         <h2 className="titre-page">{t("msg_t")}</h2>
         <p className="sous-page">{t("msg_s")}</p>
 
+        {onglets}
+
         {etat === "chargement" && <p className="sous-page">{t("compte_charge")}</p>}
+        {/* La conversation étant la vue par défaut, c'est ici qu'un visiteur
+            non connecté arrive : il doit trouver le lien, pas une page vide. */}
+        {etat === "anonyme" && (
+          <div className="etat-vide">
+            <p>{t("msg_connexion")}</p>
+            <Link className="btn-action" style={{ marginTop: 14 }} href="/connexion">
+              {t("connexion_t")}
+            </Link>
+          </div>
+        )}
         {etat === "erreur" && (
           <div className="etat-vide">
             <p>{t("err_serveur")} {TEL_AFFICHE}.</p>
