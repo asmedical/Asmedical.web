@@ -100,6 +100,38 @@ export async function chargerProfil(userId) {
   return data || null;
 }
 
+// ---- Code par e-mail (alternative au SMS : réseau capricieux, numéro
+// étranger). Même implémentation que le site, pour ne pas faire diverger
+// la logique d'authentification entre les deux supports.
+export async function envoyerCodeEmailCreation(email) {
+  if (!supabase) throw new Error("config");
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: true },
+  });
+  if (error) throw error;
+}
+
+export async function verifierCodeEmail(email, code) {
+  if (!supabase) throw new Error("config");
+  const { data, error } = await supabase.auth.verifyOtp({ email, token: code, type: "email" });
+  if (error) throw error;
+  return data.user;
+}
+
+// Enregistre / met à jour le profil de l'utilisateur connecté.
+// Même table et même logique que le site (lib/supabase.js) : les comptes
+// sont partagés, la logique d'authentification ne doit pas diverger.
+export async function enregistrerProfil(champs) {
+  if (!supabase) throw new Error("config");
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error("non connecté");
+  const { error } = await supabase
+    .from("profil")
+    .upsert({ id: user.id, ...champs, maj_le: new Date().toISOString() });
+  if (error) throw error;
+}
+
 export async function deconnexion() {
   if (supabase) await supabase.auth.signOut();
 }
