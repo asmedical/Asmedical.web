@@ -17,6 +17,7 @@ import { C } from "./src/theme";
 import { IcoCalendrier, IcoBulle, IcoPlus, IcoDocumentLignes, IcoPersonne, IcoStethoscope, IcoEtablissement } from "./src/icones";
 import { deconnexion } from "./src/supabase";
 import Connexion from "./src/screens/Connexion";
+import Demarrage from "./src/screens/Demarrage";
 import Accueil from "./src/screens/Accueil";
 import Reservation from "./src/screens/Reservation";
 import MesDemandes from "./src/screens/MesDemandes";
@@ -313,7 +314,11 @@ function Racine() {
           {route !== "Messages" && <Assistant navigate={naviguer} />}
         </View>
       ) : (
+        // Avant toute chose, on demande à qui l'on s'adresse — même point
+        // d'entrée que la page d'accueil du site. C'est ce choix qui oriente
+        // la suite du parcours.
         <Pile.Navigator screenOptions={{ headerShown: false }}>
+          <Pile.Screen name="Demarrage" component={Demarrage} />
           <Pile.Screen name="Connexion" component={Connexion} />
         </Pile.Navigator>
       )}
