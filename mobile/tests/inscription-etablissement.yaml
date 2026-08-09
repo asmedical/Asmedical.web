@@ -1,0 +1,20 @@
+# Un établissement doit pouvoir créer son compte DEPUIS l'application :
+# le choix fait à l'entrée doit se retrouver dans l'onglet Inscription.
+appId: com.asm_sante.twa
+tags:
+  - structure
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Choisissez votre espace"
+    timeout: 30000
+- tapOn: "Espace Professionnel"
+- tapOn: "Inscription"
+- assertVisible: "Choisissez votre espace"
+- assertVisible: "Nom de l'établissement"
+- assertVisible: "Personne à contacter"
+- assertVisible: "Type"
+- assertVisible: "Hôpital"
+# Aucune validation : on ne crée pas de compte en production.
+- takeScreenshot: 03-inscription-etablissement

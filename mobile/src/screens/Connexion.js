@@ -74,9 +74,11 @@ function ItemAide({ titre, onPress }) {
   );
 }
 
-export default function Connexion() {
+export default function Connexion({ route, navigation }) {
   const { t } = useLangue();
   const { rafraichirProfil } = useAuth();
+  // Espace choisi sur l'écran d'orientation : il ne doit pas être redemandé.
+  const espaceInitial = route?.params?.espace === "pro" ? "pro" : "patient";
 
   const [onglet, setOnglet] = useState("connexion"); // connexion | inscription
   const [vue, setVue] = useState("principal"); // principal | sms
@@ -97,7 +99,7 @@ export default function Connexion() {
   const [identifiant, setIdentifiant] = useState("");
   const [motDePasse, setMotDePasse] = useState("");
   // Inscription : le strict minimum.
-  const [espace, setEspace] = useState("patient"); // patient | pro
+  const [espace, setEspace] = useState(espaceInitial); // patient | pro
   const [nom, setNom] = useState("");
   const [prenom, setPrenom] = useState("");
   const [contact, setContact] = useState("");
@@ -386,6 +388,13 @@ export default function Connexion() {
   return (
     <KeyboardAvoidingView style={S.ecran} behavior={Platform.OS === "ios" ? "padding" : undefined}>
       <ScrollView contentContainerStyle={[S.contenu, { paddingTop: 60 }]} keyboardShouldPersistTaps="handled">
+        {/* Retour à l'écran d'orientation : on doit pouvoir changer d'espace
+            sans quitter l'application. */}
+        {navigation?.canGoBack?.() && (
+          <TouchableOpacity onPress={() => navigation.goBack()} style={{ marginBottom: 10 }}>
+            <Text style={{ color: C.vert, fontWeight: "700" }}>← {t("retour")}</Text>
+          </TouchableOpacity>
+        )}
         <Entete />
 
         {/* Deux onglets très visibles */}

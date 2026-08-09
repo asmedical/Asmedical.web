@@ -1,0 +1,19 @@
+# L'écran d'orientation doit s'ouvrir en premier, avec les deux espaces.
+# C'est la structure d'entrée du site : elle doit exister à l'identique ici.
+#
+# Le premier écran n'apparaît qu'après la résolution de la session Supabase :
+# on ATTEND explicitement, au lieu de vérifier immédiatement. Sans cela le
+# parcours échoue sur la lenteur de l'émulateur, pas sur un défaut réel.
+appId: com.asm_sante.twa
+tags:
+  - structure
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Bienvenue chez ASM"
+    timeout: 30000
+- assertVisible: "Choisissez votre espace"
+- assertVisible: "Espace Patient"
+- assertVisible: "Espace Professionnel"
+- takeScreenshot: 01-demarrage
