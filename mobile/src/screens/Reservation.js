@@ -97,14 +97,19 @@ export default function Reservation({ route, navigation }) {
     } else {
       setCreneaux(null);
       const u = new URLSearchParams({ service, jour, duree: "60" });
-      if (commune.trim()) u.set("commune", commune.trim());
+      // La commune n'est PAS transmise ici, comme sur le site : elle sert à
+      // renseigner la demande, pas à filtrer les créneaux. Envoyée, elle
+      // restreignait la recherche aux intervenants dont la zone correspond
+      // exactement — et l'application n'affichait plus aucun créneau là où
+      // le site en proposait. Le filtre reste possible côté serveur, mais il
+      // ne doit pas s'appliquer par défaut sans que le patient l'ait demandé.
       if (service === "transport") u.set("typeTrajet", typeTrajet);
       apiGet(`/api/creneaux?${u.toString()}`)
         .then((d) => !annule && setCreneaux(d.creneaux || []))
         .catch(() => !annule && setCreneaux([]));
     }
     return () => { annule = true; };
-  }, [service, jour, commune, typeTrajet, livraison]);
+  }, [service, jour, typeTrajet, livraison]);
 
   // Réglages du moteur de réservation (horizon de jours) — même source que
   // le site : /api/creneaux sans paramètre renvoie le réglage courant.
