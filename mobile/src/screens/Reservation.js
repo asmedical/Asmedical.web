@@ -38,6 +38,9 @@ function joursProchains(n = 10) {
 
 export default function Reservation({ route, navigation }) {
   const service = route.params?.service || "transport";
+  // Espace d'origine : « pro » quand un établissement réserve au nom d'un
+  // patient (le serveur applique alors sa propre logique de facturation).
+  const espace = route.params?.espace === "pro" ? "pro" : "patient";
   const { t } = useLangue();
   const { profil, user } = useAuth();
   const livraison = service === "medicaments";
@@ -179,7 +182,7 @@ export default function Reservation({ route, navigation }) {
         pourPatient: pourPatient?.tel || undefined,
         commune: commune.trim() || undefined,
         notes: notes.trim() || undefined,
-        espace: "patient",
+        espace,
         sousMode: urgent ? "urgent" : livraison ? "fenetre" : "ponctuel",
         prefGenre: prefGenre || undefined,
         packId: pack?.id || undefined,

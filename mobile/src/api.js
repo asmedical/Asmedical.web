@@ -40,3 +40,5 @@ async function appel(chemin, options = {}) {
 export const apiGet = (chemin) => appel(chemin);
 export const apiPost = (chemin, corps) =>
   appel(chemin, { method: "POST", body: JSON.stringify(corps) });
+export const apiPatch = (chemin, corps) =>
+  appel(chemin, { method: "PATCH", body: JSON.stringify(corps) });

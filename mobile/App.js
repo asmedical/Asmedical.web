@@ -2,7 +2,7 @@
 // Même plateforme que le site asm-sante.com : mêmes comptes (Supabase),
 // mêmes API, même base de données — synchronisation immédiate.
 import React, { useEffect } from "react";
-import { Text, View, ActivityIndicator } from "react-native";
+import { Text, View, ActivityIndicator, Linking } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer, DefaultTheme, createNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -21,7 +21,15 @@ import MesDemandes from "./src/screens/MesDemandes";
 import Suivi from "./src/screens/Suivi";
 import Messagerie from "./src/screens/Messagerie";
 import Profil from "./src/screens/Profil";
+import Employe from "./src/screens/Employe";
+import Pro from "./src/screens/Pro";
 import Assistant from "./src/Assistant";
+
+// Rôles — MÊME répartition que le site (app/connexion/page.js). Le serveur
+// revérifie de toute façon à chaque appel : ceci ne fait qu'aiguiller vers
+// la bonne interface, ce n'est pas un contrôle de sécurité.
+const ROLES_EMPLOYE = ["aide_soignant", "infirmier", "chauffeur", "transporteur", "coordinateur", "employe_interne"];
+const ROLES_INTERNE = ["superadmin", "admin", "moderateur", "standardiste"];
 
 // Référence de navigation : permet à l'assistant (superposé) d'ouvrir un écran.
 const navigationRef = createNavigationContainerRef();
@@ -61,6 +69,73 @@ function Onglets() {
   );
 }
 
+// Onglets de l'employé de terrain : ses interventions, la messagerie
+// d'équipe et son profil. Pas de réservation — ce n'est pas son métier.
+function OngletsEmploye() {
+  const { t } = useLangue();
+  const ico = { Interventions: "🩺", Messages: "💬", MoiTab: "👤" };
+  return (
+    <Tabs.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: C.vertFonce,
+        tabBarInactiveTintColor: C.grisClair,
+        tabBarLabelStyle: { fontWeight: "700", fontSize: 11 },
+        tabBarIcon: ({ focused }) => (
+          <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.45 }}>{ico[route.name]}</Text>
+        ),
+      })}
+    >
+      <Tabs.Screen name="Interventions" component={Employe} options={{ title: t("emp_t") }} />
+      <Tabs.Screen name="Messages" component={Messagerie} options={{ title: t("tab_messages") }} />
+      <Tabs.Screen name="MoiTab" component={Profil} options={{ title: t("tab_profil") }} />
+    </Tabs.Navigator>
+  );
+}
+
+// Onglets de l'établissement : tableau de bord, demandes, messagerie, profil.
+function OngletsPro() {
+  const { t } = useLangue();
+  const ico = { Etablissement: "🏥", RendezVous: "📅", Messages: "💬", MoiTab: "👤" };
+  return (
+    <Tabs.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarActiveTintColor: C.vertFonce,
+        tabBarInactiveTintColor: C.grisClair,
+        tabBarLabelStyle: { fontWeight: "700", fontSize: 11 },
+        tabBarIcon: ({ focused }) => (
+          <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.45 }}>{ico[route.name]}</Text>
+        ),
+      })}
+    >
+      <Tabs.Screen name="Etablissement" component={Pro} options={{ title: t("pro_t") }} />
+      <Tabs.Screen name="RendezVous" component={MesDemandes} options={{ title: t("tab_rdv") }} />
+      <Tabs.Screen name="Messages" component={Messagerie} options={{ title: t("tab_messages") }} />
+      <Tabs.Screen name="MoiTab" component={Profil} options={{ title: t("tab_profil") }} />
+    </Tabs.Navigator>
+  );
+}
+
+// Comptes internes (admin, modération) : l'administration se pilote depuis
+// le site, sur grand écran. On le dit clairement plutôt que de les laisser
+// dans une interface qui n'est pas la leur.
+function EcranAdmin() {
+  const { t } = useLangue();
+  return (
+    <View style={{ flex: 1, alignItems: "center", justifyContent: "center", backgroundColor: C.blanc, padding: 28 }}>
+      <Text style={{ fontSize: 48 }}>🖥️</Text>
+      <Text style={{ fontSize: 20, fontWeight: "800", color: C.vertFonce, marginTop: 12, textAlign: "center" }}>
+        {t("role_admin_t")}
+      </Text>
+      <Text style={{ color: C.gris, marginTop: 8, marginBottom: 22, textAlign: "center", lineHeight: 21 }}>
+        {t("role_admin_p")}
+      </Text>
+      <Bouton titre={t("role_ouvrir_site")} onPress={() => Linking.openURL("https://www.asm-sante.com/admin").catch(() => {})} />
+    </View>
+  );
+}
+
 // Écran de verrouillage biométrique (si le client l'a activé dans son Profil).
 function EcranVerrou() {
   const { t } = useLangue();
@@ -79,9 +154,17 @@ function EcranVerrou() {
 }
 
 function Racine() {
-  const { pret, user } = useAuth();
+  const { pret, user, profil } = useAuth();
   const { t } = useLangue();
   const verrou = useVerrou();
+
+  // C'est le RÔLE du compte qui décide de l'interface — jamais un choix fait
+  // dans l'application. Même règle que le site.
+  const role = profil?.role || user?.user_metadata?.role || "";
+  const estEmploye = ROLES_EMPLOYE.includes(role);
+  const estInterne = ROLES_INTERNE.includes(role);
+  const estPro = role === "pro";
+  const Racines = estEmploye ? OngletsEmploye : estPro ? OngletsPro : Onglets;
 
   if (verrou?.actif && verrou?.verrouille && user) return <EcranVerrou />;
 
@@ -95,10 +178,12 @@ function Racine() {
 
   return (
     <NavigationContainer ref={navigationRef} theme={THEME}>
-      {user ? (
+      {user && estInterne ? (
+        <EcranAdmin />
+      ) : user ? (
         <View style={{ flex: 1 }}>
           <Pile.Navigator screenOptions={{ headerTintColor: C.vertFonce, headerTitleStyle: { fontWeight: "800" } }}>
-            <Pile.Screen name="TabsRacine" component={Onglets} options={{ headerShown: false }} />
+            <Pile.Screen name="TabsRacine" component={Racines} options={{ headerShown: false }} />
             <Pile.Screen name="Reservation" component={Reservation} options={{ title: t("rdv_t") }} />
             <Pile.Screen name="Suivi" component={Suivi} options={{ title: t("suivi_t") }} />
           </Pile.Navigator>
