@@ -272,6 +272,37 @@ function FormulaireConnexion() {
     );
   }
 
+  // Connexion Google / Facebook / Apple. Volontairement ABSENT de l'écran de
+  // connexion par défaut (qui reste le plus simple possible) : on le propose
+  // dans « Autre méthode de connexion » et à l'inscription.
+  function blocOauth() {
+    if (OAUTH_PROVIDERS.length === 0) return null;
+    return (
+      <>
+        <div className="oauth-sep"><span>{t("oauth_ou")}</span></div>
+        <div className="oauth-liste">
+          {OAUTH_PROVIDERS.map((prov) => (
+            <button
+              key={prov}
+              type="button"
+              className="btn-oauth"
+              onClick={async () => {
+                setErreur("");
+                try {
+                  await connexionOAuth(prov);
+                } catch {
+                  setErreur(t("err_oauth"));
+                }
+              }}
+            >
+              {ICONES_OAUTH[prov]} {NOMS_OAUTH[prov]}
+            </button>
+          ))}
+        </div>
+      </>
+    );
+  }
+
   // Bloc OTP partagé (téléphone/e-mail → code) : utilisé par la « connexion
   // rapide » (creation=false) et par l'onglet Inscription (creation=true).
   function blocOtp(creation) {
@@ -465,31 +496,8 @@ function FormulaireConnexion() {
         {erreur && <p className="erreur">{erreur}</p>}
         {!supabaseConfigured && <p className="erreur">{t("err_config")}</p>}
 
-        {/* ---- Connexion Google / Facebook / Apple (si activés) ---- */}
-        {OAUTH_PROVIDERS.length > 0 && (
-          <>
-            <div className="oauth-sep"><span>{t("oauth_ou")}</span></div>
-            <div className="oauth-liste">
-              {OAUTH_PROVIDERS.map((prov) => (
-                <button
-                  key={prov}
-                  type="button"
-                  className="btn-oauth"
-                  onClick={async () => {
-                    setErreur("");
-                    try {
-                      await connexionOAuth(prov);
-                    } catch {
-                      setErreur(t("err_oauth"));
-                    }
-                  }}
-                >
-                  {ICONES_OAUTH[prov]} {NOMS_OAUTH[prov]}
-                </button>
-              ))}
-            </div>
-          </>
-        )}
+        {/* Google & co : rangés hors de l'écran de connexion par défaut. */}
+        {(methode === "sms" || onglet === "inscription") && blocOauth()}
 
         <div className="info-appel">
           <span>{t("urgence")}</span> <ChoixAppel />

@@ -22,6 +22,10 @@ export default function InscriptionPatient() {
   const [nomUtilisateur, setNomUtilisateur] = useState("");
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState("");
+  // Formulaire découpé en 2 étapes courtes (3 champs max) : beaucoup de nos
+  // patients sont âgés, une longue liste de champs décourage.
+  const [etape, setEtape] = useState(1); // 1 = identité · 2 = connexion
+  const [voirUser, setVoirUser] = useState(false); // nom d'utilisateur (facultatif)
 
   useEffect(() => {
     utilisateurCourant()
@@ -35,8 +39,8 @@ export default function InscriptionPatient() {
       .catch(() => {});
   }, []);
 
-  const complet =
-    prenom.trim() && nom.trim() && commune.trim() && tel.trim() && email.trim() && motDePasse;
+  const etape1Ok = prenom.trim() && nom.trim() && commune.trim();
+  const complet = etape1Ok && tel.trim() && email.trim() && motDePasse;
 
   async function valider() {
     setErreur("");
@@ -95,69 +99,105 @@ export default function InscriptionPatient() {
           {t("retour")}
         </Link>
         <h2 className="titre-page">{t("insc_pat_t")}</h2>
-        <p className="sous-page">{t("insc_pat_s")}</p>
+        <p className="sous-page">{etape === 1 ? t("insc_etape1") : t("insc_etape2")}</p>
 
-        <div className="champ">
-          <label>
-            {t("prenom_l")}
-            <Etoile />
-          </label>
-          <input type="text" placeholder={t("prenom_ph")} value={prenom} onChange={(e) => setPrenom(e.target.value)} />
-        </div>
-        <div className="champ">
-          <label>
-            {t("nom2_l")}
-            <Etoile />
-          </label>
-          <input type="text" placeholder={t("nom2_ph")} value={nom} onChange={(e) => setNom(e.target.value)} />
-        </div>
-        <div className="champ">
-          <label>
-            {t("ville_l")}
-            <Etoile />
-          </label>
-          <input type="text" placeholder={t("ville_ph")} value={commune} onChange={(e) => setCommune(e.target.value)} />
-        </div>
-        <div className="champ">
-          <label>
-            {t("tel_l")}
-            <Etoile />
-          </label>
-          <input
-            type="tel"
-            placeholder={t("tel_ph")}
-            value={tel}
-            onChange={(e) => setTel(e.target.value)}
-            readOnly={telFige}
-            style={telFige ? { background: "var(--vert-pale)", color: "var(--gris)" } : undefined}
-          />
-        </div>
-        <div className="champ">
-          <label>
-            {t("email_l")}
-            <Etoile />
-          </label>
-          <input type="email" placeholder={t("email_ph")} value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div className="champ">
-          <label>
-            {t("mdp2_l")}
-            <Etoile />
-          </label>
-          <ChampMotDePasse
-            placeholder={t("mdp2_ph")}
-            value={motDePasse}
-            onChange={(e) => setMotDePasse(e.target.value)}
-          />
-        </div>
-        <div className="champ">
-          <label>{t("user_l")}</label>
-          <input type="text" placeholder={t("user_ph")} value={nomUtilisateur} onChange={(e) => setNomUtilisateur(e.target.value)} />
-        </div>
+        {/* ---- Étape 1 : qui êtes-vous ---- */}
+        {etape === 1 && (
+          <>
+            <div className="champ">
+              <label>
+                {t("prenom_l")}
+                <Etoile />
+              </label>
+              <input type="text" placeholder={t("prenom_ph")} value={prenom} onChange={(e) => setPrenom(e.target.value)} />
+            </div>
+            <div className="champ">
+              <label>
+                {t("nom2_l")}
+                <Etoile />
+              </label>
+              <input type="text" placeholder={t("nom2_ph")} value={nom} onChange={(e) => setNom(e.target.value)} />
+            </div>
+            <div className="champ">
+              <label>
+                {t("ville_l")}
+                <Etoile />
+              </label>
+              <input type="text" placeholder={t("ville_ph")} value={commune} onChange={(e) => setCommune(e.target.value)} />
+            </div>
+            <button
+              className="btn-action"
+              onClick={() => {
+                if (!etape1Ok) {
+                  setErreur(t("err_champs"));
+                  return;
+                }
+                setErreur("");
+                setEtape(2);
+              }}
+            >
+              {t("insc_continuer")}
+            </button>
+          </>
+        )}
 
-        <button className="btn-action" onClick={valider} disabled={occupe || !complet}>
-          {occupe ? t("otp_verif") : t("insc_valider")}
-        </button>
+        {/* ---- Étape 2 : de quoi se connecter ---- */}
+        {etape === 2 && (
+          <>
+            <div className="champ">
+              <label>
+                {t("tel_l")}
+                <Etoile />
+              </label>
+              <input
+                type="tel"
+                placeholder={t("tel_ph")}
+                value={tel}
+                onChange={(e) => setTel(e.target.value)}
+                readOnly={telFige}
+                style={telFige ? { background: "var(--vert-pale)", color: "var(--gris)" } : undefined}
+              />
+            </div>
+            <div className="champ">
+              <label>
+                {t("email_l")}
+                <Etoile />
+              </label>
+              <input type="email" placeholder={t("email_ph")} value={email} onChange={(e) => setEmail(e.target.value)} />
+            </div>
+            <div className="champ">
+              <label>
+                {t("mdp2_l")}
+                <Etoile />
+              </label>
+              <ChampMotDePasse
+                placeholder={t("mdp2_ph")}
+                value={motDePasse}
+                onChange={(e) => setMotDePasse(e.target.value)}
+              />
+            </div>
+
+            {/* Facultatif : rangé derrière un lien pour ne pas alourdir l'écran. */}
+            {voirUser ? (
+              <div className="champ">
+                <label>{t("user_l")}</label>
+                <input type="text" placeholder={t("user_ph")} value={nomUtilisateur} onChange={(e) => setNomUtilisateur(e.target.value)} />
+              </div>
+            ) : (
+              <p className="lien-bas" style={{ marginBottom: 18 }}>
+                <a onClick={() => setVoirUser(true)}>{t("user_ajouter")}</a>
+              </p>
+            )}
+
+            <button className="btn-action" onClick={valider} disabled={occupe || !complet}>
+              {occupe ? t("otp_verif") : t("insc_valider")}
+            </button>
+            <p className="lien-bas">
+              <a onClick={() => { setEtape(1); setErreur(""); }}>{t("insc_retour_etape")}</a>
+            </p>
+          </>
+        )}
+
         {erreur && <p className="erreur">{erreur}</p>}
       </div>
     </div>

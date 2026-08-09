@@ -443,6 +443,18 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 .mode-pro .titre-section::before{background:#1A6BAA}
 .mode-pro .btn-accueil .croix{box-shadow:0 4px 14px rgba(26,107,170,.28)}
 /* Carte « Espace Professionnel » sur les pages de choix (démarrage, rôle) */
+/* ---- Accueil : l'Espace Patient est le choix principal, le pro en second ---- */
+.carte-role-vedette{padding:26px 22px;border:2px solid var(--vert);box-shadow:0 10px 28px rgba(0,0,0,.20)}
+.carte-role-vedette .ico-service{width:60px;height:60px}
+.carte-role-vedette .ico-service svg{width:31px;height:31px}
+.carte-role-vedette strong{font-size:20px;color:var(--vert-fonce)}
+.carte-role-vedette small{font-size:15px}
+.carte-role-discret{padding:15px 22px;opacity:.94}
+.carte-role-discret .ico-service{width:42px;height:42px}
+.carte-role-discret .ico-service svg{width:22px;height:22px}
+.carte-role-discret strong{font-size:15.5px}
+.carte-role-discret small{font-size:13px}
+
 .carte-role-pro{background:#EFF6FC;border-color:#CFE3F2}
 .carte-role-pro .ico-service{background:#DCEBF8}
 .carte-role-pro .ico-service svg{stroke:#1A6BAA}
