@@ -11,6 +11,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 
 import { LangueProvider, useLangue } from "./src/i18n";
 import { AuthProvider, useAuth } from "./src/auth";
+import { ParcoursProvider } from "./src/parcours";
 import { VerrouProvider, useVerrou } from "./src/verrou";
 import { Bouton } from "./src/ui";
 import { C } from "./src/theme";
@@ -37,6 +38,9 @@ import Devis from "./src/screens/Devis";
 import Connaitre from "./src/screens/Connaitre";
 import Confidentialite from "./src/screens/Confidentialite";
 import AideConnexion from "./src/screens/AideConnexion";
+import ParcoursBesoin from "./src/screens/ParcoursBesoin";
+import ParcoursUrgence from "./src/screens/ParcoursUrgence";
+import ParcoursAbonnement from "./src/screens/ParcoursAbonnement";
 import Assistant from "./src/Assistant";
 
 // Rôles — MÊME répartition que le site (app/connexion/page.js). Le serveur
@@ -335,6 +339,13 @@ function Racine() {
             <Pile.Screen name="Devis" component={Devis} options={{ title: t("dv_t") }} />
             <Pile.Screen name="Connaitre" component={Connaitre} options={{ title: t("connaitre_t") }} />
             <Pile.Screen name="Confidentialite" component={Confidentialite} options={{ title: t("doc_confidentialite") }} />
+            {/* Parcours de réservation par étapes — étape 1 et ses deux
+                embranchements (urgence, abonnement). Les étapes 2 à 4
+                arrivent ensuite ; l accueil continue d ouvrir l ancien
+                formulaire tant que le parcours n est pas complet. */}
+            <Pile.Screen name="ParcoursBesoin" component={ParcoursBesoin} options={{ title: t("pc_titre") }} />
+            <Pile.Screen name="ParcoursUrgence" component={ParcoursUrgence} options={{ title: t("pc_urgent_t") }} />
+            <Pile.Screen name="ParcoursAbonnement" component={ParcoursAbonnement} options={{ title: t("pc_recurrent_t") }} />
           </Pile.Navigator>
           {/* Assistant IA superposé (bulle flottante) — sauf dans la messagerie. */}
           {route !== "Messages" && <Assistant navigate={naviguer} />}
@@ -359,8 +370,10 @@ export default function App() {
       <LangueProvider>
         <AuthProvider>
           <VerrouProvider>
+            <ParcoursProvider>
             <StatusBar style="dark" />
             <Racine />
+            </ParcoursProvider>
           </VerrouProvider>
         </AuthProvider>
       </LangueProvider>
