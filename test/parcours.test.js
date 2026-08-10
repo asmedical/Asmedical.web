@@ -256,6 +256,19 @@ describe("assemblage de la demande", () => {
     expect(c.details).toBe(null);
   });
 
+  it("transmet les coordonnées seulement quand les DEUX adresses en ont", () => {
+    const avec = construireDemande({ ...transport, departLat: 36.75, departLng: 3.06, destLat: 36.72, destLng: 3.09 });
+    expect(avec.departLat).toBe(36.75);
+    expect(avec.destLng).toBe(3.09);
+    // Une seule extrémité géolocalisée ne permet aucune distance : on
+    // n'envoie rien plutôt qu'une moitié d'itinéraire.
+    const moitie = construireDemande({ ...transport, departLat: 36.75, departLng: 3.06 });
+    expect(moitie.departLat).toBeUndefined();
+    // Hors transport, la notion de trajet n'existe pas.
+    const dom = construireDemande({ service: "domicile", depart: "a", departLat: 36.75, destLat: 36.72 });
+    expect(dom.departLat).toBeUndefined();
+  });
+
   it("ne laisse jamais un espace autre que patient ou pro", () => {
     expect(construireDemande({ service: "transport", espace: "admin" }).espace).toBe("patient");
     expect(construireDemande({ service: "transport", espace: "pro" }).espace).toBe("pro");

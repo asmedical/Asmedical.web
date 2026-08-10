@@ -1,8 +1,10 @@
 "use client";
 import Link from "next/link";
 import { useRouter, useParams } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useAsm } from "@/app/providers";
+import ChampAdresse from "@/app/components/adresse";
+import CarteTrajet from "@/app/components/carte";
 import { BESOINS, COMMUNES, validerEtape, etapeSuivante, vehiculePour } from "@/lib/parcours";
 import { Stepper, useParcours } from "@/app/components/parcours";
 
@@ -27,6 +29,23 @@ export default function EtapeLieux() {
   const { service } = useParams();
   const [d, maj] = useParcours();
   const [manque, setManque] = useState([]);
+  const [itineraire, setItineraire] = useState(null);
+
+  // Itinéraire réel entre les deux points choisis dans les suggestions.
+  // La distance est ce qui permet de tarifer la course au kilomètre plutôt
+  // qu'au forfait ; sans coordonnées, on reste au forfait, sans rien
+  // afficher — une distance inventée serait pire que pas de distance.
+  const dLat = d?.departLat, dLng = d?.departLng, aLat = d?.destLat, aLng = d?.destLng;
+  useEffect(() => {
+    setItineraire(null);
+    if (service !== "transport" || !dLat || !aLat) return;
+    let annule = false;
+    fetch(`/api/geo?type=itineraire&deLat=${dLat}&deLng=${dLng}&aLat=${aLat}&aLng=${aLng}`)
+      .then((r) => r.json())
+      .then((j) => { if (!annule && j.itineraire) setItineraire(j.itineraire); })
+      .catch(() => {});
+    return () => { annule = true; };
+  }, [service, dLat, dLng, aLat, aLng]);
 
   // useParcours ne lit la session qu'après le montage : tant qu'on n'a rien,
   // on n'affiche pas de champs vides qui seraient écrasés au premier rendu.
@@ -53,7 +72,7 @@ export default function EtapeLieux() {
     }
     // La classe de véhicule se déduit du besoin : on l'enregistre ici pour que
     // l'étape 3 ne propose que des créneaux réellement tenables.
-    maj({ service, typeTrajet: vehiculePour(service, d.type) });
+    maj({ service, typeTrajet: vehiculePour(service, d.type), km: itineraire?.km });
     routeur.push(`/reserver/${service}/${etapeSuivante("lieux")}`);
   }
 
@@ -64,20 +83,41 @@ export default function EtapeLieux() {
         <h2 className="titre-page">{t("pc_lieux_q")}</h2>
         <Stepper etape="lieux" />
 
-        <div className="champ">
-          <label>{transport ? t("pc_depart_l") : livraison ? t("pc_adresse_l") : t("pc_domicile_l")}</label>
-          <input
-            value={d.depart || ""}
-            onChange={champ("depart")}
-            placeholder={transport ? t("depart_ph") : t("pc_adresse_ph")}
-          />
-        </div>
+        {/* Suggestions d'adresses : elles rapportent aussi les coordonnées,
+            seules capables de faire tarifer la course à la distance réelle.
+            Sans clé Google configurée, le champ redevient un champ libre. */}
+        <ChampAdresse
+          label={transport ? t("pc_depart_l") : livraison ? t("pc_adresse_l") : t("pc_domicile_l")}
+          placeholder={transport ? t("depart_ph") : t("pc_adresse_ph")}
+          valeur={d.depart || ""}
+          onChange={(v) => { setManque([]); maj({ depart: v }); }}
+          onLieu={(l) => maj({ departLat: l?.lat, departLng: l?.lng })}
+        />
 
         {transport && (
-          <div className="champ">
-            <label>{t("pc_destination_l")}</label>
-            <input value={d.destination || ""} onChange={champ("destination")} placeholder={t("dest_ph")} />
-          </div>
+          <>
+            <ChampAdresse
+              label={t("pc_destination_l")}
+              placeholder={t("dest_ph")}
+              valeur={d.destination || ""}
+              onChange={(v) => { setManque([]); maj({ destination: v }); }}
+              onLieu={(l) => maj({ destLat: l?.lat, destLng: l?.lng })}
+            />
+            {itineraire && (
+              <>
+                <div className="trajet-resume">
+                  <span>📏 <b>{String(itineraire.km).replace(".", ",")} km</b></span>
+                  <span>⏱ <b>~{itineraire.minutes} {t("duree_min")}</b></span>
+                </div>
+                <CarteTrajet
+                  depart={{ lat: dLat, lng: dLng }}
+                  destination={{ lat: aLat, lng: aLng }}
+                  polyline={itineraire.polyline}
+                  hauteur={200}
+                />
+              </>
+            )}
+          </>
         )}
 
         {livraison && (

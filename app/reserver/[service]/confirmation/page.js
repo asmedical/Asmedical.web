@@ -4,6 +4,7 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE } from "@/lib/i18n";
+import EstimationPrix from "@/app/components/estimation";
 import { BESOINS, FENETRES, PAIEMENTS, validerEtape } from "@/lib/parcours";
 import { Stepper, useParcours, viderParcours, useStructure, libelleType } from "@/app/components/parcours";
 
@@ -186,6 +187,23 @@ export default function EtapeConfirmation() {
             vers="lieux"
           />
         </div>
+
+        {/* Prix estimé aux tarifs en vigueur, remise du compte comprise.
+            Il apparaît AVANT le bouton de confirmation : personne ne devrait
+            valider une prestation sans savoir ce qu'elle coûte. */}
+        <EstimationPrix
+          t={t}
+          visible
+          service={service}
+          jour={d.jour}
+          heure={d.heure}
+          duree={d.duree}
+          typeTrajet={d.typeTrajet}
+          packId={d.packId}
+          km={d.km}
+          besoins={d.besoins}
+          allerRetour={d.allerRetour}
+        />
 
         <div className="champ">
           <label>{t("tel_l")}</label>

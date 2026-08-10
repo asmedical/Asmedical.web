@@ -16,6 +16,7 @@ import { useLangue, TEL_AFFICHE } from "../i18n";
 import { apiPost } from "../api";
 import { useParcours, Stepper, validerEtape, libelleType } from "../parcours";
 import { useAuth } from "../auth";
+import Estimation from "../Estimation";
 
 export default function ParcoursConfirmation({ route, navigation }) {
   const { t, langue } = useLangue();
@@ -159,6 +160,21 @@ export default function ParcoursConfirmation({ route, navigation }) {
           <Bloc titre={t("pc_recap_quand")} valeur={quand} vers="ParcoursCreneau" />
           <Bloc titre={t("pc_recap_besoins")} valeur={besoinsLib} vers="ParcoursLieux" />
         </View>
+
+        {/* Prix estimé aux tarifs en vigueur, remise du compte comprise. Il
+            apparaît AVANT le bouton de confirmation : personne ne devrait
+            valider une prestation sans savoir ce qu'elle coûte. */}
+        <Estimation
+          service={service}
+          jour={demande.jour}
+          heure={demande.heure}
+          duree={demande.duree}
+          typeTrajet={demande.typeTrajet}
+          packId={demande.packId}
+          km={demande.km}
+          besoins={demande.besoins}
+          allerRetour={demande.allerRetour}
+        />
 
         <Text style={S.label}>{t("tel_l")}</Text>
         <TextInput
