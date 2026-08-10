@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   ETAPES, TYPES, BESOINS, COMMUNES, FENETRES, PAIEMENTS,
   validerEtape, estRecurrent, etapeSuivante, etapePrecedente, numeroEtape,
-  vehiculePour,
+  vehiculePour, construireDemande,
 } from "../lib/parcours.js";
 
 // Le site et l'application partagent cette définition — l'un l'importe,
@@ -59,11 +59,22 @@ describe("structure du parcours", () => {
     expect(new Set(COMMUNES).size).toBe(COMMUNES.length);
   });
 
-  it("les trois fenêtres de livraison se suivent sans trou", () => {
-    expect(FENETRES.map((f) => f.cle)).toEqual(["matin", "midi", "apresmidi"]);
-    for (let i = 1; i < FENETRES.length; i++) {
-      expect(FENETRES[i].debut).toBe(FENETRES[i - 1].fin);
+  it("les fenêtres de livraison couvrent la journée sans trou", () => {
+    expect(FENETRES.map((f) => f.cle)).toEqual(["asap", "matin", "midi", "soir"]);
+    const horaires = FENETRES.filter((f) => f.debut);
+    for (let i = 1; i < horaires.length; i++) {
+      expect(horaires[i].debut).toBe(horaires[i - 1].fin);
     }
+  });
+
+  // « fr » est écrit en base et sert de clé de comptage des places restantes
+  // (fenetresLivraison). Une valeur modifiée ferait repartir tous les
+  // compteurs de zéro, sans erreur visible : les demandes déjà prises
+  // cesseraient d'occuper leur fenêtre.
+  it("les libellés stockés des fenêtres sont figés", () => {
+    expect(FENETRES.map((f) => f.fr)).toEqual([
+      "au plus tôt", "matin (8h–12h)", "midi (12h–15h)", "après-midi (15h–19h)",
+    ]);
   });
 
   it("un seul moyen de paiement par défaut", () => {
@@ -154,5 +165,72 @@ describe("validation des étapes", () => {
   it("exige un moyen de paiement avant de confirmer", () => {
     expect(validerEtape("confirmation", {})).toContain("pc_err_paiement");
     expect(validerEtape("confirmation", { paiement: "especes" })).toEqual([]);
+  });
+});
+
+// La demande est assemblée UNE seule fois, côté serveur, à partir de l'état
+// du parcours : le site et l'application envoient le même état brut. Ces
+// tests portent donc sur ce que les deux supports enregistrent réellement.
+describe("assemblage de la demande", () => {
+  const transport = {
+    service: "transport", type: "chauffeur_medical",
+    depart: "12 rue A", destination: "CHU Mustapha", commune: "Kouba",
+    iso: "2026-09-14T10:00", heure: "10:00", jour: "2026-09-14",
+    telephone: "0550123456", besoins: ["b_fauteuil"], etage: "3", ascenseur: false,
+    paiement: "especes",
+  };
+
+  it("place le créneau choisi dans la date, et le véhicule dans typeTrajet", () => {
+    const c = construireDemande(transport);
+    expect(c.date).toBe("2026-09-14T10:00");
+    expect(c.typeTrajet).toBe("medicalise");
+    expect(c.sousMode).toBe("ponctuel");
+  });
+
+  it("écrit l'étage et l'ascenseur en clair, sans perdre le « non »", () => {
+    const d = JSON.parse(construireDemande(transport).details);
+    expect(d.acces).toBe("Étage 3, sans ascenseur");
+    expect(d.besoinsCles).toEqual(["b_fauteuil"]);
+  });
+
+  it("ne renseigne l'ascenseur que s'il a été répondu", () => {
+    const d = JSON.parse(construireDemande({ ...transport, ascenseur: undefined }).details);
+    expect(d.acces).toBe("Étage 3");
+  });
+
+  it("porte l'aller-retour dans les précisions, pas dans typeTrajet", () => {
+    const c = construireDemande({ ...transport, allerRetour: true, retourHeure: "sortie" });
+    expect(c.typeTrajet).toBe("medicalise");
+    const d = JSON.parse(c.details);
+    expect(d.allerRetour).toBe(true);
+    expect(d.retourHeure).toBe("sortie");
+  });
+
+  it("n'invente pas d'aller-retour hors transport", () => {
+    const c = construireDemande({ service: "domicile", type: "toilette", allerRetour: true, depart: "a" });
+    expect(JSON.parse(c.details || "{}").allerRetour).toBeUndefined();
+    expect(c.typeTrajet).toBe(null);
+  });
+
+  it("cale une livraison sur un jour et une fenêtre, jamais sur une heure", () => {
+    const c = construireDemande({
+      service: "medicaments", type: "ordonnance", depart: "12 rue A",
+      commune: "Kouba", jour: "2026-09-14", fenetre: "matin", telephone: "0550123456",
+    });
+    expect(c.date).toBe("2026-09-14");
+    expect(c.sousMode).toBe("fenetre");
+    // La valeur stockée doit être celle que compte fenetresLivraison.
+    expect(c.fenetre).toBe("matin (8h–12h)");
+    expect(c.destination).toBe("");
+  });
+
+  it("laisse les précisions à null quand rien n'a été saisi", () => {
+    const c = construireDemande({ service: "domicile", type: "toilette", depart: "a", commune: "Kouba" });
+    expect(c.details).toBe(null);
+  });
+
+  it("ne laisse jamais un espace autre que patient ou pro", () => {
+    expect(construireDemande({ service: "transport", espace: "admin" }).espace).toBe("patient");
+    expect(construireDemande({ service: "transport", espace: "pro" }).espace).toBe("pro");
   });
 });

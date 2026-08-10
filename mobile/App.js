@@ -42,6 +42,8 @@ import ParcoursBesoin from "./src/screens/ParcoursBesoin";
 import ParcoursUrgence from "./src/screens/ParcoursUrgence";
 import ParcoursAbonnement from "./src/screens/ParcoursAbonnement";
 import ParcoursLieux from "./src/screens/ParcoursLieux";
+import ParcoursCreneau from "./src/screens/ParcoursCreneau";
+import ParcoursConfirmation from "./src/screens/ParcoursConfirmation";
 import Assistant from "./src/Assistant";
 
 // Rôles — MÊME répartition que le site (app/connexion/page.js). Le serveur
@@ -340,14 +342,14 @@ function Racine() {
             <Pile.Screen name="Devis" component={Devis} options={{ title: t("dv_t") }} />
             <Pile.Screen name="Connaitre" component={Connaitre} options={{ title: t("connaitre_t") }} />
             <Pile.Screen name="Confidentialite" component={Confidentialite} options={{ title: t("doc_confidentialite") }} />
-            {/* Parcours de réservation par étapes — étapes 1 et 2, plus les
-                deux embranchements de l étape 1 (urgence, abonnement). Les
-                étapes 3 et 4 arrivent ensuite ; l accueil continue d ouvrir
-                l ancien formulaire tant que le parcours n est pas complet. */}
+            {/* Parcours de réservation par étapes — les quatre étapes, plus
+                les deux embranchements de l étape 1 (urgence, abonnement). */}
             <Pile.Screen name="ParcoursBesoin" component={ParcoursBesoin} options={{ title: t("pc_titre") }} />
             <Pile.Screen name="ParcoursUrgence" component={ParcoursUrgence} options={{ title: t("pc_urgent_t") }} />
             <Pile.Screen name="ParcoursAbonnement" component={ParcoursAbonnement} options={{ title: t("pc_recurrent_t") }} />
             <Pile.Screen name="ParcoursLieux" component={ParcoursLieux} options={{ title: t("pc_etape_lieux") }} />
+            <Pile.Screen name="ParcoursCreneau" component={ParcoursCreneau} options={{ title: t("pc_etape_creneau") }} />
+            <Pile.Screen name="ParcoursConfirmation" component={ParcoursConfirmation} options={{ title: t("pc_etape_confirmation") }} />
           </Pile.Navigator>
           {/* Assistant IA superposé (bulle flottante) — sauf dans la messagerie. */}
           {route !== "Messages" && <Assistant navigate={naviguer} />}

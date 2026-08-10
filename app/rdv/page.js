@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE } from "@/lib/i18n";
+import { FENETRES as FENETRES_PARCOURS } from "@/lib/parcours";
 import ChampAdresse from "@/app/components/adresse";
 import CarteTrajet from "@/app/components/carte";
 
@@ -35,13 +36,10 @@ const ACTES_DEFAUT = [
   { id: "autre", cle: "acte_autre", dureeMin: 60 },
 ];
 
-// Fenêtres de livraison (Mode C). `fr` = valeur stockée, lisible en back-office.
-const FENETRES = [
-  { id: "asap", cle: "f_asap", fr: "au plus tôt" },
-  { id: "matin", cle: "f_matin", fr: "matin (8h–12h)" },
-  { id: "midi", cle: "f_midi", fr: "midi (12h–15h)" },
-  { id: "soir", cle: "f_soir", fr: "après-midi (15h–19h)" },
-];
+// Fenêtres de livraison (Mode C), dérivées de lib/parcours.js — la liste est
+// partagée avec le nouveau parcours et l'application. `fr` = valeur stockée,
+// lisible en back-office.
+const FENETRES = FENETRES_PARCOURS.map((f) => ({ id: f.cle, cle: `f_${f.cle}`, fr: f.fr }));
 
 const JOURS_SEMAINE = ["j_lun", "j_mar", "j_mer", "j_jeu", "j_ven", "j_sam", "j_dim"];
 
