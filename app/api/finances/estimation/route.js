@@ -48,7 +48,10 @@ export async function GET(req) {
       // DÉFINITIF repose sur la distance recalculée par le serveur à la
       // réservation, jamais sur ce paramètre.
       distanceKm: Number.isFinite(parseFloat(p.get("km"))) ? Math.min(Math.max(parseFloat(p.get("km")), 0), 2000) : undefined,
-      details: p.get("besoins") ? JSON.stringify({ besoinsCles: String(p.get("besoins")).split(",").slice(0, 12) }) : undefined,
+      details: JSON.stringify({
+        besoinsCles: p.get("besoins") ? String(p.get("besoins")).split(",").slice(0, 12) : undefined,
+        allerRetour: p.get("ar") === "1" || undefined,
+      }),
     });
     if (!estimation) return NextResponse.json({ disponible: false });
     return NextResponse.json({ disponible: true, ...estimation });

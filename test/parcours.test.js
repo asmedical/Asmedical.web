@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   ETAPES, TYPES, BESOINS, COMMUNES, FENETRES, PAIEMENTS,
   validerEtape, estRecurrent, etapeSuivante, etapePrecedente, numeroEtape,
+  vehiculePour,
 } from "../lib/parcours.js";
 
 // Le site et l'application partagent cette définition — l'un l'importe,
@@ -43,6 +44,16 @@ describe("structure du parcours", () => {
     expect(new Set(cles).size).toBe(cles.length);
   });
 
+  // lib/finances.js facture les suppléments en cherchant ces clés exactes
+  // dans details.besoinsCles. Les renommer supprimerait les suppléments sans
+  // provoquer la moindre erreur — d'où ce test.
+  it("les besoins facturés gardent les clés que lit la facturation", () => {
+    const cles = BESOINS.map((b) => b.cle);
+    expect(cles).toContain("b_fauteuil");
+    expect(cles).toContain("b_oxygene");
+    expect(cles.every((c) => c.startsWith("b_"))).toBe(true);
+  });
+
   it("les communes sont une liste fermée, sans doublon", () => {
     expect(COMMUNES.length).toBeGreaterThan(40);
     expect(new Set(COMMUNES).size).toBe(COMMUNES.length);
@@ -57,6 +68,23 @@ describe("structure du parcours", () => {
 
   it("un seul moyen de paiement par défaut", () => {
     expect(PAIEMENTS.filter((p) => p.defaut).length).toBe(1);
+  });
+});
+
+describe("classe de véhicule déduite du besoin", () => {
+  it("n'oblige jamais à reposer la question du type de trajet", () => {
+    expect(vehiculePour("transport", "chauffeur_medical")).toBe("medicalise");
+    expect(vehiculePour("transport", "accompagnement")).toBe("accompagne");
+    expect(vehiculePour("transport", "consultation")).toBe("simple");
+    // Hors transport, la notion n'existe pas : le champ doit rester vide.
+    expect(vehiculePour("domicile", "toilette")).toBeUndefined();
+  });
+
+  it("ne renvoie que des valeurs comprises par le moteur de disponibilités", () => {
+    const connues = new Set(["simple", "accompagne", "medicalise"]);
+    for (const ty of TYPES.transport) {
+      expect(connues.has(vehiculePour("transport", ty.cle)), ty.cle).toBe(true);
+    }
   });
 });
 
@@ -87,15 +115,26 @@ describe("validation des étapes", () => {
     expect(manque).toContain("pc_err_destination");
   });
 
-  it("n'exige qu'une adresse pour une livraison", () => {
-    const manque = validerEtape("lieux", { service: "medicaments", commune: "Kouba" });
-    expect(manque).toContain("pc_err_adresse");
-    expect(manque).not.toContain("pc_err_depart");
+  it("n'exige qu'une adresse pour une livraison ou une intervention", () => {
+    for (const service of ["medicaments", "domicile"]) {
+      const manque = validerEtape("lieux", { service, commune: "Kouba" });
+      expect(manque, service).toContain("pc_err_adresse");
+      expect(manque, service).not.toContain("pc_err_destination");
+    }
+    expect(validerEtape("lieux", { service: "domicile", depart: "a", commune: "Kouba" })).toEqual([]);
   });
 
   it("exige toujours la commune : c'est elle qui décide des ressources", () => {
     expect(validerEtape("lieux", { service: "transport", depart: "a", destination: "b" }))
       .toContain("pc_err_commune");
+  });
+
+  it("refuse un aller-retour sans heure de reprise", () => {
+    const base = { service: "transport", depart: "a", destination: "b", commune: "Kouba" };
+    expect(validerEtape("lieux", { ...base, allerRetour: true })).toContain("pc_err_retour");
+    expect(validerEtape("lieux", { ...base, allerRetour: true, retourHeure: "sortie" })).toEqual([]);
+    // Aller simple : la question ne se pose pas.
+    expect(validerEtape("lieux", base)).toEqual([]);
   });
 
   it("exige un créneau, sauf pour une demande récurrente", () => {

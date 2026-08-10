@@ -71,13 +71,10 @@ export function validerEtape(structure, etape, d = {}) {
     if (!d.type) manque.push("pc_err_type");
   }
   if (etape === "lieux") {
-    if (d.service === "medicaments") {
-      if (!d.destination?.trim()) manque.push("pc_err_adresse");
-    } else {
-      if (!d.depart?.trim()) manque.push("pc_err_depart");
-      if (!d.destination?.trim()) manque.push("pc_err_destination");
-    }
+    if (!d.depart?.trim()) manque.push(d.service === "transport" ? "pc_err_depart" : "pc_err_adresse");
+    if (d.service === "transport" && !d.destination?.trim()) manque.push("pc_err_destination");
     if (!d.commune) manque.push("pc_err_commune");
+    if (d.allerRetour && !d.retourHeure) manque.push("pc_err_retour");
   }
   if (etape === "creneau" && !estRecurrent(structure, d.service, d.type)) {
     if (d.service === "medicaments") {
