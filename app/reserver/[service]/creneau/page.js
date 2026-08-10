@@ -109,7 +109,7 @@ export default function EtapeCreneau() {
   function continuer() {
     const erreurs = validerEtape("creneau", { ...d, service });
     if (erreurs.length) return setManque(erreurs);
-    routeur.push(`/reserver/${service}/${etapeSuivante("creneau")}`);
+    routeur.push(`/reserver/${service}/${etapeSuivante("creneau", d)}`);
   }
 
   // --- Grille du mois, lundi en première colonne.
@@ -130,7 +130,7 @@ export default function EtapeCreneau() {
       <div className="contenu-page" style={{ maxWidth: 560 }}>
         <Link className="btn-retour" href={`/reserver/${service}/lieux`}>{t("pc_retour")}</Link>
         <h2 className="titre-page">{t("pc_calendrier_t")}</h2>
-        <Stepper etape="creneau" />
+        <Stepper etape="creneau" demande={d} />
 
         <div className="pc-mois">
           <button

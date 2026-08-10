@@ -71,7 +71,7 @@ export default function ParcoursBesoin({ route, navigation }) {
       {/* L'urgence n'est plus une case à cocher : c'est un lien discret vers
           un écran qui dit ce qu'ASM peut — et ne peut pas — faire. */}
       <TouchableOpacity
-        onPress={() => navigation.navigate("ParcoursUrgence")}
+        onPress={() => navigation.navigate("ParcoursUrgence", { service })}
         style={{ marginTop: 16, alignItems: "center" }}
       >
         <Text style={{ color: C.gris, fontSize: 14.5, textDecorationLine: "underline" }}>

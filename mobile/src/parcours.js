@@ -92,7 +92,9 @@ export function validerEtape(structure, etape, d = {}) {
     if (!d.commune) manque.push("pc_err_commune");
     if (d.allerRetour && !d.retourHeure) manque.push("pc_err_retour");
   }
-  if (etape === "creneau" && !estRecurrent(structure, d.service, d.type)) {
+  // Ni l'abonnement ni la prise en charge au plus tôt ne choisissent de
+  // créneau : dans les deux cas c'est la régulation qui cale l'heure.
+  if (etape === "creneau" && !estRecurrent(structure, d.service, d.type) && !d.urgent) {
     if (d.service === "medicaments") {
       if (!d.fenetre) manque.push("pc_err_fenetre");
     } else if (!d.iso) {
@@ -103,16 +105,24 @@ export function validerEtape(structure, etape, d = {}) {
   return manque;
 }
 
-export function numeroEtape(structure, cle) {
-  return (structure.etapes || []).findIndex((e) => e.cle === cle) + 1;
+// Étapes RÉELLEMENT parcourues pour cette demande. Une prise en charge au
+// plus tôt n'a pas d'étape « date et heure » : afficher un quatrième rond
+// ferait attendre un choix qui ne viendra jamais.
+export function etapesPour(structure, d = {}) {
+  const etapes = structure?.etapes || [];
+  return d.urgent ? etapes.filter((e) => e.cle !== "creneau") : etapes;
+}
+
+export function numeroEtape(structure, cle, d = {}) {
+  return etapesPour(structure, d).findIndex((e) => e.cle === cle) + 1;
 }
 
 // Indicateur de progression — même lecture que sur le site : où j'en suis,
 // combien il reste.
 export function Stepper({ etape }) {
-  const { structure } = useParcours();
-  const etapes = structure.etapes || [];
-  const courant = numeroEtape(structure, etape);
+  const { structure, demande } = useParcours();
+  const etapes = etapesPour(structure, demande);
+  const courant = numeroEtape(structure, etape, demande);
 
   return (
     <View

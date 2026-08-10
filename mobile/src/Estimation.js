@@ -10,7 +10,7 @@ import { C, S } from "./theme";
 import { useLangue } from "./i18n";
 import { apiGet } from "./api";
 
-export default function Estimation({ service, jour, heure, duree, typeTrajet, packId, km, besoins, allerRetour }) {
+export default function Estimation({ service, jour, heure, duree, typeTrajet, prioritaire, packId, km, besoins, allerRetour }) {
   const { t } = useLangue();
   const [est, setEst] = useState(null);
 
@@ -23,6 +23,7 @@ export default function Estimation({ service, jour, heure, duree, typeTrajet, pa
     const u = new URLSearchParams({ service, duree: String(duree || 60) });
     u.set("date", `${jour}T${heure || "09:00"}`);
     if (typeTrajet) u.set("typeTrajet", typeTrajet);
+    if (prioritaire) u.set("prioritaire", "1");
     if (packId) u.set("pack", String(packId));
     if (Number.isFinite(Number(km))) u.set("km", String(km));
     if (clefBesoins) u.set("besoins", clefBesoins);
@@ -31,7 +32,7 @@ export default function Estimation({ service, jour, heure, duree, typeTrajet, pa
       .then((d) => { if (!annule && d?.disponible) setEst(d); })
       .catch(() => {});
     return () => { annule = true; };
-  }, [service, jour, heure, duree, typeTrajet, packId, km, clefBesoins, allerRetour]);
+  }, [service, jour, heure, duree, typeTrajet, prioritaire, packId, km, clefBesoins, allerRetour]);
 
   if (!est) return null;
 

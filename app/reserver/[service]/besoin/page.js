@@ -53,7 +53,7 @@ export default function EtapeBesoin() {
       <div className="contenu-page">
         <Link className="btn-retour" href="/reserver">{t("pc_retour")}</Link>
         <h2 className="titre-page">{t("pc_besoin_q")}</h2>
-        <Stepper etape="besoin" />
+        <Stepper etape="besoin" demande={d} />
 
         <div className="pc-choix">
           {types.map((ty) => (

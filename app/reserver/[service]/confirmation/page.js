@@ -5,7 +5,7 @@ import { useEffect, useState } from "react";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE } from "@/lib/i18n";
 import EstimationPrix from "@/app/components/estimation";
-import { BESOINS, FENETRES, PAIEMENTS, validerEtape } from "@/lib/parcours";
+import { BESOINS, FENETRES, PAIEMENTS, validerEtape, etapePrecedente } from "@/lib/parcours";
 import { Stepper, useParcours, viderParcours, useStructure, libelleType } from "@/app/components/parcours";
 
 // Étape 4 — récapitulatif et confirmation.
@@ -184,10 +184,12 @@ export default function EtapeConfirmation() {
       </div>
     ) : null;
 
-  const quand = livraison
-    ? [d.jour, FENETRES.find((f) => f.cle === d.fenetre)?.libelle && t(FENETRES.find((f) => f.cle === d.fenetre).libelle)]
-        .filter(Boolean).join(" · ")
-    : [d.jour, d.heure].filter(Boolean).join(" · ");
+  const fenetreLib = FENETRES.find((f) => f.cle === d.fenetre)?.libelle;
+  const quand = d.urgent
+    ? t("pc_auplustot")
+    : livraison
+      ? [d.jour, fenetreLib && t(fenetreLib)].filter(Boolean).join(" · ")
+      : [d.jour, d.heure].filter(Boolean).join(" · ");
 
   const lieux = service === "transport"
     ? [d.depart, d.destination].filter(Boolean).join(" → ")
@@ -196,9 +198,9 @@ export default function EtapeConfirmation() {
   return (
     <div className="page">
       <div className="contenu-page" style={{ maxWidth: 560 }}>
-        <Link className="btn-retour" href={`/reserver/${service}/creneau`}>{t("pc_retour")}</Link>
+        <Link className="btn-retour" href={`/reserver/${service}/${etapePrecedente("confirmation", d)}`}>{t("pc_retour")}</Link>
         <h2 className="titre-page">{t("pc_recap_t")}</h2>
-        <Stepper etape="confirmation" />
+        <Stepper etape="confirmation" demande={d} />
 
         {/* Rappel de qui est concerné : sur un compte qui réserve pour
             plusieurs personnes, confirmer sans le voir est trop facile. */}
@@ -217,7 +219,7 @@ export default function EtapeConfirmation() {
           <Bloc titre={t("pc_recap_service")} valeur={libelleType(typeChoisi, t, langue)} vers="besoin" />
           <Bloc titre={t("pc_recap_trajet")} valeur={lieux} vers="lieux" />
           <Bloc titre={t("pc_commune_l")} valeur={d.commune} vers="lieux" />
-          <Bloc titre={t("pc_recap_quand")} valeur={quand} vers="creneau" />
+          <Bloc titre={t("pc_recap_quand")} valeur={quand} vers={d.urgent ? "urgence" : "creneau"} />
           <Bloc
             titre={t("pc_recap_besoins")}
             valeur={(d.besoins || []).map((c) => t(BESOINS.find((b) => b.cle === c)?.libelle || c)).join(", ")}
@@ -228,14 +230,18 @@ export default function EtapeConfirmation() {
         {/* Prix estimé aux tarifs en vigueur, remise du compte comprise.
             Il apparaît AVANT le bouton de confirmation : personne ne devrait
             valider une prestation sans savoir ce qu'elle coûte. */}
+        {/* Au plus tôt : aucun jour n'a été choisi, mais le prix dépend de
+            la date (nuit, week-end, férié). On estime sur aujourd'hui —
+            c'est bien ce qui est demandé. */}
         <EstimationPrix
           t={t}
           visible
           service={service}
-          jour={d.jour}
+          jour={d.jour || (d.urgent ? new Date().toISOString().slice(0, 10) : "")}
           heure={d.heure}
           duree={d.duree}
           typeTrajet={d.typeTrajet}
+          prioritaire={d.urgent}
           packId={d.packId}
           km={d.km}
           besoins={d.besoins}

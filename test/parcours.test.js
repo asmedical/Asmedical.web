@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   ETAPES, TYPES, BESOINS, COMMUNES, FENETRES, PAIEMENTS,
   validerEtape, estRecurrent, etapeSuivante, etapePrecedente, numeroEtape,
-  vehiculePour, construireDemande, dureePour,
+  vehiculePour, construireDemande, dureePour, etapesPour,
 } from "../lib/parcours.js";
 
 // Le site et l'application partagent cette définition — l'un l'importe,
@@ -138,6 +138,16 @@ describe("navigation entre étapes", () => {
     expect(numeroEtape("besoin")).toBe(1);
     expect(numeroEtape("confirmation")).toBe(4);
   });
+
+  // Une prise en charge au plus tôt ne choisit pas d'heure : afficher une
+  // quatrième étape ferait attendre un choix qui ne viendra jamais.
+  it("supprime l'étape du créneau pour une prise en charge au plus tôt", () => {
+    const u = { urgent: true };
+    expect(etapesPour(u).map((e) => e.cle)).toEqual(["besoin", "lieux", "confirmation"]);
+    expect(etapeSuivante("lieux", u)).toBe("confirmation");
+    expect(etapePrecedente("confirmation", u)).toBe("lieux");
+    expect(numeroEtape("confirmation", u)).toBe(3);
+  });
 });
 
 describe("validation des étapes", () => {
@@ -173,6 +183,11 @@ describe("validation des étapes", () => {
     expect(validerEtape("lieux", { ...base, allerRetour: true, retourHeure: "sortie" })).toEqual([]);
     // Aller simple : la question ne se pose pas.
     expect(validerEtape("lieux", base)).toEqual([]);
+  });
+
+  it("n'exige aucun créneau pour une prise en charge au plus tôt", () => {
+    expect(validerEtape("creneau", { service: "transport", type: "consultation", urgent: true })).toEqual([]);
+    expect(validerEtape("creneau", { service: "medicaments", type: "ordonnance", urgent: true })).toEqual([]);
   });
 
   it("exige un créneau, sauf pour une demande récurrente", () => {
@@ -267,6 +282,13 @@ describe("assemblage de la demande", () => {
     // Hors transport, la notion de trajet n'existe pas.
     const dom = construireDemande({ service: "domicile", depart: "a", departLat: 36.75, destLat: 36.72 });
     expect(dom.departLat).toBeUndefined();
+  });
+
+  it("enregistre une prise en charge au plus tôt sans date choisie", () => {
+    const c = construireDemande({ ...transport, urgent: true, iso: "", jour: "" });
+    // « au plus tôt » est la valeur qu'attend le reste de la plateforme.
+    expect(c.date).toBe("au plus tôt");
+    expect(c.sousMode).toBe("urgent");
   });
 
   it("ne retient la préférence homme/femme que pour le domicile", () => {

@@ -73,7 +73,9 @@ export default function EtapeLieux() {
     // La classe de véhicule se déduit du besoin : on l'enregistre ici pour que
     // l'étape 3 ne propose que des créneaux réellement tenables.
     maj({ service, typeTrajet: vehiculePour(service, d.type), km: itineraire?.km });
-    routeur.push(`/reserver/${service}/${etapeSuivante("lieux")}`);
+    // « au plus tôt » saute l'étape du créneau : c'est la régulation qui
+    // cale l'heure, il n'y a rien à choisir.
+    routeur.push(`/reserver/${service}/${etapeSuivante("lieux", d)}`);
   }
 
   return (
@@ -81,7 +83,7 @@ export default function EtapeLieux() {
       <div className="contenu-page" style={{ maxWidth: 560 }}>
         <Link className="btn-retour" href={`/reserver/${service}/besoin`}>{t("pc_retour")}</Link>
         <h2 className="titre-page">{t("pc_lieux_q")}</h2>
-        <Stepper etape="lieux" />
+        <Stepper etape="lieux" demande={d} />
 
         {/* Suggestions d'adresses : elles rapportent aussi les coordonnées,
             seules capables de faire tarifer la course à la distance réelle.

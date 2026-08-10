@@ -9,7 +9,8 @@ import React from "react";
 import { View, Text, ScrollView, TouchableOpacity, Linking } from "react-native";
 import { C, S } from "../theme";
 import { useLangue, TEL_AFFICHE } from "../i18n";
-import { proposerAppel } from "../ui";
+import { Bouton, proposerAppel } from "../ui";
+import { useParcours } from "../parcours";
 
 function Secours({ libelle, numero }) {
   return (
@@ -26,8 +27,19 @@ function Secours({ libelle, numero }) {
   );
 }
 
-export default function ParcoursUrgence() {
+export default function ParcoursUrgence({ route, navigation }) {
   const { t } = useLangue();
+  const { demande, maj } = useParcours();
+  const service = route?.params?.service || demande.service;
+
+  // Tout ce qui presse n'est pas vital. Pour ces cas-là, la demande continue
+  // en mode « au plus tôt » : elle part sans créneau, la régulation cale
+  // l'heure et rappelle. Sans cette sortie, l'écran serait une impasse pour
+  // quiconque n'a pas besoin du SAMU.
+  function continuerAuPlusTot() {
+    maj({ service, urgent: true, jour: "", iso: "", heure: "", fenetre: "" });
+    navigation.navigate("ParcoursLieux", { service });
+  }
 
   return (
     <ScrollView style={S.ecran} contentContainerStyle={S.contenu}>
@@ -46,6 +58,12 @@ export default function ParcoursUrgence() {
           {t("pc_urgent_asm")} · {TEL_AFFICHE}
         </Text>
       </TouchableOpacity>
+      <Text style={[S.h1, { fontSize: 17, marginTop: 26, paddingTop: 18, borderTopWidth: 1, borderTopColor: C.ligne }]}>
+        {t("pc_urgent_suite")}
+      </Text>
+      <Text style={S.sous}>{t("pc_urgent_suite_p")}</Text>
+      <Bouton titre={t("pc_urgent_b")} secondaire onPress={continuerAuPlusTot} />
+
       <View style={{ height: 24 }} />
     </ScrollView>
   );

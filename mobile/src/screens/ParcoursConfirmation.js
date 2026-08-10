@@ -177,9 +177,11 @@ export default function ParcoursConfirmation({ route, navigation }) {
 
   const typeChoisi = (structure.types?.[service] || []).find((x) => x.cle === demande.type);
   const fenetreLib = (structure.fenetres || []).find((f) => f.cle === demande.fenetre)?.libelle;
-  const quand = livraison
-    ? [demande.jour, fenetreLib && t(fenetreLib)].filter(Boolean).join(" · ")
-    : [demande.jour, demande.heure].filter(Boolean).join(" · ");
+  const quand = demande.urgent
+    ? t("pc_auplustot")
+    : livraison
+      ? [demande.jour, fenetreLib && t(fenetreLib)].filter(Boolean).join(" · ")
+      : [demande.jour, demande.heure].filter(Boolean).join(" · ");
   const lieux = service === "transport"
     ? [demande.depart, demande.destination].filter(Boolean).join(" → ")
     : demande.depart;
@@ -217,7 +219,7 @@ export default function ParcoursConfirmation({ route, navigation }) {
           <Bloc titre={t("pc_recap_service")} valeur={libelleType(typeChoisi, t, langue)} vers="ParcoursBesoin" />
           <Bloc titre={t("pc_recap_trajet")} valeur={lieux} vers="ParcoursLieux" />
           <Bloc titre={t("pc_commune_l")} valeur={demande.commune} vers="ParcoursLieux" />
-          <Bloc titre={t("pc_recap_quand")} valeur={quand} vers="ParcoursCreneau" />
+          <Bloc titre={t("pc_recap_quand")} valeur={quand} vers={demande.urgent ? "ParcoursUrgence" : "ParcoursCreneau"} />
           <Bloc titre={t("pc_recap_besoins")} valeur={besoinsLib} vers="ParcoursLieux" />
         </View>
 
@@ -226,10 +228,11 @@ export default function ParcoursConfirmation({ route, navigation }) {
             valider une prestation sans savoir ce qu'elle coûte. */}
         <Estimation
           service={service}
-          jour={demande.jour}
+          jour={demande.jour || (demande.urgent ? new Date().toISOString().slice(0, 10) : "")}
           heure={demande.heure}
           duree={demande.duree}
           typeTrajet={demande.typeTrajet}
+          prioritaire={demande.urgent}
           packId={demande.packId}
           km={demande.km}
           besoins={demande.besoins}

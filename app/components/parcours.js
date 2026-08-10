@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ETAPES, TYPES, BESOINS, COMMUNES, FENETRES, PAIEMENTS, numeroEtape } from "@/lib/parcours";
+import { ETAPES, TYPES, BESOINS, COMMUNES, FENETRES, PAIEMENTS, numeroEtape, etapesPour } from "@/lib/parcours";
 
 // Éléments communs au parcours de réservation. La structure vient de
 // lib/parcours.js — partagée avec l'application ; seul le rendu est propre
@@ -8,17 +8,21 @@ import { ETAPES, TYPES, BESOINS, COMMUNES, FENETRES, PAIEMENTS, numeroEtape } fr
 
 // Indicateur de progression. Il reste affiché à chaque étape : sans lui, un
 // formulaire long donne l'impression de ne jamais finir.
-export function Stepper({ etape }) {
-  const courant = numeroEtape(etape);
+export function Stepper({ etape, demande }) {
+  // La liste dépend de la demande : une prise en charge au plus tôt n'a pas
+  // d'étape « date et heure », et compter une étape qui n'arrivera jamais
+  // fait attendre pour rien.
+  const etapes = etapesPour(demande || {});
+  const courant = numeroEtape(etape, demande || {});
   return (
-    <div className="pc-stepper" role="progressbar" aria-valuenow={courant} aria-valuemin={1} aria-valuemax={ETAPES.length}>
-      {ETAPES.map((e, i) => {
+    <div className="pc-stepper" role="progressbar" aria-valuenow={courant} aria-valuemin={1} aria-valuemax={etapes.length}>
+      {etapes.map((e, i) => {
         const n = i + 1;
         const classe = n < courant ? "fait" : n === courant ? "actif" : "";
         return (
           <span className={"pc-pas " + classe} key={e.cle}>
             <span className="pc-rond">{n}</span>
-            {i < ETAPES.length - 1 && <span className="pc-trait" />}
+            {i < etapes.length - 1 && <span className="pc-trait" />}
           </span>
         );
       })}

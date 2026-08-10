@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
+import { useParcours } from "@/app/components/parcours";
 
 // « C'est urgent ? » — écran interstitiel.
 //
@@ -11,9 +12,21 @@ import { TEL_AFFICHE, TEL_LIEN } from "@/lib/i18n";
 // immédiate. Devant une urgence vitale, la bonne action n'est pas de remplir
 // un formulaire, c'est d'appeler les secours — d'où les numéros en premier,
 // en grand, et cliquables.
+//
+// Mais tout ce qui presse n'est pas vital. Pour ces cas-là, la demande
+// continue en mode « au plus tôt » : elle part sans créneau, la régulation
+// cale l'heure et rappelle. Sans cette sortie, l'écran serait une impasse
+// pour quiconque n'a pas besoin du SAMU.
 export default function Urgence() {
   const { t } = useAsm();
+  const routeur = useRouter();
   const { service } = useParams();
+  const [, maj] = useParcours();
+
+  function continuerAuPlusTot() {
+    maj({ service, urgent: true, jour: "", iso: "", heure: "", fenetre: "" });
+    routeur.push(`/reserver/${service}/lieux`);
+  }
 
   return (
     <div className="page">
@@ -28,6 +41,10 @@ export default function Urgence() {
         <a className="btn-action" style={{ marginTop: 18 }} href={TEL_LIEN}>
           {t("pc_urgent_asm")} · {TEL_AFFICHE}
         </a>
+
+        <h3 className="pc-sous-titre">{t("pc_urgent_suite")}</h3>
+        <p className="sous-page">{t("pc_urgent_suite_p")}</p>
+        <button className="btn-secondaire" onClick={continuerAuPlusTot}>{t("pc_urgent_b")}</button>
       </div>
     </div>
   );

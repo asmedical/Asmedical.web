@@ -127,7 +127,9 @@ export default function ParcoursLieux({ route, navigation }) {
     const erreurs = validerEtape(structure, "lieux", suivant);
     if (erreurs.length) return setManque(erreurs);
     maj({ service, typeTrajet: vehiculePour(service, demande.type) });
-    navigation.navigate("ParcoursCreneau", { service });
+    // « au plus tôt » saute l'étape du créneau : c'est la régulation qui
+    // cale l'heure, il n'y a rien à choisir.
+    navigation.navigate(demande.urgent ? "ParcoursConfirmation" : "ParcoursCreneau", { service });
   }
 
   return (
