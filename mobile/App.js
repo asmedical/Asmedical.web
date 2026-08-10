@@ -21,7 +21,6 @@ import Connexion from "./src/screens/Connexion";
 import Demarrage from "./src/screens/Demarrage";
 import Entete from "./src/Entete";
 import Accueil from "./src/screens/Accueil";
-import Reservation from "./src/screens/Reservation";
 import MesDemandes from "./src/screens/MesDemandes";
 import Suivi from "./src/screens/Suivi";
 import Messagerie from "./src/screens/Messagerie";
@@ -38,7 +37,6 @@ import Devis from "./src/screens/Devis";
 import Connaitre from "./src/screens/Connaitre";
 import Confidentialite from "./src/screens/Confidentialite";
 import AideConnexion from "./src/screens/AideConnexion";
-import ParcoursAccueil from "./src/screens/ParcoursAccueil";
 import ParcoursBesoin from "./src/screens/ParcoursBesoin";
 import ParcoursUrgence from "./src/screens/ParcoursUrgence";
 import ParcoursAbonnement from "./src/screens/ParcoursAbonnement";
@@ -330,7 +328,6 @@ function Racine() {
             }}
           >
             <Pile.Screen name="TabsRacine" component={Racines} options={{ headerShown: false, title: "ASM" }} />
-            <Pile.Screen name="Reservation" component={Reservation} options={{ title: t("rdv_t") }} />
             <Pile.Screen name="Suivi" component={Suivi} options={{ title: t("suivi_t") }} />
             {/* Sections du compte : écrans natifs, plus aucun renvoi vers le
                 navigateur — hormis la suppression de compte et le paiement
@@ -345,7 +342,6 @@ function Racine() {
             <Pile.Screen name="Confidentialite" component={Confidentialite} options={{ title: t("doc_confidentialite") }} />
             {/* Parcours de réservation par étapes — les quatre étapes, plus
                 les deux embranchements de l étape 1 (urgence, abonnement). */}
-            <Pile.Screen name="ParcoursAccueil" component={ParcoursAccueil} options={{ title: t("pc_titre") }} />
             <Pile.Screen name="ParcoursBesoin" component={ParcoursBesoin} options={{ title: t("pc_titre") }} />
             <Pile.Screen name="ParcoursUrgence" component={ParcoursUrgence} options={{ title: t("pc_urgent_t") }} />
             <Pile.Screen name="ParcoursAbonnement" component={ParcoursAbonnement} options={{ title: t("pc_recurrent_t") }} />

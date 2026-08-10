@@ -7,6 +7,8 @@ import { Pastille, SERVICES_LIB } from "../ui";
 import { useLangue } from "../i18n";
 import { apiGet } from "../api";
 import { IcoVehicule, IcoMaison, IcoMedicaments } from "../icones";
+import PourQui from "../PourQui";
+import { useParcours } from "../parcours";
 
 // Icônes dessinées, identiques au site : les émojis donnaient à
 // l'application un air d'ébauche là où le site inspire confiance.
@@ -18,6 +20,7 @@ const SERVICES = [
 
 export default function Accueil({ navigation }) {
   const { t } = useLangue();
+  const { demande, reinitialiser } = useParcours();
   const [prochain, setProchain] = useState(null);
   const [rafraichit, setRafraichit] = useState(false);
 
@@ -42,13 +45,19 @@ export default function Accueil({ navigation }) {
       refreshControl={<RefreshControl refreshing={rafraichit} onRefresh={() => { setRafraichit(true); charger(); setTimeout(() => setRafraichit(false), 600); }} tintColor={C.vert} />}
     >
       <Text style={S.h1}>{t("accueil_q")}</Text>
+      <PourQui />
 
       {SERVICES.map((sv) => (
         <TouchableOpacity
           key={sv.id}
           style={[S.carte, { flexDirection: "row", alignItems: "center", gap: 14, paddingVertical: 18 }]}
           activeOpacity={0.7}
-          onPress={() => navigation.navigate("Reservation", { service: sv.id })}
+          onPress={() => {
+            // Nouvelle demande : feuille blanche, puis le service choisi.
+            // Le patient éventuellement retenu ci-dessus est réappliqué.
+            reinitialiser({ pourPatient: demande.pourPatient, pourPatientNom: demande.pourPatientNom, telephone: demande.telephone, service: sv.id });
+            navigation.navigate("ParcoursBesoin", { service: sv.id });
+          }}
         >
           <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: C.vertPale, alignItems: "center", justifyContent: "center" }}>
             <sv.Ico couleur={C.vertFonce} taille={23} />

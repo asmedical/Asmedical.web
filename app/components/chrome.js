@@ -298,7 +298,7 @@ export function BarreNav() {
         {totalNonLus > 0 && <span className="badge-nonlu badge-nav">{totalNonLus > 99 ? "99+" : totalNonLus}</span>}
       </button>
       <button
-        className={"btn-accueil" + (actif(["/accueil", "/rdv"]) ? " actif" : "")}
+        className={"btn-accueil" + (actif(["/accueil", "/reserver"]) ? " actif" : "")}
         onClick={() => routeur.push("/accueil")}
         aria-label={t("nav_accueil")}
         title={t("nav_accueil")}

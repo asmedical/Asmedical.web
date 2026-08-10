@@ -12,7 +12,7 @@ import { apiPost } from "./api";
 import { proposerAppel } from "./ui";
 
 // Actions renvoyées par l'IA → écran natif correspondant (celles qui existent).
-const CIBLE = { rdv: "Reservation", medicaments: "Reservation", suivi: "Suivi" };
+const CIBLE = { rdv: "ParcoursBesoin", medicaments: "ParcoursBesoin", suivi: "Suivi" };
 
 export default function Assistant({ navigate }) {
   const { t, langue } = useLangue();
@@ -41,7 +41,7 @@ export default function Assistant({ navigate }) {
 
   const aller = (service) => {
     setOuvert(false);
-    navigate("Reservation", service ? { service } : undefined);
+    navigate("ParcoursBesoin", service ? { service } : undefined);
   };
 
   const suivreAction = (action) => {

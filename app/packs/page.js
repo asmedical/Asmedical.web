@@ -26,7 +26,8 @@ export default function Packs() {
       sessionStorage.setItem("asm_pack", JSON.stringify({ id: p.id, nom: langue === "ar" && p.nomAr ? p.nomAr : p.nom, prix: p.prix }));
     } catch {}
     choisirService(p.service);
-    routeur.push("/rdv");
+    // L'accueil reprend le pack déposé ci-dessus et démarre le parcours.
+    routeur.push("/accueil");
   }
 
   return (
