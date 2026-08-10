@@ -153,6 +153,23 @@ export default function ParcoursConfirmation({ route, navigation }) {
         <Text style={S.h1}>{t("pc_recap_t")}</Text>
         <Stepper etape="confirmation" />
 
+        {/* Rappel de qui est concerné : sur un compte qui réserve pour
+            plusieurs personnes, confirmer sans le voir est trop facile. */}
+        {!!demande.pourPatientNom && (
+          <View style={[S.cartePale, { marginBottom: 12 }]}>
+            <Text style={{ color: C.vertFonce, fontWeight: "700" }}>
+              👤 {t("pp_bandeau")} {demande.pourPatientNom}
+            </Text>
+          </View>
+        )}
+        {!!demande.packNom && (
+          <View style={[S.cartePale, { marginBottom: 12 }]}>
+            <Text style={{ color: C.vertFonce, fontWeight: "700" }}>
+              🎁 {t("pk_bandeau")} {demande.packNom} — {demande.packPrix} DZD
+            </Text>
+          </View>
+        )}
+
         <View style={{ borderWidth: 1, borderColor: C.ligne, borderRadius: 14, overflow: "hidden", marginBottom: 18 }}>
           <Bloc titre={t("pc_recap_service")} valeur={libelleType(typeChoisi, t, langue)} vers="ParcoursBesoin" />
           <Bloc titre={t("pc_recap_trajet")} valeur={lieux} vers="ParcoursLieux" />

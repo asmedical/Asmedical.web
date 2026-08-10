@@ -1201,6 +1201,12 @@ nav.barre > button.actif::after{content:"";position:absolute;bottom:12px;width:4
 
 /* Récapitulatif de l'étape 4 : chaque bloc porte son propre « Modifier » —
    corriger une adresse ne doit pas obliger à refaire tout le parcours. */
+/* Bandeaux du parcours (patient concerné, pack choisi) : dans le flux de la
+   page, pas collés en haut de l'écran comme les bandeaux d'état global. */
+.pc-bandeau{border:1px solid var(--ligne);border-radius:var(--r-s);margin-bottom:14px;
+  white-space:normal;justify-content:space-between;gap:12px}
+.pc-bandeau .pc-lien{margin:0;flex-shrink:0;font-size:13.5px}
+
 .pc-recap{border:1px solid var(--ligne);border-radius:var(--r);overflow:hidden;margin-bottom:18px}
 .pc-recap-ligne{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:13px 15px;
   border-bottom:1px solid var(--ligne)}

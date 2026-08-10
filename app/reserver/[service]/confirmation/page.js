@@ -176,6 +176,19 @@ export default function EtapeConfirmation() {
         <h2 className="titre-page">{t("pc_recap_t")}</h2>
         <Stepper etape="confirmation" />
 
+        {/* Rappel de qui est concerné : sur un compte qui réserve pour
+            plusieurs personnes, confirmer sans le voir est trop facile. */}
+        {d.pourPatientNom && (
+          <div className="bandeau-info pc-bandeau">
+            <span>👤 {t("pp_bandeau")} <strong>{d.pourPatientNom}</strong></span>
+          </div>
+        )}
+        {d.packNom && (
+          <div className="bandeau-info pc-bandeau">
+            <span>🎁 {t("pk_bandeau")} <strong>{d.packNom}</strong> — {d.packPrix} DZD</span>
+          </div>
+        )}
+
         <div className="pc-recap">
           <Bloc titre={t("pc_recap_service")} valeur={libelleType(typeChoisi, t, langue)} vers="besoin" />
           <Bloc titre={t("pc_recap_trajet")} valeur={lieux} vers="lieux" />
