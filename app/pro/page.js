@@ -103,7 +103,7 @@ export default function EspacePro() {
           <strong>{t("pro_bonjour")}</strong>
           <p>{t("pro_p")}</p>
         </div>
-        <Link className="btn-action" href="/rdv">
+        <Link className="btn-action" href="/accueil">
           {t("pro_commander")}
         </Link>
 

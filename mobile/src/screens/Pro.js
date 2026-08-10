@@ -72,11 +72,11 @@ export default function Pro({ navigation }) {
         </>
       )}
 
-      {/* Réservation au nom d'un patient : réutilise l'écran existant. */}
+      {/* Réservation au nom d'un patient : entrée dans le parcours guidé. */}
       <Text style={[S.label, { marginTop: 20, fontSize: 15 }]}>{t("pro_reserver")}</Text>
       {Object.keys(SERVICES_LIB).map((s3) => (
         <View key={s3} style={{ marginBottom: 8 }}>
-          <Bouton titre={SERVICES_LIB[s3]} onPress={() => navigation.navigate("Reservation", { service: s3, espace: "pro" })} />
+          <Bouton titre={SERVICES_LIB[s3]} onPress={() => navigation.navigate("ParcoursBesoin", { service: s3 })} />
         </View>
       ))}
 

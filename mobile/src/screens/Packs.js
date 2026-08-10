@@ -8,12 +8,26 @@ import { C, S } from "../theme";
 import { Charge, SERVICES_LIB } from "../ui";
 import { useLangue } from "../i18n";
 import { apiGet } from "../api";
+import { useParcours } from "../parcours";
 
 const DA = (n) => `${Number(n || 0).toLocaleString("fr-FR")} DZD`;
 
 export default function Packs({ navigation }) {
   const { t, langue } = useLangue();
+  const { reinitialiser } = useParcours();
   const [packs, setPacks] = useState(null);
+
+  // Le pack accompagne la demande jusqu'à l'enregistrement : il conditionne
+  // le prix. On repart d'une feuille blanche et on le pose d'emblée.
+  function choisirPack(p) {
+    reinitialiser({
+      service: p.service,
+      packId: p.id,
+      packNom: langue === "ar" && p.nomAr ? p.nomAr : p.nom,
+      packPrix: p.prix,
+    });
+    navigation.navigate("ParcoursBesoin", { service: p.service });
+  }
 
   const charger = useCallback(() => {
     apiGet("/api/packs")
@@ -52,7 +66,7 @@ export default function Packs({ navigation }) {
             <View style={{ height: 10 }} />
             <TouchableOpacity
               accessibilityRole="button"
-              onPress={() => navigation.navigate("Reservation", { service: p.service, packId: p.id })}
+              onPress={() => choisirPack(p)}
               style={{ minHeight: 50, borderRadius: 12, backgroundColor: C.vert, alignItems: "center", justifyContent: "center" }}
             >
               <Text style={{ color: C.blanc, fontWeight: "800", fontSize: 15.5 }}>{t("pk_reserver")}</Text>

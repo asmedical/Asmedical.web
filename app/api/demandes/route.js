@@ -5,6 +5,7 @@ import { getReglage } from "@/lib/creneaux";
 import { capaciteCreneau, choisirIntervenant } from "@/lib/disponibilites";
 import { logErreur } from "@/lib/log";
 import { autorise } from "@/lib/ratelimit";
+import { construireDemande } from "@/lib/parcours";
 
 // POST /api/demandes — un patient ou un établissement envoie une demande
 export async function POST(req) {
@@ -15,7 +16,14 @@ export async function POST(req) {
       return NextResponse.json({ erreur: "Trop de demandes, réessayez dans une minute." }, { status: 429 });
     }
 
-    const corps = await req.json();
+    let corps = await req.json();
+    // Parcours guidé : le site et l'application envoient l'ÉTAT du parcours,
+    // pas une demande déjà assemblée. L'assemblage se fait ici, une seule
+    // fois, pour les deux supports (voir lib/parcours.js). Les champs bruts
+    // restent en place — l'ancien formulaire continue de poster sa demande
+    // toute faite, sans « parcours ».
+    if (corps?.parcours) corps = { ...corps, ...construireDemande(corps) };
+
     const { service } = corps;
     let { telephone } = corps;
 

@@ -216,7 +216,7 @@ function FormulaireConnexion() {
       return;
     }
     if (type === "pro") routeur.push("/pro");
-    else if (serviceEnCours) routeur.push("/rdv");
+    else if (serviceEnCours) routeur.push(`/reserver/${serviceEnCours}/besoin`);
     else routeur.push("/tableau");
   }
 

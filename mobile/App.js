@@ -11,6 +11,7 @@ import { SafeAreaProvider, useSafeAreaInsets } from "react-native-safe-area-cont
 
 import { LangueProvider, useLangue } from "./src/i18n";
 import { AuthProvider, useAuth } from "./src/auth";
+import { ParcoursProvider } from "./src/parcours";
 import { VerrouProvider, useVerrou } from "./src/verrou";
 import { Bouton } from "./src/ui";
 import { C } from "./src/theme";
@@ -20,7 +21,6 @@ import Connexion from "./src/screens/Connexion";
 import Demarrage from "./src/screens/Demarrage";
 import Entete from "./src/Entete";
 import Accueil from "./src/screens/Accueil";
-import Reservation from "./src/screens/Reservation";
 import MesDemandes from "./src/screens/MesDemandes";
 import Suivi from "./src/screens/Suivi";
 import Messagerie from "./src/screens/Messagerie";
@@ -37,6 +37,12 @@ import Devis from "./src/screens/Devis";
 import Connaitre from "./src/screens/Connaitre";
 import Confidentialite from "./src/screens/Confidentialite";
 import AideConnexion from "./src/screens/AideConnexion";
+import ParcoursBesoin from "./src/screens/ParcoursBesoin";
+import ParcoursUrgence from "./src/screens/ParcoursUrgence";
+import ParcoursAbonnement from "./src/screens/ParcoursAbonnement";
+import ParcoursLieux from "./src/screens/ParcoursLieux";
+import ParcoursCreneau from "./src/screens/ParcoursCreneau";
+import ParcoursConfirmation from "./src/screens/ParcoursConfirmation";
 import Assistant from "./src/Assistant";
 
 // Rôles — MÊME répartition que le site (app/connexion/page.js). Le serveur
@@ -322,7 +328,6 @@ function Racine() {
             }}
           >
             <Pile.Screen name="TabsRacine" component={Racines} options={{ headerShown: false, title: "ASM" }} />
-            <Pile.Screen name="Reservation" component={Reservation} options={{ title: t("rdv_t") }} />
             <Pile.Screen name="Suivi" component={Suivi} options={{ title: t("suivi_t") }} />
             {/* Sections du compte : écrans natifs, plus aucun renvoi vers le
                 navigateur — hormis la suppression de compte et le paiement
@@ -335,6 +340,14 @@ function Racine() {
             <Pile.Screen name="Devis" component={Devis} options={{ title: t("dv_t") }} />
             <Pile.Screen name="Connaitre" component={Connaitre} options={{ title: t("connaitre_t") }} />
             <Pile.Screen name="Confidentialite" component={Confidentialite} options={{ title: t("doc_confidentialite") }} />
+            {/* Parcours de réservation par étapes — les quatre étapes, plus
+                les deux embranchements de l étape 1 (urgence, abonnement). */}
+            <Pile.Screen name="ParcoursBesoin" component={ParcoursBesoin} options={{ title: t("pc_titre") }} />
+            <Pile.Screen name="ParcoursUrgence" component={ParcoursUrgence} options={{ title: t("pc_urgent_t") }} />
+            <Pile.Screen name="ParcoursAbonnement" component={ParcoursAbonnement} options={{ title: t("pc_recurrent_t") }} />
+            <Pile.Screen name="ParcoursLieux" component={ParcoursLieux} options={{ title: t("pc_etape_lieux") }} />
+            <Pile.Screen name="ParcoursCreneau" component={ParcoursCreneau} options={{ title: t("pc_etape_creneau") }} />
+            <Pile.Screen name="ParcoursConfirmation" component={ParcoursConfirmation} options={{ title: t("pc_etape_confirmation") }} />
           </Pile.Navigator>
           {/* Assistant IA superposé (bulle flottante) — sauf dans la messagerie. */}
           {route !== "Messages" && <Assistant navigate={naviguer} />}
@@ -359,8 +372,10 @@ export default function App() {
       <LangueProvider>
         <AuthProvider>
           <VerrouProvider>
+            <ParcoursProvider>
             <StatusBar style="dark" />
             <Racine />
+            </ParcoursProvider>
           </VerrouProvider>
         </AuthProvider>
       </LangueProvider>

@@ -36,7 +36,7 @@ export function Assistant() {
   const reserver = (service) => {
     setOuvert(false);
     choisirService(service);
-    routeur.push(connecte ? "/rdv" : "/connexion?gate=1");
+    routeur.push(connecte ? `/reserver/${service}/besoin` : "/connexion?gate=1");
   };
 
   const jeton = async () => {

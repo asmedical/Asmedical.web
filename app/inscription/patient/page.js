@@ -94,7 +94,7 @@ export default function InscriptionPatient() {
         return;
       }
       seConnecter("patient");
-      routeur.push(serviceEnCours ? "/rdv" : "/tableau");
+      routeur.push(serviceEnCours ? `/reserver/${serviceEnCours}/besoin` : "/tableau");
     } finally {
       setOccupe(false);
     }
