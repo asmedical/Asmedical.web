@@ -99,7 +99,7 @@ export default function PourQui() {
         <div className="champ">
           <label>{t("pr_pour_qui")}</label>
           <div className="chips">
-            <button type="button" className="chip actif">{t("pr_moi")}</button>
+            <button type="button" className="chip actif" onClick={() => choisir(null)}>{t("pr_moi")}</button>
             {rattaches.map((r) => (
               <button type="button" key={r.id} className="chip" onClick={() => choisir(r)}>
                 {r.patientNom || r.patientTel}

@@ -16,6 +16,19 @@ import { useParcours } from "../parcours";
 const JOURS = ["j_dim", "j_lun", "j_mar", "j_mer", "j_jeu", "j_ven", "j_sam"];
 const HEURES = Array.from({ length: 12 }, (_, i) => `${String(7 + i).padStart(2, "0")}:00`);
 
+// Demain par défaut, jamais aujourd'hui : /api/abonnements crée la première
+// prestation à « début + heure ». Un abonnement demandé à 18 h avec un début
+// au jour même produisait un rendez-vous à 8 h... déjà passé.
+const isoJour = (d) => {
+  const p = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+};
+const PROCHAINS = Array.from({ length: 14 }, (_, i) => isoJour(new Date(Date.now() + (i + 1) * 86400000)));
+
+// Classe de véhicule déduite du besoin — sans elle, la régulation ignore
+// qu'il faut un véhicule médicalisé.
+const VEHICULES = { chauffeur_medical: "medicalise", accompagnement: "accompagne", dialyse: "accompagne", chimiotherapie: "accompagne" };
+
 export default function ParcoursAbonnement({ route }) {
   const { t } = useLangue();
   const { demande } = useParcours();
@@ -26,6 +39,7 @@ export default function ParcoursAbonnement({ route }) {
   const [centre, setCentre] = useState("");
   const [domicile, setDomicile] = useState("");
   const [telephone, setTelephone] = useState("");
+  const [debut, setDebut] = useState(PROCHAINS[0]);
   const [etat, setEtat] = useState("saisie"); // saisie | envoi | ok
   const [erreur, setErreur] = useState("");
 
@@ -42,7 +56,9 @@ export default function ParcoursAbonnement({ route }) {
     setEtat("envoi");
     try {
       await apiPost("/api/abonnements", {
-        telephone, jours, heure, centre, domicile, retour: true,
+        telephone, jours, heure, centre, domicile, retour: true, debut,
+        typeTrajet: VEHICULES[type] || "simple",
+        nom: demande.pourPatientNom || undefined,
         notes: type ? `Type : ${type}` : "",
       });
       setEtat("ok");
@@ -81,6 +97,18 @@ export default function ParcoursAbonnement({ route }) {
         <View style={S.ligneChips}>
           {HEURES.map((h) => (
             <Chip key={h} titre={h} actif={heure === h} onPress={() => setHeure(h)} />
+          ))}
+        </View>
+
+        <Text style={S.label}>{t("abo_debut_l")}</Text>
+        <View style={S.ligneChips}>
+          {PROCHAINS.map((j) => (
+            <Chip
+              key={j}
+              titre={j.slice(8) + "/" + j.slice(5, 7)}
+              actif={debut === j}
+              onPress={() => setDebut(j)}
+            />
           ))}
         </View>
 

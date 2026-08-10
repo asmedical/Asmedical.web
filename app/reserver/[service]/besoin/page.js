@@ -22,12 +22,27 @@ export default function EtapeBesoin() {
   const { structure, pret } = useStructure();
 
   const types = structure.types?.[service] || [];
-  if (pret && !types.length) {
+
+  // Rien n'est proposé avant d'avoir la liste du serveur. Les prestations à
+  // domicile viennent du back-office : afficher la liste de secours puis la
+  // remplacer laisserait choisir une prestation qui n'existe pas, et le
+  // récapitulatif final n'aurait plus rien à afficher.
+  if (!pret) {
+    return (
+      <div className="page">
+        <div className="contenu-page">
+          <p className="pc-attente">{t("pc_chargement")}</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!types.length) {
     return (
       <div className="page">
         <div className="contenu-page">
           <p className="sous-page">{t("pc_err_service")}</p>
-          <Link className="btn-action" href="/reserver">{t("pc_retour")}</Link>
+          <Link className="btn-action" href="/accueil">{t("pc_retour")}</Link>
         </div>
       </div>
     );
@@ -51,7 +66,7 @@ export default function EtapeBesoin() {
   return (
     <div className="page">
       <div className="contenu-page">
-        <Link className="btn-retour" href="/reserver">{t("pc_retour")}</Link>
+        <Link className="btn-retour" href="/accueil">{t("pc_retour")}</Link>
         <h2 className="titre-page">{t("pc_besoin_q")}</h2>
         <Stepper etape="besoin" demande={d} />
 

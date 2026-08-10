@@ -15,7 +15,8 @@ import { Bouton, Chip } from "../ui";
 import { useLangue, TEL_AFFICHE } from "../i18n";
 import * as ImagePicker from "expo-image-picker";
 import * as DocumentPicker from "expo-document-picker";
-import { apiPost, API_BASE } from "../api";
+import { File } from "expo-file-system";
+import { apiPost } from "../api";
 import { useParcours, Stepper, validerEtape, libelleType } from "../parcours";
 import { useAuth } from "../auth";
 import Estimation from "../Estimation";
@@ -109,12 +110,18 @@ export default function ParcoursConfirmation({ route, navigation }) {
       // patient peut toujours la déposer depuis « Mes documents ».
       if (livraison && ordonnance && d?.id) {
         try {
-          const fd = new FormData();
-          fd.append("demandeId", String(d.id));
-          fd.append("telephone", demande.telephone);
-          fd.append("fichier", { uri: ordonnance.uri, name: ordonnance.nom, type: ordonnance.type });
-          const r = await fetch(`${API_BASE}/api/demandes/ordonnance`, { method: "POST", body: fd });
-          if (!r.ok) setErreur(t("ord_echec"));
+          // Lecture en base64 plutôt qu'un FormData sur l'URI du fichier :
+          // sur téléphone, l'URI produit régulièrement un fichier VIDE côté
+          // serveur. Le contournement est celui déjà éprouvé dans
+          // « Mes documents », après exactement ce problème.
+          const base64 = await new File(ordonnance.uri).base64();
+          await apiPost("/api/demandes/ordonnance", {
+            demandeId: d.id,
+            telephone: demande.telephone,
+            nom: ordonnance.nom,
+            type: ordonnance.type,
+            base64,
+          });
         } catch {
           setErreur(t("ord_echec"));
         }

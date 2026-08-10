@@ -291,6 +291,15 @@ describe("assemblage de la demande", () => {
     expect(c.sousMode).toBe("urgent");
   });
 
+  it("fait voyager le nom du patient quand on réserve pour quelqu'un d'autre", () => {
+    const c = construireDemande({ ...transport, pourPatient: "0550111222", pourPatientNom: "Fatima B." });
+    expect(c.pourPatient).toBe("0550111222");
+    // Sans le nom, l'équipe ne voit que le numéro du compte réservant —
+    // précisément le cas où la demande devient ingérable.
+    expect(c.nom).toBe("Fatima B.");
+    expect(construireDemande(transport).nom).toBeUndefined();
+  });
+
   it("ne retient la préférence homme/femme que pour le domicile", () => {
     expect(construireDemande({ service: "domicile", depart: "a", prefGenre: "femme" }).prefGenre).toBe("femme");
     // Un transport ne se choisit pas par genre du chauffeur : le champ ne

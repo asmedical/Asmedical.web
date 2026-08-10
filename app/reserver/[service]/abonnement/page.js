@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { useParcours } from "@/app/components/parcours";
+import { vehiculePour } from "@/lib/parcours";
 
 // Besoin régulier (dialyse, chimiothérapie) → parcours abonnement.
 //
@@ -16,6 +17,11 @@ import { useParcours } from "@/app/components/parcours";
 
 const JOURS = ["j_dim", "j_lun", "j_mar", "j_mer", "j_jeu", "j_ven", "j_sam"];
 
+// Demain par défaut, jamais aujourd'hui : /api/abonnements crée la première
+// prestation à « début + heure ». Un abonnement demandé à 18 h avec un début
+// au jour même produisait un rendez-vous à 8 h... déjà passé.
+const DEMAIN = () => new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+
 export default function Abonnement() {
   const { t } = useAsm();
   const { service } = useParams();
@@ -27,6 +33,7 @@ export default function Abonnement() {
   const [domicile, setDomicile] = useState("");
   const [telephone, setTelephone] = useState("");
   const [retour, setRetour] = useState(true);
+  const [debut, setDebut] = useState(DEMAIN);
   const [etat, setEtat] = useState("saisie"); // saisie | envoi | ok
   const [erreur, setErreur] = useState("");
 
@@ -52,6 +59,12 @@ export default function Abonnement() {
           centre,
           domicile,
           retour,
+          debut,
+          // La classe de véhicule découle du besoin, comme pour une demande
+          // ponctuelle : sans elle, la régulation ignore qu'il faut un
+          // véhicule médicalisé.
+          typeTrajet: vehiculePour(service, d?.type),
+          nom: d?.pourPatientNom || undefined,
           notes: d?.type ? `Type : ${d.type}` : "",
         }),
       });
@@ -109,6 +122,11 @@ export default function Abonnement() {
               return <option value={v} key={v}>{h}h00</option>;
             })}
           </select>
+        </div>
+
+        <div className="champ">
+          <label>{t("abo_debut_l")}</label>
+          <input type="date" value={debut} min={DEMAIN()} onChange={(e) => setDebut(e.target.value)} />
         </div>
 
         <div className="champ">
