@@ -1,11 +1,17 @@
-// Mes rendez-vous : la liste réelle des demandes du patient.
+// Mes rendez-vous — MÊME présentation que le tableau de bord du site
+// (app/tableau/page.js) : un mot d'accueil, les demandes désignées par leur
+// service et non par un numéro de dossier, et le bouton de nouvelle demande
+// toujours accessible en bas.
 import React, { useCallback, useState } from "react";
 import { Text, ScrollView, TouchableOpacity, RefreshControl, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { C, S } from "../theme";
-import { Pastille, Charge, SERVICES_LIB } from "../ui";
+import { Pastille, Charge, Bouton, SERVICES_LIB } from "../ui";
 import { useLangue } from "../i18n";
 import { apiGet } from "../api";
+import { IcoVehicule, IcoMaison, IcoMedicaments } from "../icones";
+
+const ICONES = { transport: IcoVehicule, domicile: IcoMaison, medicaments: IcoMedicaments };
 
 export default function MesDemandes({ navigation }) {
   const { t } = useLangue();
@@ -23,26 +29,62 @@ export default function MesDemandes({ navigation }) {
     <ScrollView
       style={S.ecran}
       contentContainerStyle={S.contenu}
-      refreshControl={<RefreshControl refreshing={rafraichit} onRefresh={() => { setRafraichit(true); charger(); setTimeout(() => setRafraichit(false), 600); }} tintColor={C.vert} />}
+      refreshControl={
+        <RefreshControl
+          refreshing={rafraichit}
+          onRefresh={() => { setRafraichit(true); charger(); setTimeout(() => setRafraichit(false), 600); }}
+          tintColor={C.vert}
+        />
+      }
     >
       <Text style={S.h1}>{t("mes_rdv_t")}</Text>
+
+      {/* Mot d'accueil : le site en ouvre son tableau de bord. */}
+      <View style={S.cartePale}>
+        <Text style={{ fontWeight: "800", color: C.vertFonce, fontSize: 16 }}>{t("bonjour")}</Text>
+        <Text style={{ color: C.gris, marginTop: 3 }}>{t("bienvenue_p")}</Text>
+      </View>
+
       {demandes === null && <Charge />}
-      {demandes?.length === 0 && <Text style={S.vide}>{t("aucune_demande")}</Text>}
-      {(demandes || []).map((d) => (
-        <TouchableOpacity key={d.id} style={S.carte} activeOpacity={0.7} onPress={() => navigation.navigate("Suivi", { id: d.id })}>
-          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-            <Text style={{ fontWeight: "800", color: C.encre, fontSize: 15.5, flex: 1 }}>
-              n°{d.id} · {SERVICES_LIB[d.service] || d.service}
-              {d.avis ? `  ${"★".repeat(d.avis.note)}` : ""}
-            </Text>
+      {demandes?.length === 0 && <Text style={S.vide}>{t("tableau_vide")}</Text>}
+
+      {(demandes || []).map((d) => {
+        const Icone = ICONES[d.service] || IcoVehicule;
+        return (
+          <TouchableOpacity
+            key={d.id}
+            style={[S.carte, { flexDirection: "row", alignItems: "center", marginBottom: 10 }]}
+            activeOpacity={0.7}
+            onPress={() => navigation.navigate("Suivi", { id: d.id })}
+          >
+            <View
+              style={{
+                width: 44, height: 44, borderRadius: 22, backgroundColor: C.vertPale,
+                alignItems: "center", justifyContent: "center", marginRight: 12,
+              }}
+            >
+              <Icone couleur={C.vertFonce} taille={22} />
+            </View>
+            <View style={{ flex: 1 }}>
+              {/* Le nom du service, pas « n°128 » : un numéro de dossier ne
+                  dit rien à un patient. */}
+              <Text style={{ fontWeight: "800", color: C.encre, fontSize: 15.5 }}>
+                {SERVICES_LIB[d.service] || d.service}
+                {d.avis ? `  ${"★".repeat(d.avis.note)}` : ""}
+              </Text>
+              <Text style={{ color: C.gris, marginTop: 3, fontSize: 13.5 }}>
+                {d.date ? d.date.replace("T", " · ") : "—"}
+                {d.destination ? ` · ${d.destination}` : ""}
+              </Text>
+            </View>
             <Pastille statut={d.statut} />
-          </View>
-          <Text style={{ color: C.gris, marginTop: 4 }}>
-            {d.date ? d.date.replace("T", " à ") : "—"}
-            {d.destination ? ` · ${d.destination}` : ""}
-          </Text>
-        </TouchableOpacity>
-      ))}
+          </TouchableOpacity>
+        );
+      })}
+
+      <View style={{ height: 8 }} />
+      <Bouton titre={t("nouvelle")} onPress={() => navigation.navigate("Reserver")} />
+      <View style={{ height: 20 }} />
     </ScrollView>
   );
 }

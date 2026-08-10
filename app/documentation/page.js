@@ -21,6 +21,21 @@ function tailleLisible(o) {
   if (o < 1024 * 1024) return Math.round(o / 1024) + " Ko";
   return (o / (1024 * 1024)).toFixed(1) + " Mo";
 }
+// Un téléphone nomme ses photos avec un identifiant technique
+// (« 1d79baea-2560-4e… »). Illisible dans une liste de documents médicaux :
+// on lui substitue un intitulé daté, compréhensible par n'importe qui.
+function nomLisible(nom, type, t) {
+  const brut = (nom || "").trim();
+  const technique =
+    !brut ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(brut) ||
+    /^(image|img|photo|fullsizerender|tmp)[-_]?\d*\.[a-z]+$/i.test(brut);
+  if (!technique) return brut.slice(0, 120);
+  const jour = new Date().toLocaleDateString("fr-FR");
+  const prefixe = type === "application/pdf" ? t("doc_defaut_pdf") : t("doc_defaut_photo");
+  return prefixe + " " + jour;
+}
+
 function nettoyerNom(nom) {
   return nom.replace(/[^\w.\-]+/g, "_").slice(0, 80);
 }
@@ -134,7 +149,7 @@ export default function Documentation() {
       if (eUp) throw new Error("Stockage : " + (eUp.message || "erreur inconnue"));
       const { error: eMeta } = await supabase.from("document").insert({
         patient_id: user.id,
-        nom: fichier.name.slice(0, 120),
+        nom: nomLisible(fichier.name, fichier.type, t),
         type: fichier.type,
         taille: fichier.size,
         chemin,

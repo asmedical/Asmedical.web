@@ -18,6 +18,7 @@ import { IcoCalendrier, IcoBulle, IcoPlus, IcoDocumentLignes, IcoPersonne, IcoSt
 import { deconnexion } from "./src/supabase";
 import Connexion from "./src/screens/Connexion";
 import Demarrage from "./src/screens/Demarrage";
+import Entete from "./src/Entete";
 import Accueil from "./src/screens/Accueil";
 import Reservation from "./src/screens/Reservation";
 import MesDemandes from "./src/screens/MesDemandes";
@@ -143,7 +144,12 @@ function avecZoneSure(Composant) {
     const insets = useSafeAreaInsets();
     return (
       <View style={{ flex: 1, paddingTop: insets.top, backgroundColor: C.blanc }}>
-        <Composant {...props} />
+        {/* En-tête commun (bandeau d appel, logo, langue) — le site le pose
+            sur chaque page ; l application faisait l impasse. */}
+        <Entete />
+        <View style={{ flex: 1 }}>
+          <Composant {...props} />
+        </View>
       </View>
     );
   };

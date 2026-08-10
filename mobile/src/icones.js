@@ -76,3 +76,61 @@ export function IcoEtablissement({ couleur, taille = 24 }) {
     </Svg>
   );
 }
+
+// --- Services et actions : mêmes tracés que le site (app/components/icones.js).
+// Les émojis 🚑 🏠 💊 donnaient à l'application un air d'ébauche là où le site
+// inspire confiance. Sur une plateforme médicale, ce n'est pas un détail.
+export function IcoVehicule({ couleur, taille = 24 }) {
+  return (
+    <Svg {...base(couleur, 1.7)} width={taille} height={taille}>
+      <Path d="M3 16v-4l2-5h10l2 3h3a1 1 0 0 1 1 1v5h-2" />
+      <Circle cx="7.5" cy="16.5" r="1.8" />
+      <Circle cx="16.5" cy="16.5" r="1.8" />
+      <Path d="M9.3 16.5h5.4M3 16h2.7" />
+    </Svg>
+  );
+}
+
+export function IcoMaison({ couleur, taille = 24 }) {
+  return (
+    <Svg {...base(couleur, 1.7)} width={taille} height={taille}>
+      <Path d="M3 11.5 12 4l9 7.5" />
+      <Path d="M5.5 10v9h13v-9" />
+      <Path d="M12 12v4M10 14h4" />
+    </Svg>
+  );
+}
+
+export function IcoMedicaments({ couleur, taille = 24 }) {
+  return (
+    <Svg {...base(couleur, 1.7)} width={taille} height={taille}>
+      <Rect x="4.5" y="9" width="15" height="11" rx="2" />
+      <Path d="M9 9V6.5A2.5 2.5 0 0 1 11.5 4h1A2.5 2.5 0 0 1 15 6.5V9" />
+      <Path d="M12 12.5v4M10 14.5h4" />
+    </Svg>
+  );
+}
+
+export function IcoCorbeille({ couleur, taille = 22 }) {
+  return (
+    <Svg {...base(couleur, 1.8)} width={taille} height={taille}>
+      <Path d="M4 7h16M9 7V5a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2M6 7l1 13a1 1 0 0 0 1 1h8a1 1 0 0 0 1-1l1-13M10 11v6M14 11v6" />
+    </Svg>
+  );
+}
+
+export function IcoOuvrir({ couleur, taille = 22 }) {
+  return (
+    <Svg {...base(couleur, 1.8)} width={taille} height={taille}>
+      <Path d="M14 4h6v6M20 4l-9 9M18 14v4a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4" />
+    </Svg>
+  );
+}
+
+export function IcoTelephone({ couleur, taille = 18 }) {
+  return (
+    <Svg {...base(couleur, 2)} width={taille} height={taille}>
+      <Path d="M6.5 3h3l1.5 4-2 1.5a11 11 0 0 0 4.5 4.5L15 11l4 1.5v3a2 2 0 0 1-2.2 2A16 16 0 0 1 4.5 5.2 2 2 0 0 1 6.5 3z" />
+    </Svg>
+  );
+}

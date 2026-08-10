@@ -91,7 +91,10 @@ export default function Messagerie() {
   const nonLues = (notifs || []).filter((n) => n.statut === "NON_LU").length;
 
   const Onglets = () => (
-    <View style={{ flexDirection: "row", backgroundColor: C.vertPale, borderRadius: 14, padding: 4, margin: 14, marginBottom: 8 }}>
+    <View>
+      <Text style={[S.h1, { paddingHorizontal: 14, marginBottom: 2 }]}>{t("mamsg_t")}</Text>
+      <Text style={[S.sous, { paddingHorizontal: 14 }]}>{t("mamsg_s")}</Text>
+      <View style={{ flexDirection: "row", backgroundColor: C.vertPale, borderRadius: 14, padding: 4, margin: 14, marginBottom: 8 }}>
       {[
         ["chat", t("msg_onglet_chat"), 0],
         ["notifs", t("msg_onglet_notifs"), nonLues],
@@ -108,6 +111,7 @@ export default function Messagerie() {
           </Text>
         </TouchableOpacity>
       ))}
+      </View>
     </View>
   );
 
