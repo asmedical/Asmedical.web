@@ -22,6 +22,16 @@ const PAGES_INFOS = [
   { cle: "doc_confidentialite", chemin: "/confidentialite" },
 ];
 
+// Sections du compte qui existent sur le site mais pas encore en écran natif.
+// Y renvoyer vaut mieux que de laisser croire qu'elles n'existent pas : un
+// patient doit pouvoir gérer ses proches et voir ses factures depuis son
+// téléphone, même si l'écran est celui du site.
+const PAGES_COMPTE = [
+  { cle: "cpt_paiements", chemin: "/compte/paiements" },
+  { cle: "cpt_proches", chemin: "/compte/proches" },
+  { cle: "cpt_preferences", chemin: "/compte/preferences" },
+];
+
 function Ligne({ label, valeur }) {
   return (
     <View style={{ flexDirection: "row", justifyContent: "space-between", paddingVertical: 9, borderBottomWidth: 1, borderColor: C.ligne }}>
@@ -164,6 +174,19 @@ export default function Profil() {
           </View>
         </>
       )}
+
+      <Text style={S.h2}>{t("cpt_t")}</Text>
+      {PAGES_COMPTE.map((p) => (
+        <TouchableOpacity
+          key={p.cle}
+          accessibilityRole="link"
+          onPress={() => Linking.openURL(`${API_BASE}${p.chemin}`).catch(() => {})}
+          style={[S.carte, { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8, minHeight: 54 }]}
+        >
+          <Text style={{ flex: 1, color: C.encre, fontWeight: "700", fontSize: 15 }}>{t(p.cle)}</Text>
+          <Text style={{ color: C.gris, fontSize: 18 }}>›</Text>
+        </TouchableOpacity>
+      ))}
 
       <Text style={S.h2}>{t("infos_t")}</Text>
       {PAGES_INFOS.map((p) => (
