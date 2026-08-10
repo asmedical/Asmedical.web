@@ -31,6 +31,12 @@ import Pro from "./src/screens/Pro";
 import Preferences from "./src/screens/Preferences";
 import Proches from "./src/screens/Proches";
 import Paiements from "./src/screens/Paiements";
+import Packs from "./src/screens/Packs";
+import Abonnements from "./src/screens/Abonnements";
+import Devis from "./src/screens/Devis";
+import Connaitre from "./src/screens/Connaitre";
+import Confidentialite from "./src/screens/Confidentialite";
+import AideConnexion from "./src/screens/AideConnexion";
 import Assistant from "./src/Assistant";
 
 // Rôles — MÊME répartition que le site (app/connexion/page.js). Le serveur
@@ -324,6 +330,11 @@ function Racine() {
             <Pile.Screen name="Preferences" component={Preferences} options={{ title: t("ps_t") }} />
             <Pile.Screen name="Proches" component={Proches} options={{ title: t("pr_t") }} />
             <Pile.Screen name="Paiements" component={Paiements} options={{ title: t("pf_t") }} />
+            <Pile.Screen name="Packs" component={Packs} options={{ title: t("pk_t") }} />
+            <Pile.Screen name="Abonnements" component={Abonnements} options={{ title: t("abo_t2") }} />
+            <Pile.Screen name="Devis" component={Devis} options={{ title: t("dv_t") }} />
+            <Pile.Screen name="Connaitre" component={Connaitre} options={{ title: t("connaitre_t") }} />
+            <Pile.Screen name="Confidentialite" component={Confidentialite} options={{ title: t("doc_confidentialite") }} />
           </Pile.Navigator>
           {/* Assistant IA superposé (bulle flottante) — sauf dans la messagerie. */}
           {route !== "Messages" && <Assistant navigate={naviguer} />}
@@ -335,6 +346,7 @@ function Racine() {
         <Pile.Navigator screenOptions={{ headerShown: false }}>
           <Pile.Screen name="Demarrage" component={Demarrage} />
           <Pile.Screen name="Connexion" component={Connexion} />
+          <Pile.Screen name="AideConnexion" component={AideConnexion} />
         </Pile.Navigator>
       )}
     </NavigationContainer>
