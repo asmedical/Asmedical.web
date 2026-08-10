@@ -3,7 +3,7 @@
 // minimal ; les méthodes secondaires et l'assistance sont rangées dans deux
 // accordéons FERMÉS par défaut.
 import React, { useEffect, useState } from "react";
-import { View, Text, TextInput, ScrollView, Image, TouchableOpacity, Linking, KeyboardAvoidingView, Platform } from "react-native";
+import { View, Text, TextInput, ScrollView, Image, TouchableOpacity, KeyboardAvoidingView, Platform } from "react-native";
 import { C, S } from "../theme";
 import { Bouton, Chip, proposerAppel, ChampMotDePasse } from "../ui";
 import { useLangue, TEL_AFFICHE } from "../i18n";
@@ -17,7 +17,7 @@ import {
   normaliserTel,
   supabaseConfigure,
 } from "../supabase";
-import { API_BASE, apiPost, apiGet } from "../api";
+import { apiPost, apiGet } from "../api";
 import { useAuth } from "../auth";
 
 const INDICATIFS = ["+213", "+33", "+216", "+212", "+32", "+41", "+49", "+44", "+1", "+34", "+39"];
@@ -260,9 +260,10 @@ export default function Connexion({ route, navigation }) {
   }
 
   const ouvrirSms = () => { setVue("sms"); setEtape("tel"); setViaEmail(false); setErreur(""); };
-  // Les parcours « mot de passe oublié » et « code SMS non reçu » vivent sur
-  // le site : on y renvoie plutôt que de dupliquer la logique dans l'app.
-  const ouvrirAideWeb = (sujet) => Linking.openURL(`${API_BASE}/aide-connexion?sujet=${sujet}`).catch(() => {});
+  // Aide à la connexion : écran natif. C'est justement l'endroit où l'on
+  // arrive quand on n'arrive pas à se connecter — envoyer vers un navigateur
+  // où il faudrait se connecter n'avait aucun sens.
+  const ouvrirAide = (sujet) => navigation.navigate("AideConnexion", { sujet });
 
   const Entete = () => (
     <View style={{ alignItems: "center", marginBottom: 20 }}>
@@ -502,9 +503,9 @@ export default function Connexion({ route, navigation }) {
 
         {/* Accordéon 2 : besoin d'aide ? */}
         <Accordeon titre={t("aide_lien")} ouvert={accAide} onPress={() => setAccAide(!accAide)}>
-          <ItemAide titre={t("aide_mdp_t")} onPress={() => ouvrirAideWeb("mdp")} />
+          <ItemAide titre={t("aide_mdp_t")} onPress={() => ouvrirAide("mdp")} />
           <ItemAide titre={t("aide_id_t")} onPress={ouvrirSms} />
-          <ItemAide titre={t("aide_code_t")} onPress={() => ouvrirAideWeb("code_sms")} />
+          <ItemAide titre={t("aide_code_t")} onPress={() => ouvrirAide("code_sms")} />
           <TouchableOpacity onPress={() => proposerAppel(t)} style={{ paddingTop: 15 }} accessibilityRole="button">
             <Text style={{ fontSize: 15.5, fontWeight: "700", color: C.encre }}>{t("auth_conseiller")}</Text>
             <Text style={{ color: C.vert, fontWeight: "800", marginTop: 4 }}>{TEL_AFFICHE}</Text>

@@ -163,3 +163,21 @@ export async function definirEmailMotDePasse(email, password) {
 export async function deconnexion() {
   if (supabase) await supabase.auth.signOut();
 }
+
+// Mot de passe oublié : code envoyé à une adresse DÉJÀ inscrite
+// (shouldCreateUser: false — sans quoi une faute de frappe créerait un
+// compte fantôme au lieu de signaler l'erreur).
+export async function envoyerCodeEmail(email) {
+  if (!supabase) throw new Error("config");
+  const { error } = await supabase.auth.signInWithOtp({
+    email,
+    options: { shouldCreateUser: false },
+  });
+  if (error) throw error;
+}
+
+export async function changerMotDePasse(nouveau) {
+  if (!supabase) throw new Error("config");
+  const { error } = await supabase.auth.updateUser({ password: nouveau });
+  if (error) throw error;
+}

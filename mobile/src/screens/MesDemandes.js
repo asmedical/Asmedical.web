@@ -3,12 +3,12 @@
 // service et non par un numéro de dossier, et le bouton de nouvelle demande
 // toujours accessible en bas.
 import React, { useCallback, useState } from "react";
-import { Text, ScrollView, TouchableOpacity, RefreshControl, View, Linking } from "react-native";
+import { Text, ScrollView, TouchableOpacity, RefreshControl, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { C, S } from "../theme";
 import { Pastille, Charge, Bouton, SERVICES_LIB } from "../ui";
 import { useLangue } from "../i18n";
-import { apiGet, API_BASE } from "../api";
+import { apiGet } from "../api";
 import { IcoVehicule, IcoMaison, IcoMedicaments } from "../icones";
 
 const ICONES = { transport: IcoVehicule, domicile: IcoMaison, medicaments: IcoMedicaments };
@@ -17,7 +17,7 @@ const ICONES = { transport: IcoVehicule, domicile: IcoMaison, medicaments: IcoMe
 // lui, un patient en retard de paiement ne l'apprenait jamais depuis
 // l'application. Le règlement se fait sur le site : il s'agit d'un service
 // réel (transport, aide à domicile), pas d'un achat dans l'application.
-function RappelPaiement({ t }) {
+function RappelPaiement({ t, navigation }) {
   const [resume, setResume] = useState(null);
 
   useFocusEffect(
@@ -35,7 +35,7 @@ function RappelPaiement({ t }) {
   return (
     <TouchableOpacity
       accessibilityRole="button"
-      onPress={() => Linking.openURL(`${API_BASE}/compte/paiements`).catch(() => {})}
+      onPress={() => navigation.navigate("Paiements")}
       style={[
         S.carte,
         {
@@ -88,7 +88,7 @@ export default function MesDemandes({ navigation }) {
         <Text style={{ color: C.gris, marginTop: 3 }}>{t("bienvenue_p")}</Text>
       </View>
 
-      <RappelPaiement t={t} />
+      <RappelPaiement t={t} navigation={navigation} />
 
       {demandes === null && <Charge />}
       {demandes?.length === 0 && <Text style={S.vide}>{t("tableau_vide")}</Text>}

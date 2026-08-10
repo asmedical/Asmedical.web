@@ -1,6 +1,6 @@
 // Profil : informations du compte, langue, notifications, déconnexion.
 import React, { useCallback, useState } from "react";
-import { View, Text, TextInput, ScrollView, Alert, TouchableOpacity, Linking } from "react-native";
+import { View, Text, TextInput, ScrollView, Alert, TouchableOpacity } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { C, S } from "../theme";
 import { Bouton, Chip, ChampMotDePasse } from "../ui";
@@ -8,28 +8,27 @@ import { useLangue } from "../i18n";
 import { useAuth } from "../auth";
 import { useVerrou, typeBiometrie } from "../verrou";
 import { deconnexion, definirEmailMotDePasse } from "../supabase";
-import { apiPost, API_BASE } from "../api";
+import { apiPost } from "../api";
 
-// Pages d'information (offres, devis, confidentialité). Elles vivent sur le
-// site : plutôt qu'une copie qui divergerait, on y renvoie. Leur place est
-// ici, dans les réglages — pas dans la barre du bas, réservée à ce qu'on
-// utilise vraiment tous les jours.
+// Pages d'information — écrans natifs. Leur place est ici, dans les
+// réglages, pas dans la barre du bas réservée à l'usage quotidien.
 const PAGES_INFOS = [
-  { cle: "doc_packs", chemin: "/packs" },
-  { cle: "doc_abonnements", chemin: "/abonnements" },
-  { cle: "doc_devis", chemin: "/devis" },
-  { cle: "doc_connaitre", chemin: "/connaitre" },
-  { cle: "doc_confidentialite", chemin: "/confidentialite" },
+  { cle: "doc_packs", ecran: "Packs" },
+  { cle: "doc_abonnements", ecran: "Abonnements" },
+  { cle: "doc_devis", ecran: "Devis" },
+  { cle: "doc_connaitre", ecran: "Connaitre" },
+  { cle: "doc_confidentialite", ecran: "Confidentialite" },
 ];
 
 // Sections du compte qui existent sur le site mais pas encore en écran natif.
 // Y renvoyer vaut mieux que de laisser croire qu'elles n'existent pas : un
 // patient doit pouvoir gérer ses proches et voir ses factures depuis son
 // téléphone, même si l'écran est celui du site.
+// Écrans natifs : on ne renvoie plus vers le navigateur.
 const PAGES_COMPTE = [
-  { cle: "cpt_paiements", chemin: "/compte/paiements" },
-  { cle: "cpt_proches", chemin: "/compte/proches" },
-  { cle: "cpt_preferences", chemin: "/compte/preferences" },
+  { cle: "cpt_paiements", ecran: "Paiements" },
+  { cle: "cpt_proches", ecran: "Proches" },
+  { cle: "cpt_preferences", ecran: "Preferences" },
 ];
 
 function Ligne({ label, valeur }) {
@@ -41,7 +40,7 @@ function Ligne({ label, valeur }) {
   );
 }
 
-export default function Profil() {
+export default function Profil({ navigation }) {
   const { t, langue, setLangue } = useLangue();
   const { profil, user, rafraichirProfil } = useAuth();
   const [suppEnCours, setSuppEnCours] = useState(false);
@@ -180,7 +179,7 @@ export default function Profil() {
         <TouchableOpacity
           key={p.cle}
           accessibilityRole="link"
-          onPress={() => Linking.openURL(`${API_BASE}${p.chemin}`).catch(() => {})}
+          onPress={() => navigation.navigate(p.ecran)}
           style={[S.carte, { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8, minHeight: 54 }]}
         >
           <Text style={{ flex: 1, color: C.encre, fontWeight: "700", fontSize: 15 }}>{t(p.cle)}</Text>
@@ -193,7 +192,7 @@ export default function Profil() {
         <TouchableOpacity
           key={p.cle}
           accessibilityRole="link"
-          onPress={() => Linking.openURL(`${API_BASE}${p.chemin}`).catch(() => {})}
+          onPress={() => navigation.navigate(p.ecran)}
           style={[S.carte, { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8, minHeight: 54 }]}
         >
           <Text style={{ flex: 1, color: C.encre, fontWeight: "700", fontSize: 15 }}>{t(p.cle)}</Text>
