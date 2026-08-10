@@ -11,11 +11,13 @@ const adapter = (chemin) =>
     .replaceAll('from "@/lib/telephones"', 'from "./telephones.js"')
     .replaceAll('await import("@/lib/telephones")', 'await import("./telephones.js")')
     .replaceAll('from "@/lib/creneaux"', 'from "./creneaux.js"')
-    .replaceAll('from "@/lib/trajets"', 'from "./trajets.js"');
+    .replaceAll('from "@/lib/trajets"', 'from "./trajets.js"')
+    .replaceAll('from "@/lib/parcours"', 'from "./parcours.js"');
 fs.writeFileSync(".test-fin/telephones.js", adapter("lib/telephones.js"));
 fs.writeFileSync(".test-fin/preferences.js", adapter("lib/preferences.js"));
 fs.writeFileSync(".test-fin/creneaux.js", adapter("lib/creneaux.js"));
 fs.writeFileSync(".test-fin/trajets.js", adapter("lib/trajets.js"));
+fs.writeFileSync(".test-fin/parcours.js", adapter("lib/parcours.js"));
 fs.writeFileSync(".test-fin/disponibilites.js", adapter("lib/disponibilites.js"));
 
 const { enregistrerPreferences, preferencesPourTel, soignantsConnus, consignesIntervenant } =

@@ -13,11 +13,13 @@ const adapter = (chemin) =>
     .replaceAll('from "@/lib/creneaux"', 'from "./creneaux.js"')
     .replaceAll('from "@/lib/trajets"', 'from "./trajets.js"')
     .replaceAll('from "@/lib/disponibilites"', 'from "./disponibilites.js"')
+    .replaceAll('from "@/lib/parcours"', 'from "./parcours.js"')
     .replaceAll('await import("@/lib/pushEnvoi")', 'await import("./pushEnvoi.js")');
 fs.writeFileSync(".test-fin/telephones.js", adapter("lib/telephones.js"));
 fs.writeFileSync(".test-fin/geoloc.js", adapter("lib/geoloc.js"));
 fs.writeFileSync(".test-fin/creneaux.js", adapter("lib/creneaux.js"));
 fs.writeFileSync(".test-fin/trajets.js", adapter("lib/trajets.js"));
+fs.writeFileSync(".test-fin/parcours.js", adapter("lib/parcours.js"));
 fs.writeFileSync(".test-fin/disponibilites.js", adapter("lib/disponibilites.js"));
 fs.writeFileSync(".test-fin/trajetLive.js", adapter("lib/trajetLive.js"));
 fs.writeFileSync(".test-fin/attente.js", adapter("lib/attente.js"));
