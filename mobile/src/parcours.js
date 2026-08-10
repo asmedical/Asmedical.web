@@ -64,6 +64,22 @@ export function estRecurrent(structure, service, type) {
   return !!(structure.types?.[service] || []).find((x) => x.cle === type)?.recurrent;
 }
 
+// Durée réelle de la prestation : elle fixe la longueur du créneau réservé
+// et le nombre d'heures facturées. Pour le domicile, elle vient des actes
+// configurés en back-office — jamais d'une valeur figée dans l'application.
+export function dureePour(structure, service, type) {
+  const ty = (structure?.types || {})[service]?.find((x) => x.cle === type);
+  return Math.min(Math.max(Number(ty?.duree) || 60, 15), 480);
+}
+
+// Intitulé d'un type de demande. Les types du code portent une clé de
+// traduction ; ceux configurés en back-office portent leur texte tel quel.
+export function libelleType(ty, t, langue) {
+  if (!ty) return "";
+  if (ty.texte) return langue === "ar" && ty.texteAr ? ty.texteAr : ty.texte;
+  return t(ty.libelle);
+}
+
 export function validerEtape(structure, etape, d = {}) {
   const manque = [];
   if (etape === "besoin") {

@@ -2,15 +2,20 @@
 //
 // Une seule question à l'écran. L'ancien formulaire empilait tout sur une
 // page ; pour une personne âgée sur un téléphone, cela ne tient pas.
+//
+// Pour le domicile, les prestations proposées sont celles configurées en
+// back-office, avec leur durée : c'est elle qui fixe la longueur du créneau
+// réservé — une injection de vingt minutes ne doit pas bloquer une heure de
+// soignant.
 import React from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { C, S } from "../theme";
 import { Charge } from "../ui";
 import { useLangue } from "../i18n";
-import { useParcours, Stepper, estRecurrent, validerEtape } from "../parcours";
+import { useParcours, Stepper, estRecurrent, validerEtape, dureePour, libelleType } from "../parcours";
 
 export default function ParcoursBesoin({ route, navigation }) {
-  const { t } = useLangue();
+  const { t, langue } = useLangue();
   const { structure, pret, demande, maj } = useParcours();
   const service = route?.params?.service || demande.service;
 
@@ -18,8 +23,9 @@ export default function ParcoursBesoin({ route, navigation }) {
 
   const types = structure.types?.[service] || [];
 
-  function choisir(type) {
-    maj({ service, type });
+  function choisir(ty) {
+    const type = ty.cle;
+    maj({ service, type, duree: dureePour(structure, service, type) });
     // Dialyse, chimiothérapie : besoin régulier → parcours abonnement.
     // Aucun créneau temps réel n'est affiché pour un abonnement.
     if (estRecurrent(structure, service, type)) {
@@ -41,7 +47,7 @@ export default function ParcoursBesoin({ route, navigation }) {
       {types.map((ty) => (
         <TouchableOpacity
           key={ty.cle}
-          onPress={() => choisir(ty.cle)}
+          onPress={() => choisir(ty)}
           accessibilityRole="button"
           style={[
             S.carte,
@@ -49,7 +55,16 @@ export default function ParcoursBesoin({ route, navigation }) {
             demande.type === ty.cle && { borderColor: C.vert, backgroundColor: C.vertPale },
           ]}
         >
-          <Text style={{ fontSize: 16.5, fontWeight: "800", color: C.encre }}>{t(ty.libelle)}</Text>
+          <Text style={{ fontSize: 16.5, fontWeight: "800", color: C.encre }}>
+            {libelleType(ty, t, langue)}
+          </Text>
+          {/* La durée est annoncée avant de choisir : elle change le créneau
+              réservé et le montant facturé. */}
+          {!!ty.duree && (
+            <Text style={{ fontSize: 14, color: C.gris, marginTop: 2 }}>
+              ≈ {ty.duree} {t("duree_min")}
+            </Text>
+          )}
         </TouchableOpacity>
       ))}
 

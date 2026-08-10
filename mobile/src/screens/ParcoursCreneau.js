@@ -45,13 +45,16 @@ export default function ParcoursCreneau({ route, navigation }) {
     const u = new URLSearchParams({ service, mois: cleMois });
     if (demande.commune) u.set("commune", demande.commune);
     if (demande.typeTrajet) u.set("typeTrajet", demande.typeTrajet);
+    // La durée de la prestation change les jours ouvrables : une garde de
+    // trois heures ne tient pas dans les mêmes journées qu'une injection.
+    if (demande.duree) u.set("duree", String(demande.duree));
     setJours(null);
     setErreur("");
     apiGet(`/api/disponibilites?${u}`)
       .then((j) => { if (!annule) setJours(j?.jours || []); })
       .catch(() => { if (!annule) { setJours([]); setErreur(t("err_serveur")); } });
     return () => { annule = true; };
-  }, [cleMois, service, demande.commune, demande.typeTrajet]);
+  }, [cleMois, service, demande.commune, demande.typeTrajet, demande.duree]);
 
   useEffect(() => {
     if (!jourChoisi) return;
@@ -59,6 +62,7 @@ export default function ParcoursCreneau({ route, navigation }) {
     const u = new URLSearchParams({ service, jour: jourChoisi });
     if (demande.commune) u.set("commune", demande.commune);
     if (demande.typeTrajet) u.set("typeTrajet", demande.typeTrajet);
+    if (demande.duree) u.set("duree", String(demande.duree));
     setCharge(true);
     setErreur("");
     apiGet(`/api/creneaux?${u}`)
@@ -70,7 +74,7 @@ export default function ParcoursCreneau({ route, navigation }) {
       .catch(() => { if (!annule) setErreur(t("err_serveur")); })
       .finally(() => { if (!annule) setCharge(false); });
     return () => { annule = true; };
-  }, [jourChoisi, service, demande.commune, demande.typeTrajet]);
+  }, [jourChoisi, service, demande.commune, demande.typeTrajet, demande.duree]);
 
   const choisirJour = (iso) => { setManque([]); maj({ jour: iso, iso: "", fenetre: "" }); };
 

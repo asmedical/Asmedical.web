@@ -14,11 +14,11 @@ import { C, S } from "../theme";
 import { Bouton, Chip } from "../ui";
 import { useLangue, TEL_AFFICHE } from "../i18n";
 import { apiPost } from "../api";
-import { useParcours, Stepper, validerEtape } from "../parcours";
+import { useParcours, Stepper, validerEtape, libelleType } from "../parcours";
 import { useAuth } from "../auth";
 
 export default function ParcoursConfirmation({ route, navigation }) {
-  const { t } = useLangue();
+  const { t, langue } = useLangue();
   const { structure, demande, maj, reinitialiser } = useParcours();
   const auth = useAuth();
   const service = route?.params?.service || demande.service;
@@ -131,7 +131,7 @@ export default function ParcoursConfirmation({ route, navigation }) {
       </View>
     ) : null;
 
-  const typeLib = (structure.types?.[service] || []).find((x) => x.cle === demande.type)?.libelle;
+  const typeChoisi = (structure.types?.[service] || []).find((x) => x.cle === demande.type);
   const fenetreLib = (structure.fenetres || []).find((f) => f.cle === demande.fenetre)?.libelle;
   const quand = livraison
     ? [demande.jour, fenetreLib && t(fenetreLib)].filter(Boolean).join(" · ")
@@ -153,7 +153,7 @@ export default function ParcoursConfirmation({ route, navigation }) {
         <Stepper etape="confirmation" />
 
         <View style={{ borderWidth: 1, borderColor: C.ligne, borderRadius: 14, overflow: "hidden", marginBottom: 18 }}>
-          <Bloc titre={t("pc_recap_service")} valeur={typeLib ? t(typeLib) : ""} vers="ParcoursBesoin" />
+          <Bloc titre={t("pc_recap_service")} valeur={libelleType(typeChoisi, t, langue)} vers="ParcoursBesoin" />
           <Bloc titre={t("pc_recap_trajet")} valeur={lieux} vers="ParcoursLieux" />
           <Bloc titre={t("pc_commune_l")} valeur={demande.commune} vers="ParcoursLieux" />
           <Bloc titre={t("pc_recap_quand")} valeur={quand} vers="ParcoursCreneau" />

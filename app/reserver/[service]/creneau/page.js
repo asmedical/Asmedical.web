@@ -52,6 +52,9 @@ export default function EtapeCreneau() {
     const u = new URLSearchParams({ service, mois: cleMois });
     if (d.commune) u.set("commune", d.commune);
     if (d.typeTrajet) u.set("typeTrajet", d.typeTrajet);
+    // La durée de la prestation change les jours ouvrables : une garde de
+    // trois heures ne tient pas dans les mêmes journées qu'une injection.
+    if (d.duree) u.set("duree", String(d.duree));
     setJours(null);
     setErreur("");
     fetch(`/api/disponibilites?${u}`)
@@ -60,7 +63,7 @@ export default function EtapeCreneau() {
       .catch(() => { if (!annule) { setJours([]); setErreur(t("err_serveur")); } });
     return () => { annule = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cleMois, service, d?.commune, d?.typeTrajet, !!d]);
+  }, [cleMois, service, d?.commune, d?.typeTrajet, d?.duree, !!d]);
 
   // --- Créneaux (ou fenêtres) du jour choisi.
   const chargerJour = useCallback(
@@ -71,6 +74,7 @@ export default function EtapeCreneau() {
         const u = new URLSearchParams({ service, jour: iso });
         if (d?.commune) u.set("commune", d.commune);
         if (d?.typeTrajet) u.set("typeTrajet", d.typeTrajet);
+        if (d?.duree) u.set("duree", String(d.duree));
         const r = await fetch(`/api/creneaux?${u}`);
         const j = await r.json();
         setCreneaux(j.creneaux || null);
@@ -82,7 +86,7 @@ export default function EtapeCreneau() {
       }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [service, d?.commune, d?.typeTrajet]
+    [service, d?.commune, d?.typeTrajet, d?.duree]
   );
 
   useEffect(() => {

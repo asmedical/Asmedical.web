@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   ETAPES, TYPES, BESOINS, COMMUNES, FENETRES, PAIEMENTS,
   validerEtape, estRecurrent, etapeSuivante, etapePrecedente, numeroEtape,
-  vehiculePour, construireDemande,
+  vehiculePour, construireDemande, dureePour,
 } from "../lib/parcours.js";
 
 // Le site et l'application partagent cette définition — l'un l'importe,
@@ -96,6 +96,33 @@ describe("classe de véhicule déduite du besoin", () => {
     for (const ty of TYPES.transport) {
       expect(connues.has(vehiculePour("transport", ty.cle)), ty.cle).toBe(true);
     }
+  });
+});
+
+describe("durée de la prestation", () => {
+  const structure = { types: TYPES };
+
+  it("prend la durée du type choisi, pas une valeur par défaut", () => {
+    expect(dureePour(structure, "domicile", "injection")).toBe(20);
+    expect(dureePour(structure, "domicile", "garde")).toBe(180);
+  });
+
+  it("retombe sur une heure quand le type n'en déclare pas", () => {
+    expect(dureePour(structure, "transport", "consultation")).toBe(60);
+    expect(dureePour(structure, "domicile", "inconnu")).toBe(60);
+  });
+
+  // Les actes du back-office arrivent avec leur propre durée : elle doit
+  // passer telle quelle, en restant dans les bornes acceptées par l'API.
+  it("accepte les actes venus du back-office et borne les durées absurdes", () => {
+    const dbo = { types: { domicile: [{ cle: "acte:7", texte: "Dialyse péritonéale", duree: 240 }] } };
+    expect(dureePour(dbo, "domicile", "acte:7")).toBe(240);
+    expect(dureePour({ types: { domicile: [{ cle: "x", duree: 5000 }] } }, "domicile", "x")).toBe(480);
+    expect(dureePour({ types: { domicile: [{ cle: "x", duree: 2 }] } }, "domicile", "x")).toBe(15);
+  });
+
+  it("chaque prestation à domicile annonce une durée", () => {
+    for (const ty of TYPES.domicile) expect(ty.duree, ty.cle).toBeGreaterThan(0);
   });
 });
 

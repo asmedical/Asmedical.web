@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { ETAPES, numeroEtape } from "@/lib/parcours";
+import { ETAPES, TYPES, BESOINS, COMMUNES, FENETRES, PAIEMENTS, numeroEtape } from "@/lib/parcours";
 
 // Éléments communs au parcours de réservation. La structure vient de
 // lib/parcours.js — partagée avec l'application ; seul le rendu est propre
@@ -66,4 +66,51 @@ export function useParcours() {
   useEffect(() => setD(lireParcours()), []);
   const maj = (champs) => setD(ecrireParcours(champs));
   return [d, maj];
+}
+
+// --- Structure du parcours, lue par le serveur.
+//
+// Le site pourrait importer lib/parcours.js et s'arrêter là. Il passe quand
+// même par /api/parcours, pour une raison précise : les actes à domicile sont
+// configurés en back-office, avec leur durée. Les lire ici garantit que le
+// site et l'application proposent la MÊME liste — et que la durée qui sert à
+// réserver le créneau est celle qu'a réglée l'équipe, pas une valeur figée.
+//
+// En attendant la réponse, et si elle n'arrive pas, on affiche la structure
+// locale : un écran de réservation vide serait pire qu'une liste de secours.
+const STRUCTURE_LOCALE = {
+  etapes: ETAPES, types: TYPES, besoins: BESOINS,
+  communes: COMMUNES, fenetres: FENETRES, paiements: PAIEMENTS,
+};
+
+let memo = null; // une seule requête par onglet
+
+export function useStructure() {
+  const [structure, setStructure] = useState(memo || STRUCTURE_LOCALE);
+  const [pret, setPret] = useState(!!memo);
+
+  useEffect(() => {
+    if (memo) return;
+    let annule = false;
+    fetch("/api/parcours")
+      .then((r) => r.json())
+      .then((d) => {
+        if (annule || !d?.etapes) return;
+        memo = d;
+        setStructure(d);
+        setPret(true);
+      })
+      .catch(() => { if (!annule) setPret(true); });
+    return () => { annule = true; };
+  }, []);
+
+  return { structure, pret };
+}
+
+// Intitulé d'un type de demande. Les types du code portent une clé de
+// traduction ; ceux configurés en back-office portent leur texte tel quel.
+export function libelleType(ty, t, langue) {
+  if (!ty) return "";
+  if (ty.texte) return langue === "ar" && ty.texteAr ? ty.texteAr : ty.texte;
+  return t(ty.libelle);
 }

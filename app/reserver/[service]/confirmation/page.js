@@ -4,8 +4,8 @@ import { useRouter, useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE } from "@/lib/i18n";
-import { TYPES, BESOINS, FENETRES, PAIEMENTS, validerEtape } from "@/lib/parcours";
-import { Stepper, useParcours, viderParcours } from "@/app/components/parcours";
+import { BESOINS, FENETRES, PAIEMENTS, validerEtape } from "@/lib/parcours";
+import { Stepper, useParcours, viderParcours, useStructure, libelleType } from "@/app/components/parcours";
 
 // Étape 4 — récapitulatif et confirmation.
 //
@@ -19,10 +19,11 @@ import { Stepper, useParcours, viderParcours } from "@/app/components/parcours";
 // le site et l'application.
 
 export default function EtapeConfirmation() {
-  const { t, espaceChoisi, connecte } = useAsm();
+  const { t, langue, espaceChoisi, connecte } = useAsm();
   const routeur = useRouter();
   const { service } = useParams();
   const [d, maj] = useParcours();
+  const { structure } = useStructure();
 
   const [promoOuvert, setPromoOuvert] = useState(false);
   const [promoEtat, setPromoEtat] = useState(null); // null | "ok" | code d'erreur
@@ -61,7 +62,7 @@ export default function EtapeConfirmation() {
   if (!d) return <div className="page"><div className="contenu-page" /></div>;
 
   const livraison = service === "medicaments";
-  const typeLib = (TYPES[service] || []).find((x) => x.cle === d.type)?.libelle;
+  const typeChoisi = (structure.types?.[service] || []).find((x) => x.cle === d.type);
   const moyens = PAIEMENTS.filter((p) => p.actif && (!p.proSeulement || espaceChoisi === "pro"));
 
   async function verifierPromo() {
@@ -175,7 +176,7 @@ export default function EtapeConfirmation() {
         <Stepper etape="confirmation" />
 
         <div className="pc-recap">
-          <Bloc titre={t("pc_recap_service")} valeur={typeLib ? t(typeLib) : ""} vers="besoin" />
+          <Bloc titre={t("pc_recap_service")} valeur={libelleType(typeChoisi, t, langue)} vers="besoin" />
           <Bloc titre={t("pc_recap_trajet")} valeur={lieux} vers="lieux" />
           <Bloc titre={t("pc_commune_l")} valeur={d.commune} vers="lieux" />
           <Bloc titre={t("pc_recap_quand")} valeur={quand} vers="creneau" />
