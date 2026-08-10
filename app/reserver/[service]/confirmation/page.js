@@ -32,6 +32,11 @@ export default function EtapeConfirmation() {
   const [manque, setManque] = useState([]);
   const [erreur, setErreur] = useState("");
   const [confirme, setConfirme] = useState(null);
+  const [ordonnance, setOrdonnance] = useState(null);
+  // Créneau parti pendant la saisie : on garde lequel, pour proposer d'être
+  // prévenu s'il se libère.
+  const [conflit, setConflit] = useState(null);
+  const [attente, setAttente] = useState("");
 
   // Téléphone du compte connecté : le patient ne le retape pas, et l'équipe
   // ne se retrouve pas avec deux numéros pour la même personne.
@@ -85,6 +90,7 @@ export default function EtapeConfirmation() {
   async function confirmer() {
     if (envoi) return;
     setErreur("");
+    setConflit(null);
     const erreurs = validerEtape("confirmation", { ...d, service });
     if (erreurs.length) return setManque(erreurs);
     if (!d.telephone || d.telephone.replace(/\D/g, "").length < 9) {
@@ -107,14 +113,32 @@ export default function EtapeConfirmation() {
       });
       const j = await r.json().catch(() => ({}));
 
-      // Créneau pris entre l'affichage et la confirmation : on renvoie à
-      // l'étape 3 avec le message qui l'explique, plutôt qu'une erreur sèche.
+      // Créneau parti entre l'affichage et la confirmation. Renvoyer
+      // sèchement à l'étape 3 ferait perdre l'information utile : QUEL
+      // créneau était visé. On le garde pour proposer la liste d'attente,
+      // en plus du retour au calendrier.
       if (r.status === 409) {
-        maj({ iso: "", fenetre: "" });
-        routeur.push(`/reserver/${service}/creneau?conflit=1`);
+        setConflit({ date: d.iso || d.jour, fenetre: j.erreur === "fenetre_pleine" });
+        setErreur(t(j.erreur === "fenetre_pleine" ? "err_fenetre_pleine" : "err_creneau_pris"));
         return;
       }
       if (!r.ok) throw new Error(j.erreur || "erreur");
+
+      // Ordonnance jointe APRÈS la création : la demande existe déjà, donc
+      // un échec d'envoi ne fait pas perdre la réservation — on le dit, et
+      // le patient peut toujours la déposer depuis « Mes documents ».
+      if (livraison && ordonnance && j?.id) {
+        try {
+          const fd = new FormData();
+          fd.append("demandeId", String(j.id));
+          fd.append("telephone", d.telephone);
+          fd.append("fichier", ordonnance);
+          const ro = await fetch("/api/demandes/ordonnance", { method: "POST", body: fd });
+          if (!ro.ok) setErreur(t("ord_echec"));
+        } catch {
+          setErreur(t("ord_echec"));
+        }
+      }
 
       viderParcours();
       // Écran de paiement : lui seul connaît la situation réelle du compte
@@ -228,6 +252,24 @@ export default function EtapeConfirmation() {
           />
         </div>
 
+        {/* L'ordonnance se joint ici, au moment de confirmer : l'ancien
+            formulaire la demandait avant même de choisir un créneau, et
+            l'ancien message renvoyait simplement le patient vers
+            « Mes documents » — une démarche de plus, souvent oubliée. */}
+        {livraison && (
+          <div className="champ">
+            <label>{t("ord_l")}</label>
+            <input
+              type="file"
+              accept="image/*,application/pdf"
+              onChange={(e) => setOrdonnance(e.target.files?.[0] || null)}
+            />
+            <p className="fe-aide" style={{ marginBottom: 0 }}>
+              {ordonnance ? `📎 ${ordonnance.name} — ${t("ord_pret")}` : t("ord_aide")}
+            </p>
+          </div>
+        )}
+
         {/* Replié : déplié en permanence, un champ « code promo » laisse
             croire qu'il manque quelque chose pour réserver. */}
         {!promoOuvert ? (
@@ -268,6 +310,53 @@ export default function EtapeConfirmation() {
 
         {erreur && <p className="erreur">{erreur}</p>}
         {manque.map((cle) => <p className="erreur" key={cle}>{t(cle)}</p>)}
+
+        {/* Le créneau vient d'être pris. Deux issues, aucune impasse :
+            en choisir un autre, ou être prévenu si celui-là se libère. */}
+        {conflit && (
+          <div style={{ marginBottom: 14 }}>
+            <Link className="btn-action" href={`/reserver/${service}/creneau`}>{t("pc_calendrier_t")}</Link>
+            {!conflit.fenetre && (
+              attente === "ok" || attente === "deja" ? (
+                <p className="pc-attente" style={{ color: "var(--vert-fonce)", fontWeight: 700 }}>
+                  {t(attente === "deja" ? "att_deja" : "att_ok")}
+                </p>
+              ) : (
+                <>
+                  <button
+                    className="btn-secondaire"
+                    style={{ marginTop: 10 }}
+                    disabled={attente === "envoi"}
+                    onClick={async () => {
+                      setAttente("envoi");
+                      try {
+                        const r = await fetch("/api/attente", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            service, date: conflit.date, telephone: d.telephone,
+                            commune: d.commune || undefined, typeTrajet: d.typeTrajet || undefined,
+                            duree: d.duree,
+                          }),
+                        });
+                        const j = await r.json().catch(() => ({}));
+                        if (r.ok) setAttente(j.deja ? "deja" : "ok");
+                        else setAttente(j.erreur === "trop_attentes" ? "trop" : "erreur");
+                      } catch {
+                        setAttente("erreur");
+                      }
+                    }}
+                  >
+                    {t("att_b")} ({String(conflit.date).replace("T", " · ")})
+                  </button>
+                  {attente === "trop" && <p className="erreur">{t("att_trop")}</p>}
+                  {attente === "erreur" && <p className="erreur">{t("att_err")}</p>}
+                </>
+              )
+            )}
+          </div>
+        )}
+
         <button className="btn-action" onClick={confirmer} disabled={envoi}>
           {envoi ? t("pc_chargement") : t("pc_confirmer")}
         </button>

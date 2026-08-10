@@ -269,6 +269,14 @@ describe("assemblage de la demande", () => {
     expect(dom.departLat).toBeUndefined();
   });
 
+  it("ne retient la préférence homme/femme que pour le domicile", () => {
+    expect(construireDemande({ service: "domicile", depart: "a", prefGenre: "femme" }).prefGenre).toBe("femme");
+    // Un transport ne se choisit pas par genre du chauffeur : le champ ne
+    // doit pas passer, même s'il traîne dans l'état du parcours.
+    expect(construireDemande({ ...transport, prefGenre: "femme" }).prefGenre).toBeUndefined();
+    expect(construireDemande({ service: "domicile", prefGenre: "peu importe" }).prefGenre).toBeUndefined();
+  });
+
   it("ne laisse jamais un espace autre que patient ou pro", () => {
     expect(construireDemande({ service: "transport", espace: "admin" }).espace).toBe("patient");
     expect(construireDemande({ service: "transport", espace: "pro" }).espace).toBe("pro");

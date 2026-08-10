@@ -13,7 +13,9 @@ import { View, Text, TextInput, ScrollView, TouchableOpacity, KeyboardAvoidingVi
 import { C, S } from "../theme";
 import { Bouton, Chip } from "../ui";
 import { useLangue, TEL_AFFICHE } from "../i18n";
-import { apiPost } from "../api";
+import * as ImagePicker from "expo-image-picker";
+import * as DocumentPicker from "expo-document-picker";
+import { apiPost, API_BASE } from "../api";
 import { useParcours, Stepper, validerEtape, libelleType } from "../parcours";
 import { useAuth } from "../auth";
 import Estimation from "../Estimation";
@@ -30,6 +32,11 @@ export default function ParcoursConfirmation({ route, navigation }) {
   const [manque, setManque] = useState([]);
   const [erreur, setErreur] = useState("");
   const [fait, setFait] = useState(null);
+  const [ordonnance, setOrdonnance] = useState(null);
+  // Créneau parti pendant la saisie : on garde lequel, pour proposer d'être
+  // prévenu s'il se libère.
+  const [conflit, setConflit] = useState(null);
+  const [attente, setAttente] = useState("");
 
   const livraison = service === "medicaments";
   const espace = auth?.profil?.role === "pro" ? "pro" : "patient";
@@ -54,6 +61,25 @@ export default function ParcoursConfirmation({ route, navigation }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [moyens.length]);
 
+  // Trois sources, comme dans « Mes documents » : fichiers, photothèque,
+  // caméra. Une ordonnance se photographie plus souvent qu'elle ne se
+  // retrouve en PDF sur un téléphone.
+  async function ordonnanceFichier() {
+    const r = await DocumentPicker.getDocumentAsync({
+      type: ["image/*", "application/pdf"], copyToCacheDirectory: true, multiple: false,
+    });
+    const a = r.canceled ? null : r.assets?.[0];
+    if (a) setOrdonnance({ uri: a.uri, nom: a.name || "ordonnance", type: a.mimeType || "application/pdf" });
+  }
+
+  async function ordonnanceCamera() {
+    const perm = await ImagePicker.requestCameraPermissionsAsync();
+    if (!perm.granted) return setErreur(t("err_permission"));
+    const r = await ImagePicker.launchCameraAsync({ quality: 0.85 });
+    const a = r.canceled ? null : r.assets?.[0];
+    if (a) setOrdonnance({ uri: a.uri, nom: a.fileName || "ordonnance.jpg", type: a.mimeType || "image/jpeg" });
+  }
+
   async function verifierPromo() {
     if (!demande.codePromo?.trim()) return;
     setPromoEtat(null);
@@ -68,6 +94,7 @@ export default function ParcoursConfirmation({ route, navigation }) {
   async function confirmer() {
     if (envoi) return;
     setErreur("");
+    setConflit(null);
     const erreurs = validerEtape(structure, "confirmation", { ...demande, service });
     if (erreurs.length) return setManque(erreurs);
     if (!demande.telephone || demande.telephone.replace(/\D/g, "").length < 9) {
@@ -77,16 +104,32 @@ export default function ParcoursConfirmation({ route, navigation }) {
     setEnvoi(true);
     try {
       const d = await apiPost("/api/demandes", { ...demande, service, espace, parcours: true });
+      // Ordonnance jointe APRÈS la création : la demande existe déjà, donc un
+      // échec d'envoi ne fait pas perdre la réservation — on le dit, et le
+      // patient peut toujours la déposer depuis « Mes documents ».
+      if (livraison && ordonnance && d?.id) {
+        try {
+          const fd = new FormData();
+          fd.append("demandeId", String(d.id));
+          fd.append("telephone", demande.telephone);
+          fd.append("fichier", { uri: ordonnance.uri, name: ordonnance.nom, type: ordonnance.type });
+          const r = await fetch(`${API_BASE}/api/demandes/ordonnance`, { method: "POST", body: fd });
+          if (!r.ok) setErreur(t("ord_echec"));
+        } catch {
+          setErreur(t("ord_echec"));
+        }
+      }
       reinitialiser();
       setFait(d?.id || true);
     } catch (e) {
       const code = e?.data?.erreur;
-      // Créneau pris entre l'affichage et la confirmation : on renvoie
-      // choisir une autre heure plutôt que d'afficher une erreur sèche.
+      // Créneau parti entre l'affichage et la confirmation. Repartir
+      // sèchement au calendrier ferait perdre l'information utile : QUEL
+      // créneau était visé. On le garde pour proposer la liste d'attente,
+      // en plus du retour au calendrier.
       if (code === "creneau_pris" || code === "fenetre_pleine") {
-        maj({ iso: "", fenetre: "" });
-        setErreur(t("pc_conflit"));
-        navigation.navigate("ParcoursCreneau", { service });
+        setConflit({ date: demande.iso || demande.jour, fenetre: code === "fenetre_pleine" });
+        setErreur(t(code === "fenetre_pleine" ? "err_fenetre_pleine" : "err_creneau_pris"));
       } else {
         setErreur(`${t("err_serveur")} ${TEL_AFFICHE}`);
       }
@@ -203,6 +246,22 @@ export default function ParcoursConfirmation({ route, navigation }) {
           placeholderTextColor={C.grisClair}
         />
 
+        {/* L'ordonnance se joint ici, au moment de confirmer. L'ancien
+            message renvoyait simplement le patient vers « Mes documents » —
+            une démarche de plus, souvent oubliée. */}
+        {livraison && (
+          <>
+            <Text style={S.label}>{t("ord_l")}</Text>
+            <View style={S.ligneChips}>
+              <Chip titre={t("opt_fichiers")} actif={false} onPress={ordonnanceFichier} />
+              <Chip titre={t("opt_camera")} actif={false} onPress={ordonnanceCamera} />
+            </View>
+            <Text style={{ color: C.gris, fontSize: 13, marginBottom: 14, lineHeight: 18 }}>
+              {ordonnance ? `📎 ${ordonnance.nom} — ${t("ord_pret")}` : t("ord_aide")}
+            </Text>
+          </>
+        )}
+
         {!promoOuvert ? (
           <TouchableOpacity onPress={() => setPromoOuvert(true)} style={{ marginBottom: 14 }}>
             <Text style={{ color: C.vertFonce, fontWeight: "700", fontSize: 15, textDecorationLine: "underline" }}>
@@ -238,6 +297,50 @@ export default function ParcoursConfirmation({ route, navigation }) {
 
         {!!erreur && <Text style={S.erreur}>{erreur}</Text>}
         {manque.map((cle) => <Text style={S.erreur} key={cle}>{t(cle)}</Text>)}
+
+        {/* Le créneau vient d'être pris. Deux issues, aucune impasse :
+            en choisir un autre, ou être prévenu si celui-là se libère. */}
+        {!!conflit && (
+          <View style={{ marginBottom: 8 }}>
+            <Bouton
+              titre={t("pc_calendrier_t")}
+              onPress={() => navigation.navigate("ParcoursCreneau", { service })}
+            />
+            {!conflit.fenetre && (
+              attente === "ok" || attente === "deja" ? (
+                <Text style={{ color: C.vertFonce, fontWeight: "700", marginTop: 10, lineHeight: 20 }}>
+                  {t(attente === "deja" ? "att_deja" : "att_ok")}
+                </Text>
+              ) : (
+                <>
+                  <View style={{ height: 10 }} />
+                  <Bouton
+                    titre={t("att_b")}
+                    secondaire
+                    charge={attente === "envoi"}
+                    onPress={async () => {
+                      setAttente("envoi");
+                      try {
+                        const r = await apiPost("/api/attente", {
+                          service, date: conflit.date, telephone: demande.telephone,
+                          commune: demande.commune || undefined,
+                          typeTrajet: demande.typeTrajet || undefined,
+                          duree: demande.duree,
+                        });
+                        setAttente(r?.deja ? "deja" : "ok");
+                      } catch (e) {
+                        setAttente(e?.data?.erreur === "trop_attentes" ? "trop" : "erreur");
+                      }
+                    }}
+                  />
+                  {attente === "trop" && <Text style={S.erreur}>{t("att_trop")}</Text>}
+                  {attente === "erreur" && <Text style={S.erreur}>{t("att_err")}</Text>}
+                </>
+              )
+            )}
+          </View>
+        )}
+
         <View style={{ height: 8 }} />
         <Bouton titre={t("pc_confirmer")} onPress={confirmer} charge={envoi} />
         <View style={{ height: 24 }} />

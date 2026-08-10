@@ -191,6 +191,29 @@ export default function EtapeLieux() {
 
         <h3 className="pc-sous-titre">{t("pc_precisions_t")}</h3>
 
+        {/* Préférence d'intervenant(e) : un souhait, jamais une condition.
+            S'il ne peut pas être respecté, la demande passe quand même et le
+            souhait reste lisible par l'équipe. */}
+        {!transport && !livraison && (
+          <div className="champ">
+            <label>{t("genre_l")}</label>
+            <div className="chips">
+              {[["", "genre_indif"], ["femme", "genre_femme"], ["homme", "genre_homme"]].map(([v, cle]) => (
+                <button
+                  type="button"
+                  key={cle}
+                  className={"chip" + ((d.prefGenre || "") === v ? " actif" : "")}
+                  aria-pressed={(d.prefGenre || "") === v}
+                  onClick={() => maj({ prefGenre: v })}
+                >
+                  {t(cle)}
+                </button>
+              ))}
+            </div>
+            <p className="fe-aide" style={{ marginBottom: 0 }}>{t("genre_aide")}</p>
+          </div>
+        )}
+
         <div className="champ">
           <label>{t("pc_besoins_l")}</label>
           <div className="chips">

@@ -224,6 +224,25 @@ export default function ParcoursLieux({ route, navigation }) {
           {t("pc_precisions_t")}
         </Text>
 
+        {/* Préférence d'intervenant(e) : un souhait, jamais une condition.
+            S'il ne peut pas être respecté, la demande passe quand même. */}
+        {!transport && !livraison && (
+          <>
+            <Text style={S.label}>{t("genre_l")}</Text>
+            <View style={S.ligneChips}>
+              {[["", "genre_indif"], ["femme", "genre_femme"], ["homme", "genre_homme"]].map(([v, cle]) => (
+                <Chip
+                  key={cle}
+                  titre={t(cle)}
+                  actif={(demande.prefGenre || "") === v}
+                  onPress={() => maj({ prefGenre: v })}
+                />
+              ))}
+            </View>
+            <Text style={{ color: C.gris, fontSize: 13, marginBottom: 12, lineHeight: 18 }}>{t("genre_aide")}</Text>
+          </>
+        )}
+
         <Text style={S.label}>{t("pc_besoins_l")}</Text>
         <View style={S.ligneChips}>
           {(structure.besoins || []).map((b) => (
