@@ -26,10 +26,11 @@ const PAGES_INFOS = [
 // Y renvoyer vaut mieux que de laisser croire qu'elles n'existent pas : un
 // patient doit pouvoir gérer ses proches et voir ses factures depuis son
 // téléphone, même si l'écran est celui du site.
+// Écrans natifs : on ne renvoie plus vers le navigateur.
 const PAGES_COMPTE = [
-  { cle: "cpt_paiements", chemin: "/compte/paiements" },
-  { cle: "cpt_proches", chemin: "/compte/proches" },
-  { cle: "cpt_preferences", chemin: "/compte/preferences" },
+  { cle: "cpt_paiements", ecran: "Paiements" },
+  { cle: "cpt_proches", ecran: "Proches" },
+  { cle: "cpt_preferences", ecran: "Preferences" },
 ];
 
 function Ligne({ label, valeur }) {
@@ -41,7 +42,7 @@ function Ligne({ label, valeur }) {
   );
 }
 
-export default function Profil() {
+export default function Profil({ navigation }) {
   const { t, langue, setLangue } = useLangue();
   const { profil, user, rafraichirProfil } = useAuth();
   const [suppEnCours, setSuppEnCours] = useState(false);
@@ -180,7 +181,7 @@ export default function Profil() {
         <TouchableOpacity
           key={p.cle}
           accessibilityRole="link"
-          onPress={() => Linking.openURL(`${API_BASE}${p.chemin}`).catch(() => {})}
+          onPress={() => navigation.navigate(p.ecran)}
           style={[S.carte, { flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginBottom: 8, minHeight: 54 }]}
         >
           <Text style={{ flex: 1, color: C.encre, fontWeight: "700", fontSize: 15 }}>{t(p.cle)}</Text>
