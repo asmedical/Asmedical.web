@@ -242,6 +242,7 @@ function Chat({ onglets, t }) {
   const [saisie, setSaisie] = useState("");
   const [envoi, setEnvoi] = useState(false);
   const [erreurEnvoi, setErreurEnvoi] = useState("");
+  const [detail, setDetail] = useState("");
   const finRef = useRef(null);
   const nbRef = useRef(0);
 
@@ -253,16 +254,24 @@ function Chat({ onglets, t }) {
     }
     try {
       const r = await fetch("/api/messages", { headers: { Authorization: `Bearer ${token}` } });
-      if (!r.ok) throw new Error();
+      if (!r.ok) {
+        // Une session expirée et une panne serveur n'ont pas le même remède :
+        // on ne les confond plus derrière un « une erreur est survenue ».
+        setDetail(r.status === 401 ? t("msg_err_session") : t("msg_err_serveur"));
+        setEtat((e) => (e === "pret" ? "pret" : "degrade"));
+        return;
+      }
       const d = await r.json();
       setMessages(d.messages || []);
+      setDetail("");
       setEtat("pret");
       if (defile || (d.messages || []).length !== nbRef.current) {
         nbRef.current = (d.messages || []).length;
         requestAnimationFrame(() => finRef.current?.scrollIntoView({ block: "end" }));
       }
     } catch {
-      setEtat((e) => (e === "pret" ? "pret" : "erreur"));
+      setDetail(t("msg_err_reseau"));
+      setEtat((e) => (e === "pret" ? "pret" : "degrade"));
     }
   }
 
@@ -285,11 +294,19 @@ function Chat({ onglets, t }) {
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
         body: JSON.stringify({ texte }),
       });
-      if (!r.ok) throw new Error();
+      if (!r.ok) {
+        // Le motif exact du refus vaut mieux qu'un « réessayez » : un texte
+        // trop long, une session expirée et une panne ne se corrigent pas
+        // de la même façon.
+        const d = await r.json().catch(() => ({}));
+        throw new Error(
+          r.status === 401 ? t("msg_err_session") : d.erreur || t("msg_err_serveur")
+        );
+      }
       setSaisie("");
       await charger(true);
-    } catch {
-      setErreurEnvoi(t("msg_err_envoi"));
+    } catch (e) {
+      setErreurEnvoi(e?.message || t("msg_err_envoi"));
     } finally {
       setEnvoi(false);
     }
@@ -314,13 +331,17 @@ function Chat({ onglets, t }) {
             </Link>
           </div>
         )}
-        {etat === "erreur" && (
-          <div className="etat-vide">
-            <p>{t("err_serveur")} {TEL_AFFICHE}.</p>
-          </div>
+        {/* Le fil ne se charge pas ? On l'annonce, mais on garde le champ
+            d'écriture : ne plus POUVOIR écrire à ASM est bien pire que de ne
+            pas voir l'historique. C'est ce qui rendait la messagerie
+            inutilisable sur le site. */}
+        {etat === "degrade" && (
+          <p className="erreur" style={{ marginBottom: 12 }}>
+            {detail} {t("msg_ecrire_quand_meme")}
+          </p>
         )}
 
-        {etat === "pret" && (
+        {(etat === "pret" || etat === "degrade") && (
           <>
             <div className="fil-messages">
               {messages.length === 0 && (

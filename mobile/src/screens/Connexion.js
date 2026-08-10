@@ -430,17 +430,13 @@ export default function Connexion({ route, navigation }) {
           </>
         ) : (
           <>
-            {/* Choix de l'espace — le site l'affiche avant l'inscription, on
-                le pose ici pour que l'établissement puisse créer son compte
-                depuis l'application et pas seulement depuis le navigateur. */}
-            <Text style={S.label}>{t("dem_s")}</Text>
-            <View style={S.ligneChips}>
-              <Chip titre={t("esp_patient")} actif={espace === "patient"}
-                    onPress={() => { setEspace("patient"); setErreur(""); }} />
-              <Chip titre={t("esp_pro")} actif={espace === "pro"}
-                    onPress={() => { setEspace("pro"); setErreur(""); }} />
-            </View>
-            <Text style={{ color: C.gris, fontSize: 13.5, marginTop: 6 }}>
+            {/* L'espace a déjà été choisi à l'entrée : on ne le redemande
+                pas. On rappelle seulement lequel, et le retour en haut de
+                l'écran permet d'en changer. */}
+            <Text style={[S.h2, { marginTop: 0 }]}>
+              {espace === "pro" ? t("insc_etab_t") : t("insc_patient_t")}
+            </Text>
+            <Text style={{ color: C.gris, fontSize: 13.5, marginBottom: 4 }}>
               {espace === "pro" ? t("esp_pro_d") : t("esp_patient_d")}
             </Text>
 

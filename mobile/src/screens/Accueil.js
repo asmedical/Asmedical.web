@@ -6,11 +6,14 @@ import { C, S } from "../theme";
 import { Pastille, SERVICES_LIB } from "../ui";
 import { useLangue } from "../i18n";
 import { apiGet } from "../api";
+import { IcoVehicule, IcoMaison, IcoMedicaments } from "../icones";
 
+// Icônes dessinées, identiques au site : les émojis donnaient à
+// l'application un air d'ébauche là où le site inspire confiance.
 const SERVICES = [
-  { id: "transport", ico: "🚑", t: "s_transport", d: "s_transport_d" },
-  { id: "domicile", ico: "🏠", t: "s_domicile", d: "s_domicile_d" },
-  { id: "medicaments", ico: "💊", t: "s_medic", d: "s_medic_d" },
+  { id: "transport", Ico: IcoVehicule, t: "s_transport", d: "s_transport_d" },
+  { id: "domicile", Ico: IcoMaison, t: "s_domicile", d: "s_domicile_d" },
+  { id: "medicaments", Ico: IcoMedicaments, t: "s_medic", d: "s_medic_d" },
 ];
 
 export default function Accueil({ navigation }) {
@@ -47,7 +50,9 @@ export default function Accueil({ navigation }) {
           activeOpacity={0.7}
           onPress={() => navigation.navigate("Reservation", { service: sv.id })}
         >
-          <Text style={{ fontSize: 30 }}>{sv.ico}</Text>
+          <View style={{ width: 46, height: 46, borderRadius: 23, backgroundColor: C.vertPale, alignItems: "center", justifyContent: "center" }}>
+            <sv.Ico couleur={C.vertFonce} taille={23} />
+          </View>
           <View style={{ flex: 1 }}>
             <Text style={{ fontSize: 16.5, fontWeight: "800", color: C.encre }}>{t(sv.t)}</Text>
             <Text style={{ fontSize: 13.5, color: C.gris, marginTop: 2 }}>{t(sv.d)}</Text>

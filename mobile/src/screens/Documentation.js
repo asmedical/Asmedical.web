@@ -17,7 +17,7 @@ import { Bouton, Charge } from "../ui";
 import { useLangue } from "../i18n";
 import { useAuth } from "../auth";
 import { supabase } from "../supabase";
-import { IcoDocumentLignes } from "../icones";
+import { IcoDocumentLignes, IcoOuvrir, IcoCorbeille } from "../icones";
 
 const MAX_OCTETS = 10 * 1024 * 1024; // 10 Mo — même plafond que le site
 const FORMATS = ["application/pdf", "image/jpeg", "image/png"];
@@ -27,6 +27,21 @@ function tailleLisible(o) {
   if (o < 1024) return o + " o";
   if (o < 1024 * 1024) return Math.round(o / 1024) + " Ko";
   return (o / (1024 * 1024)).toFixed(1) + " Mo";
+}
+
+// Un téléphone nomme ses photos avec un identifiant technique
+// (« 1d79baea-2560-4e… »). Illisible dans une liste de documents médicaux :
+// on lui substitue un intitulé daté, compréhensible par n'importe qui.
+function nomLisible(nom, type, t) {
+  const brut = (nom || "").trim();
+  const technique =
+    !brut ||
+    /^[0-9a-f]{8}-[0-9a-f]{4}/i.test(brut) ||
+    /^(image|img|photo|fullsizerender|tmp)[-_]?\d*\.[a-z]+$/i.test(brut);
+  if (!technique) return brut.slice(0, 120);
+  const jour = new Date().toLocaleDateString("fr-FR");
+  const prefixe = type === "application/pdf" ? t("doc_defaut_pdf") : t("doc_defaut_photo");
+  return prefixe + " " + jour;
 }
 
 function nettoyerNom(nom) {
@@ -119,7 +134,7 @@ export default function Documentation() {
 
       const { error: eMeta } = await supabase.from("document").insert({
         patient_id: user.id,
-        nom: (nom || "document").slice(0, 120),
+        nom: nomLisible(nom, mime, t),
         type: mime,
         taille: octets,
         chemin,
@@ -256,17 +271,19 @@ export default function Documentation() {
             </View>
             <TouchableOpacity
               onPress={() => ouvrir(d)}
+              accessibilityRole="button"
               accessibilityLabel={t("doc_ouvrir")}
-              style={{ paddingHorizontal: 10, paddingVertical: 12 }}
+              style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: C.vertPale, alignItems: "center", justifyContent: "center", marginLeft: 6 }}
             >
-              <Text style={{ color: C.vert, fontWeight: "800" }}>{t("doc_ouvrir")}</Text>
+              <IcoOuvrir couleur={C.vertFonce} taille={20} />
             </TouchableOpacity>
             <TouchableOpacity
               onPress={() => demanderSuppression(d)}
+              accessibilityRole="button"
               accessibilityLabel={t("doc_supprimer")}
-              style={{ paddingHorizontal: 8, paddingVertical: 12 }}
+              style={{ width: 42, height: 42, borderRadius: 21, backgroundColor: "#FBEDED", alignItems: "center", justifyContent: "center", marginLeft: 6 }}
             >
-              <Text style={{ color: "#B03A3A", fontSize: 18 }}>🗑</Text>
+              <IcoCorbeille couleur="#B03A3A" taille={20} />
             </TouchableOpacity>
           </View>
         ))}

@@ -1,0 +1,19 @@
+# L'en-tête du site — bandeau d'appel, logo, sélecteur de langue — doit être
+# présent dans l'application. Son absence donnait à l'application un air
+# d'ébauche là où le site inspire confiance.
+appId: com.asm_sante.twa
+tags:
+  - structure
+---
+- launchApp:
+    clearState: true
+- extendedWaitUntil:
+    visible: "Choisissez votre espace"
+    timeout: 30000
+- tapOn: "Espace Patient"
+# Le numéro doit être joignable depuis l'en-tête, sans chercher.
+- assertVisible: "Une question ?"
+- assertVisible: "+213 5 64 49 33 48"
+# Le sélecteur de langue est dans l'en-tête, pas enfoui dans les réglages.
+- assertVisible: "FR"
+- takeScreenshot: 04-entete-commun
