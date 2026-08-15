@@ -62,6 +62,18 @@ describe("politique de confidentialité", () => {
     }
   });
 
+  // L'écran mobile rend chaque section telle quelle : un titre seul, sans
+  // point ni paragraphe, y produirait un bloc vide.
+  it("ne contient aucune section sans contenu", () => {
+    for (const c of CLES) {
+      POLITIQUE[c].sections.forEach((s, i) => {
+        expect(s.titre?.trim(), `${c}[${i}].titre`).toBeTruthy();
+        const contenu = (s.points || []).length + (s.paragraphes || []).length;
+        expect(contenu, `${c}[${i}] sans contenu`).toBeGreaterThan(0);
+      });
+    }
+  });
+
   // /api/confidentialite sert ces trois champs à l'application DÉJÀ
   // installée. En changer la forme casserait les versions en circulation,
   // sans que rien ne le signale au moment du déploiement.
