@@ -112,13 +112,9 @@ WantedBy=multi-user.target
 UNITE
 
 # --- 5. La passerelle apprend la route /metro -------------------------------
-touch "$ENVIRONNEMENT"
-if grep -q '^CIBLES=' "$ENVIRONNEMENT"; then
-  sed -i "s|^CIBLES=.*|CIBLES=metro:$PORT_MCP|" "$ENVIRONNEMENT"
-else
-  echo "CIBLES=metro:$PORT_MCP" >> "$ENVIRONNEMENT"
-fi
-echo "Route ajoutée dans $ENVIRONNEMENT : CIBLES=metro:$PORT_MCP"
+# Écrire la ligne entière ici écrasait les routes déjà posées : relancer ce
+# script coupait Playwright, et inversement.
+bash "$DEPOT/scripts/vps/ajouter-cible.sh" metro "$PORT_MCP" "$ENVIRONNEMENT"
 echo
 
 systemctl daemon-reload
