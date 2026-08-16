@@ -59,6 +59,21 @@ function json(rep, code, corps, entetes = {}) {
   rep.end(texte);
 }
 
+// Journal d'une ligne par requête. Sans lui, une boucle d'autorisation est
+// impossible à diagnostiquer : on voit le formulaire revenir, sans savoir si
+// c'est la phrase qui est refusée, le code qui est perdu, ou le serveur MCP
+// qui répond mal derrière. Aucune donnée sensible n'y figure.
+function journaliser(req, rep, note) {
+  const debut = Date.now();
+  rep.on("finish", () => {
+    const chemin = req.url.split("?")[0];
+    console.log(
+      `${req.method} ${chemin} -> ${rep.statusCode} (${Date.now() - debut}ms)` +
+        (note.texte ? ` ${note.texte}` : "")
+    );
+  });
+}
+
 function lireCorps(req) {
   return new Promise((resolve) => {
     let d = "";
@@ -95,16 +110,24 @@ ${erreur ? '<p class="err">Phrase incorrecte.</p>' : ""}
 <button type="submit">Autoriser</button></form>`;
 }
 
-const serveur = http.createServer(async (req, rep) => {
+async function traiter(req, rep, note) {
   const u = new URL(req.url, BASE);
   const chemin = u.pathname;
 
   if (req.method === "OPTIONS") return json(rep, 204, {});
 
   // --- Métadonnées : c'est ce que claude.ai interroge en premier.
-  if (chemin === "/.well-known/oauth-protected-resource" ||
-      chemin.startsWith("/.well-known/oauth-protected-resource/")) {
-    return json(rep, 200, { resource: BASE, authorization_servers: [BASE] });
+  //
+  // Le connecteur pointe sur une adresse qui peut avoir un chemin
+  // (.../mcp). La ressource annoncée doit alors être CETTE adresse, pas la
+  // racine : le client compare les deux, et une ressource qui ne correspond
+  // pas à celle qu'il a demandée le renvoie à l'autorisation — en boucle.
+  const RES = "/.well-known/oauth-protected-resource";
+  if (chemin === RES || chemin.startsWith(RES + "/")) {
+    return json(rep, 200, {
+      resource: BASE + chemin.slice(RES.length),
+      authorization_servers: [BASE],
+    });
   }
   if (chemin === "/.well-known/oauth-authorization-server" ||
       chemin === "/.well-known/openid-configuration" ||
@@ -146,14 +169,26 @@ const serveur = http.createServer(async (req, rep) => {
     }
     if (req.method === "POST") {
       const p = analyser(await lireCorps(req), req.headers["content-type"]);
-      const attendue = Buffer.from(PHRASE);
-      const fournie = Buffer.from(String(p.phrase || ""));
+      // Les claviers de téléphone ajoutent volontiers une espace après un
+      // mot de passe collé ou complété. Elle rendrait la phrase fausse sans
+      // que rien ne soit visible à l'écran.
+      const attendue = Buffer.from(PHRASE.trim());
+      const fournie = Buffer.from(String(p.phrase || "").trim());
       const bonne =
         attendue.length === fournie.length && crypto.timingSafeEqual(attendue, fournie);
       if (!bonne) {
         delete p.phrase;
+        note.texte = "phrase refusée";
         rep.writeHead(401, { "Content-Type": "text/html; charset=utf-8" });
         return rep.end(pageAutorisation(p, true));
+      }
+      // Sans adresse de retour, il n'y a nulle part où renvoyer le code :
+      // le navigateur resterait sur une page blanche, ce qui ressemble
+      // exactement à une boucle.
+      if (!p.redirect_uri) {
+        note.texte = "redirect_uri absente";
+        rep.writeHead(400, { "Content-Type": "text/html; charset=utf-8" });
+        return rep.end("<!doctype html><meta charset=utf-8><p>Adresse de retour manquante.");
       }
       const code = alea();
       codes.set(code, {
@@ -165,6 +200,7 @@ const serveur = http.createServer(async (req, rep) => {
       const dest = new URL(p.redirect_uri);
       dest.searchParams.set("code", code);
       if (p.state) dest.searchParams.set("state", p.state);
+      note.texte = `code délivré -> ${dest.origin}${dest.pathname}`;
       rep.writeHead(302, { Location: dest.toString() });
       return rep.end();
     }
@@ -176,12 +212,17 @@ const serveur = http.createServer(async (req, rep) => {
     const enr = codes.get(p.code);
     codes.delete(p.code);
     if (!enr || enr.expire < Date.now()) {
+      note.texte = enr ? "code expiré" : "code inconnu";
       return json(rep, 400, { error: "invalid_grant" });
     }
     if (enr.defi) {
       const calcule = b64url(crypto.createHash("sha256").update(String(p.code_verifier || "")).digest());
-      if (calcule !== enr.defi) return json(rep, 400, { error: "invalid_grant" });
+      if (calcule !== enr.defi) {
+        note.texte = "vérificateur PKCE incorrect";
+        return json(rep, 400, { error: "invalid_grant" });
+      }
     }
+    note.texte = "jeton délivré";
     const jeton = alea();
     jetons.add(jeton);
     return json(rep, 200, { access_token: jeton, token_type: "Bearer", expires_in: 86400, scope: "mcp" });
@@ -191,6 +232,7 @@ const serveur = http.createServer(async (req, rep) => {
   const entete = req.headers.authorization || "";
   const jeton = entete.replace(/^Bearer\s+/i, "");
   if (!jetons.has(jeton)) {
+    note.texte = jeton ? "jeton inconnu (redemande d'autorisation)" : "aucun jeton";
     return json(rep, 401, { error: "invalid_token" }, {
       "WWW-Authenticate": `Bearer resource_metadata="${BASE}/.well-known/oauth-protected-resource"`,
     });
@@ -204,15 +246,30 @@ const serveur = http.createServer(async (req, rep) => {
   const amont = http.request(
     { host: "127.0.0.1", port: CIBLE_PORT, path: req.url, method: req.method, headers: entetes },
     (r) => {
+      note.texte = `MCP a répondu ${r.statusCode}`;
       rep.writeHead(r.statusCode || 502, r.headers);
       r.pipe(rep);
     }
   );
   amont.on("error", (e) => {
+    note.texte = `MCP injoignable : ${e.message}`;
     if (!rep.headersSent) json(rep, 502, { error: "mcp_indisponible", detail: String(e.message) });
     else rep.end();
   });
   req.pipe(amont);
+}
+
+// Une exception non rattrapée dans le traitement laissait la requête sans
+// réponse : le navigateur tourne dans le vide, ce qui se lit comme une
+// boucle. On répond toujours, et on l'écrit dans le journal.
+const serveur = http.createServer((req, rep) => {
+  const note = { texte: "" };
+  journaliser(req, rep, note);
+  traiter(req, rep, note).catch((e) => {
+    note.texte = `erreur : ${e.message}`;
+    if (!rep.headersSent) json(rep, 500, { error: "erreur_passerelle" });
+    else rep.end();
+  });
 });
 
 serveur.listen(PORT, "127.0.0.1", () => {
