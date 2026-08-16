@@ -85,13 +85,27 @@ export async function connexionIdentifiant(identifiant, motDePasse) {
     if (r.ok) {
       const d = await r.json();
       if (d.email) essais.push({ email: d.email });
+    } else {
+      // Nom d'utilisateur non résolu. Le code HTTP dit pourquoi : 404
+      // inconnu, 429 trop de tentatives, 500 panne. Sans lui, les trois
+      // devenaient « mot de passe incorrect ».
+      const err = new Error("resolution");
+      err.status = r.status;
+      throw err;
     }
   }
+  // La raison du refus doit remonter telle quelle. Écrasée par un « Error
+  // (identifiants) » uniforme, une panne du service d'authentification
+  // devenait indiscernable d'un mot de passe faux — c'est ce qui a fait
+  // refuser l'application par Apple : l'examinateur voyait « mot de passe
+  // incorrect » alors que le sien était juste.
+  let dernier = null;
   for (const e of essais) {
     const { data, error } = await supabase.auth.signInWithPassword({ ...e, password: motDePasse });
     if (!error) return data.user;
+    dernier = error;
   }
-  throw new Error("identifiants");
+  throw dernier || new Error("identifiants");
 }
 
 export async function chargerProfil(userId) {

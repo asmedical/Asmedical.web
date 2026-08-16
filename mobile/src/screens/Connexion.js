@@ -18,6 +18,7 @@ import {
   supabaseConfigure,
 } from "../supabase";
 import { apiPost, apiGet } from "../api";
+import { messageEchecConnexion } from "../authErreurs";
 import { useAuth } from "../auth";
 
 const INDICATIFS = ["+213", "+33", "+216", "+212", "+32", "+41", "+49", "+44", "+1", "+34", "+39"];
@@ -114,10 +115,18 @@ export default function Connexion({ route, navigation }) {
     apiGet("/api/otp-canal").then((d) => setWaActif(!!d?.whatsapp)).catch(() => {});
   }, []);
 
-  // Une application mal configurée (clés Supabase absentes du build) ne doit
-  // JAMAIS accuser le mot de passe de l'utilisateur.
+  // Accuser le mot de passe est le pire message par défaut : c'est le seul
+  // qui pousse à ressaisir indéfiniment quelque chose de juste. On ne le dit
+  // que lorsque rien n'indique le contraire.
   function messageErreur(e, defaut) {
-    return e?.message === "config" ? t("err_app_config") : t(defaut);
+    const cle = messageEchecConnexion(e);
+    // Réseau coupé et application mal configurée valent pour n'importe quel
+    // envoi. Les autres précisions ne concernent que la connexion : sur une
+    // demande de code SMS, « ce n'est pas votre mot de passe » n'aurait
+    // aucun sens.
+    if (cle === "err_app_config" || cle === "err_reseau") return t(cle);
+    if (defaut === "err_identifiant" && cle !== "err_identifiant") return t(cle);
+    return t(defaut);
   }
 
   // Identité saisie à l'inscription : enregistrée dès l'ouverture de la

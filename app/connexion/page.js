@@ -6,6 +6,7 @@ import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useAsm } from "@/app/providers";
 import { TEL_AFFICHE, TEL_LIEN, WHATSAPP_LIEN } from "@/lib/i18n";
+import { messageEchecConnexion } from "@/lib/authErreurs";
 import ChoixAppel from "@/app/components/appel";
 import {
   envoyerCode,
@@ -372,11 +373,18 @@ function FormulaireConnexion() {
     setErreur(t("err_contact"));
   }
 
-  // Une application mal configurée (clés Supabase absentes du build) ne doit
-  // JAMAIS accuser le mot de passe de l'utilisateur : le message doit dire
-  // ce qui se passe réellement.
+  // Accuser le mot de passe est le pire message par défaut : c'est le seul
+  // qui pousse à ressaisir indéfiniment quelque chose de juste. On ne le dit
+  // que lorsque rien n'indique le contraire.
   function messageErreur(e, defaut) {
-    return e?.message === "config" ? t("err_app_config") : t(defaut);
+    const cle = messageEchecConnexion(e);
+    // Réseau coupé et application mal configurée valent pour n'importe quel
+    // envoi. Les autres précisions ne concernent que la connexion : sur une
+    // demande de code SMS, « ce n'est pas votre mot de passe » n'aurait
+    // aucun sens.
+    if (cle === "err_app_config" || cle === "err_reseau") return t(cle);
+    if (defaut === "err_identifiant" && cle !== "err_identifiant") return t(cle);
+    return t(defaut);
   }
 
   async function lancerOAuth(prov) {
