@@ -37,6 +37,11 @@ echo
 #   servir qu'à un navigateur à la fois ; deux sessions se bloqueraient.
 # --host 127.0.0.1 : seule la passerelle doit pouvoir joindre ce port. Sans
 #   ça, l'adresse publique donnerait un navigateur à qui la trouve.
+# --allowed-hosts '*' : Playwright refuse par défaut tout en-tête Host autre
+#   que celui auquel il est lié, et renvoie 403 avant même de regarder la
+#   requête. Ce contrôle protège d'un serveur exposé au réseau ; ici le port
+#   n'écoute que sur la boucle locale et la seule porte d'entrée est la
+#   passerelle, avec sa phrase de passe. Le désactiver n'ouvre rien de plus.
 cat > /etc/systemd/system/mcp-playwright.service <<UNITE
 [Unit]
 Description=Playwright MCP — pilotage du site ASM
@@ -52,6 +57,7 @@ ExecStart=/usr/bin/env npx -y @playwright/mcp@latest \\
   --no-sandbox \\
   --isolated \\
   --host 127.0.0.1 \\
+  --allowed-hosts '*' \\
   --port $PORT_MCP
 Restart=always
 RestartSec=5
