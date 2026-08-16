@@ -8,9 +8,11 @@
 // page d'autorisation, indéfiniment.
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
+import http from "node:http";
 
 const PORT = 8799;
 const CIBLE = 8798; // volontairement vide : rien n'écoute derrière
+const CIBLE_METRO = 8797; // faux serveur MCP, pour vérifier l'aiguillage
 const BASE = `http://127.0.0.1:${PORT}`;
 const PHRASE = "secret-essai";
 const REDIR = "https://claude.ai/api/mcp/auth_callback";
@@ -24,8 +26,23 @@ function verifier(nom, condition) {
   else { echoues++; console.log(`  ÉCHEC ${nom}`); }
 }
 
+// Faux serveur MCP : il renvoie le chemin qu'il a reçu, ce qui suffit à
+// prouver que le préfixe d'aiguillage a bien été retiré.
+const faux = http.createServer((req, rep) => {
+  rep.writeHead(200, { "Content-Type": "application/json" });
+  rep.end(JSON.stringify({ recu: req.url }));
+});
+faux.listen(CIBLE_METRO, "127.0.0.1");
+
 const passerelle = spawn("node", ["tools/mcp-oauth-proxy.js"], {
-  env: { ...process.env, PORT: String(PORT), CIBLE_PORT: String(CIBLE), MCP_BASE_URL: BASE, MCP_PASSPHRASE: PHRASE },
+  env: {
+    ...process.env,
+    PORT: String(PORT),
+    CIBLE_PORT: String(CIBLE),
+    CIBLES: `metro:${CIBLE_METRO}`,
+    MCP_BASE_URL: BASE,
+    MCP_PASSPHRASE: PHRASE,
+  },
   stdio: ["ignore", "pipe", "inherit"],
 });
 
@@ -158,11 +175,30 @@ try {
     body: "{}",
   });
   verifier("avec un jeton valide, la requête est relayée", avec.status === 502);
+
+  console.log("\nPlusieurs serveurs MCP sur la même adresse");
+  const entetes = { authorization: `Bearer ${jeton.access_token}` };
+  // Le préfixe /metro sert à choisir le serveur ; il ne doit PAS être
+  // transmis, sinon le serveur MCP ne reconnaît pas son propre chemin.
+  const r1 = await (await fetch(`${BASE}/metro/mcp`, { headers: entetes })).json();
+  verifier("le préfixe d'aiguillage est retiré", r1.recu === "/mcp");
+  const r2 = await (await fetch(`${BASE}/metro/mcp?session=42`, { headers: entetes })).json();
+  verifier("les paramètres d'adresse sont conservés", r2.recu === "/mcp?session=42");
+  const r3 = await (await fetch(`${BASE}/metro`, { headers: entetes })).json();
+  verifier("le préfixe seul mène à la racine du serveur", r3.recu === "/");
+  // Un nom inconnu ne doit pas être avalé comme un préfixe : il appartient
+  // au serveur par défaut, qui ici ne répond pas.
+  const r4 = await fetch(`${BASE}/mcp`, { headers: entetes });
+  verifier("un chemin inconnu reste sur le serveur par défaut", r4.status === 502);
+
+  const meta2 = await (await fetch(`${BASE}/.well-known/oauth-protected-resource/metro/mcp`)).json();
+  verifier("la ressource annoncée garde le préfixe", meta2.resource === `${BASE}/metro/mcp`);
 } catch (e) {
   echoues++;
   console.log(`  ÉCHEC imprévu : ${e.message}`);
 } finally {
   passerelle.kill();
+  faux.close();
 }
 
 console.log(`\n${reussis} réussis, ${echoues} échoués`);

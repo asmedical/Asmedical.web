@@ -29,6 +29,36 @@ const { URL } = require("url");
 
 const PORT = Number(process.env.PORT || 8766);
 const CIBLE_PORT = Number(process.env.CIBLE_PORT || 8765);
+
+// Plusieurs serveurs MCP derrière la MÊME adresse et la même phrase de
+// passe, distingués par le premier segment du chemin :
+//
+//   CIBLES="maestro:8765,metro:8767"
+//   https://mcp.asm-sante.com/metro/mcp  ->  127.0.0.1:8767/mcp
+//
+// Un sous-domaine par serveur imposerait un enregistrement DNS et un
+// certificat de plus à chaque fois. Ici, ajouter un serveur ne coûte qu'une
+// entrée dans cette liste. Sans CIBLES, tout part vers CIBLE_PORT : les
+// installations existantes ne changent pas de comportement.
+const CIBLES = new Map(
+  (process.env.CIBLES || "")
+    .split(",")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const [nom, port] = s.split(":");
+      return [nom, Number(port)];
+    })
+    .filter(([nom, port]) => nom && Number.isInteger(port))
+);
+
+// Aiguillage : renvoie le port visé et le chemin tel que le serveur MCP
+// l'attend, préfixe retiré.
+function aiguiller(chemin) {
+  const m = chemin.match(/^\/([^/?]+)(\/.*)?$/);
+  if (m && CIBLES.has(m[1])) return { port: CIBLES.get(m[1]), chemin: m[2] || "/" };
+  return { port: CIBLE_PORT, chemin };
+}
 const BASE = (process.env.MCP_BASE_URL || "").replace(/\/+$/, "");
 const PHRASE = process.env.MCP_PASSPHRASE || "";
 
@@ -240,19 +270,21 @@ async function traiter(req, rep, note) {
 
   // Relais vers le serveur MCP local. Le flux SSE doit rester ouvert : on
   // se contente de tuyauter, sans jamais mettre en tampon.
+  const vers = aiguiller(chemin);
+  const requete = u.search || "";
   const entetes = { ...req.headers };
   delete entetes.authorization;
-  entetes.host = `127.0.0.1:${CIBLE_PORT}`;
+  entetes.host = `127.0.0.1:${vers.port}`;
   const amont = http.request(
-    { host: "127.0.0.1", port: CIBLE_PORT, path: req.url, method: req.method, headers: entetes },
+    { host: "127.0.0.1", port: vers.port, path: vers.chemin + requete, method: req.method, headers: entetes },
     (r) => {
-      note.texte = `MCP a répondu ${r.statusCode}`;
+      note.texte = `MCP ${vers.port}${vers.chemin} a répondu ${r.statusCode}`;
       rep.writeHead(r.statusCode || 502, r.headers);
       r.pipe(rep);
     }
   );
   amont.on("error", (e) => {
-    note.texte = `MCP injoignable : ${e.message}`;
+    note.texte = `MCP ${vers.port} injoignable : ${e.message}`;
     if (!rep.headersSent) json(rep, 502, { error: "mcp_indisponible", detail: String(e.message) });
     else rep.end();
   });
@@ -275,5 +307,8 @@ const serveur = http.createServer((req, rep) => {
 serveur.listen(PORT, "127.0.0.1", () => {
   console.log(`Passerelle OAuth sur http://127.0.0.1:${PORT}`);
   console.log(`Adresse publique annoncée : ${BASE}`);
-  console.log(`Serveur MCP relayé : http://127.0.0.1:${CIBLE_PORT}`);
+  console.log(`Serveur MCP par défaut : http://127.0.0.1:${CIBLE_PORT}`);
+  for (const [nom, port] of CIBLES) {
+    console.log(`  ${BASE}/${nom}/…  ->  http://127.0.0.1:${port}/…`);
+  }
 });
