@@ -25,6 +25,9 @@
 
 const http = require("http");
 const crypto = require("crypto");
+const fs = require("fs");
+const os = require("os");
+const path = require("path");
 const { URL } = require("url");
 
 const PORT = Number(process.env.PORT || 8766);
@@ -67,11 +70,51 @@ if (!BASE || !PHRASE) {
   process.exit(1);
 }
 
-// Mémoire volatile : tout est perdu au redémarrage, et c'est voulu — un
-// jeton oublié ne doit pas survivre au processus.
+// Clients et codes restent en mémoire : ils ne servent que le temps d'une
+// autorisation, et rien ne justifie qu'ils survivent au processus.
 const clients = new Map(); // client_id -> { redirect_uris }
 const codes = new Map(); // code -> { client_id, redirect_uri, defi, expire }
-const jetons = new Set(); // jetons d'accès valides
+
+// Les jetons, eux, sont gardés sur disque. En mémoire seule, le moindre
+// redémarrage de la passerelle — ajout d'un serveur MCP, mise à jour du
+// code — déconnectait TOUS les connecteurs d'un coup, sans prévenir : ils
+// se contentent de redemander la phrase de passe. Le fichier est en 0600 et
+// ne contient que des jetons, jamais la phrase.
+const FICHIER_JETONS = process.env.MCP_JETONS || path.join(os.homedir(), ".asm-mcp-jetons.json");
+const DUREE_JETON = 30 * 24 * 60 * 60 * 1000;
+
+function chargerJetons() {
+  try {
+    const brut = JSON.parse(fs.readFileSync(FICHIER_JETONS, "utf8"));
+    const vivants = Object.entries(brut).filter(([, expire]) => expire > Date.now());
+    return new Map(vivants);
+  } catch {
+    return new Map(); // premier démarrage, ou fichier illisible
+  }
+}
+
+const jetons = chargerJetons(); // jeton -> date d'expiration
+
+function enregistrerJetons() {
+  try {
+    fs.writeFileSync(FICHIER_JETONS, JSON.stringify(Object.fromEntries(jetons)), { mode: 0o600 });
+  } catch (e) {
+    // Ne pas refuser le jeton pour autant : la session en cours doit
+    // fonctionner, quitte à être perdue au prochain redémarrage.
+    console.warn(`Jetons non enregistrés (${FICHIER_JETONS}) : ${e.message}`);
+  }
+}
+
+function jetonValide(jeton) {
+  const expire = jetons.get(jeton);
+  if (!expire) return false;
+  if (expire <= Date.now()) {
+    jetons.delete(jeton);
+    enregistrerJetons();
+    return false;
+  }
+  return true;
+}
 
 const b64url = (b) => b.toString("base64").replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 const alea = () => b64url(crypto.randomBytes(32));
@@ -254,14 +297,20 @@ async function traiter(req, rep, note) {
     }
     note.texte = "jeton délivré";
     const jeton = alea();
-    jetons.add(jeton);
-    return json(rep, 200, { access_token: jeton, token_type: "Bearer", expires_in: 86400, scope: "mcp" });
+    jetons.set(jeton, Date.now() + DUREE_JETON);
+    enregistrerJetons();
+    return json(rep, 200, {
+      access_token: jeton,
+      token_type: "Bearer",
+      expires_in: Math.floor(DUREE_JETON / 1000),
+      scope: "mcp",
+    });
   }
 
   // --- Tout le reste appartient au serveur MCP : jeton exigé.
   const entete = req.headers.authorization || "";
   const jeton = entete.replace(/^Bearer\s+/i, "");
-  if (!jetons.has(jeton)) {
+  if (!jetonValide(jeton)) {
     note.texte = jeton ? "jeton inconnu (redemande d'autorisation)" : "aucun jeton";
     return json(rep, 401, { error: "invalid_token" }, {
       "WWW-Authenticate": `Bearer resource_metadata="${BASE}/.well-known/oauth-protected-resource"`,

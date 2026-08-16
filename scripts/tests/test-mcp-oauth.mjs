@@ -9,7 +9,11 @@
 import { spawn } from "node:child_process";
 import crypto from "node:crypto";
 import http from "node:http";
+import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
+const FICHIER_JETONS = path.join(os.tmpdir(), "essai-mcp-jetons.json");
 const PORT = 8799;
 const CIBLE = 8798; // volontairement vide : rien n'écoute derrière
 const CIBLE_METRO = 8797; // faux serveur MCP, pour vérifier l'aiguillage
@@ -34,17 +38,24 @@ const faux = http.createServer((req, rep) => {
 });
 faux.listen(CIBLE_METRO, "127.0.0.1");
 
-const passerelle = spawn("node", ["tools/mcp-oauth-proxy.js"], {
-  env: {
-    ...process.env,
-    PORT: String(PORT),
-    CIBLE_PORT: String(CIBLE),
-    CIBLES: `metro:${CIBLE_METRO}`,
-    MCP_BASE_URL: BASE,
-    MCP_PASSPHRASE: PHRASE,
-  },
-  stdio: ["ignore", "pipe", "inherit"],
-});
+fs.rmSync(FICHIER_JETONS, { force: true });
+
+function demarrer() {
+  return spawn("node", ["tools/mcp-oauth-proxy.js"], {
+    env: {
+      ...process.env,
+      PORT: String(PORT),
+      CIBLE_PORT: String(CIBLE),
+      CIBLES: `metro:${CIBLE_METRO}`,
+      MCP_BASE_URL: BASE,
+      MCP_PASSPHRASE: PHRASE,
+      MCP_JETONS: FICHIER_JETONS,
+    },
+    stdio: ["ignore", "pipe", "inherit"],
+  });
+}
+
+let passerelle = demarrer();
 
 async function attendreDemarrage() {
   for (let i = 0; i < 50; i++) {
@@ -193,12 +204,36 @@ try {
 
   const meta2 = await (await fetch(`${BASE}/.well-known/oauth-protected-resource/metro/mcp`)).json();
   verifier("la ressource annoncée garde le préfixe", meta2.resource === `${BASE}/metro/mcp`);
+
+  console.log("\nSurvie au redémarrage");
+  // Ajouter un serveur MCP oblige à redémarrer la passerelle. Si les jetons
+  // n'y survivent pas, TOUS les connecteurs déjà en place se retrouvent
+  // déconnectés d'un coup, sans autre signe qu'un retour à la phrase de passe.
+  passerelle.kill();
+  await new Promise((r) => passerelle.once("exit", r));
+  passerelle = demarrer();
+  await attendreDemarrage();
+  const apres = await (await fetch(`${BASE}/metro/mcp`, { headers: entetes })).json();
+  verifier("le jeton reste valable après un redémarrage", apres.recu === "/mcp");
+
+  const droits = fs.statSync(FICHIER_JETONS).mode & 0o777;
+  verifier("le fichier de jetons n'est lisible que par son propriétaire", droits === 0o600);
+
+  // Un jeton périmé ne doit pas ressusciter au chargement du fichier.
+  fs.writeFileSync(FICHIER_JETONS, JSON.stringify({ perime: Date.now() - 1000 }));
+  passerelle.kill();
+  await new Promise((r) => passerelle.once("exit", r));
+  passerelle = demarrer();
+  await attendreDemarrage();
+  const vieux = await fetch(`${BASE}/metro/mcp`, { headers: { authorization: "Bearer perime" } });
+  verifier("un jeton expiré est refusé au redémarrage", vieux.status === 401);
 } catch (e) {
   echoues++;
   console.log(`  ÉCHEC imprévu : ${e.message}`);
 } finally {
   passerelle.kill();
   faux.close();
+  fs.rmSync(FICHIER_JETONS, { force: true });
 }
 
 console.log(`\n${reussis} réussis, ${echoues} échoués`);
