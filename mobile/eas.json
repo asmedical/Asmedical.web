@@ -28,6 +28,21 @@
   },
   "submit": {
     "production": {
+      "android": {
+        "track": "internal",
+        "releaseStatus": "completed",
+        "changesNotSentForReview": false
+      },
+      "ios": {
+        "ascAppId": "6799295582"
+      }
+    },
+    "ferme": {
+      "android": {
+        "track": "alpha",
+        "releaseStatus": "completed",
+        "changesNotSentForReview": false
+      },
       "ios": {
         "ascAppId": "6799295582"
       }
