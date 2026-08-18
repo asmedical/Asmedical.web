@@ -62,15 +62,14 @@ describe("écran de chargement", () => {
 });
 
 describe("images de l'application", () => {
-  // Une icône non carrée est déformée par les deux plateformes. Apple
-  // demande 1024×1024 pour la fiche App Store : la source actuelle fait 512
-  // et sera agrandie. À porter à 1024 quand le logo définitif arrivera —
-  // agrandir celui-ci n'apporterait rien.
+  // Une icône non carrée est déformée par les deux plateformes, et Apple
+  // demande 1024×1024 pour la fiche App Store — en dessous, l'image est
+  // agrandie et le liseré doré bave.
   for (const nom of ["icon.png", "adaptive-icon.png", "splash-icon.png"]) {
-    it(`${nom} est carrée et au moins 512`, () => {
+    it(`${nom} est carrée et au moins 1024`, () => {
       const { largeur, hauteur } = tailleImage(`mobile/assets/${nom}`);
       expect(largeur).toBe(hauteur);
-      expect(largeur).toBeGreaterThanOrEqual(512);
+      expect(largeur).toBeGreaterThanOrEqual(1024);
     });
   }
 
