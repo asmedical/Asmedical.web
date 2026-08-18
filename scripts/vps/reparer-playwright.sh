@@ -23,6 +23,7 @@
 set -euo pipefail
 
 UTILISATEUR="${SUDO_USER:-$(id -un)}"
+MAISON="$(getent passwd "$UTILISATEUR" | cut -d: -f6)"
 
 if [ "$(id -u)" -ne 0 ]; then
   echo "À lancer avec sudo : les bibliothèques système s'installent en root." >&2
@@ -68,7 +69,9 @@ CODE=$(curl -s -o /dev/null -m 15 -w '%{http_code}' http://127.0.0.1:8769/mcp 2>
 echo "Le serveur répond : ${CODE:-000}"
 echo
 echo "Navigateurs présents :"
-sudo -u "$UTILISATEUR" ls ~"$UTILISATEUR"/.cache/ms-playwright 2>/dev/null | sed 's/^/  /' || echo "  (aucun)"
+# Entre guillemets, « ~ubuntu » ne s'ouvre pas : le chemin restait littéral
+# et le script annonçait « aucun » juste après avoir tout téléchargé.
+ls "$MAISON/.cache/ms-playwright" 2>/dev/null | sed 's/^/  /' || echo "  (aucun)"
 echo
 echo "Reconnecte le connecteur Playwright ASM dans Claude, puis demande un"
 echo "essai de navigation : c'est le seul contrôle qui compte."
