@@ -107,6 +107,18 @@ machine passe par le client.
 | `mcp-playwright` | Playwright MCP | 8769 |
 | `caddy` | adresse publique et certificat | |
 
+**L'apk installé sur l'émulateur n'est pas le code du dépôt.** Il embarque
+celui du jour de sa compilation, et affichait encore l'ancien formulaire de
+réservation supprimé depuis. Pour tester le code à jour :
+
+```bash
+bash ~/asm/Asmedical.web/scripts/vps/lancer-app.sh
+```
+
+L'application se charge alors depuis Metro. C'est aussi ce qui rend le
+connecteur Metro ASM capable de l'inspecter — sans ça il annonce « aucune
+application attachée ».
+
 **Une seule commande dit tout** — mémoire, services, émulateur, ports MCP,
 adresse publique, processus abandonnés :
 
