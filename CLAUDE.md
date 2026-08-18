@@ -179,9 +179,15 @@ peut déclencher une intervention. Décision du client. Ce qui reste donc non
 vérifié : `construireDemande()` côté serveur et ce qui arrive réellement en
 base.
 
-**Site — jamais vérifié.** Playwright est installé sur le VPS mais Chromium
-ne démarre pas : chaque commande expire à 60 s. À diagnostiquer avec
-`journalctl -u mcp-playwright`.
+**Site — jamais vérifié.** Chaque commande Playwright expire à 60 s. Le
+journal du service ne montre rien : l'échec est dans l'appel, pas au
+démarrage. Deux causes identifiées — bibliothèques système de Chromium
+absentes, et navigateur installé pour une autre version de Playwright que
+celle qu'embarque `@playwright/mcp`. Correctif :
+
+```bash
+sudo bash ~/asm/Asmedical.web/scripts/vps/reparer-playwright.sh
+```
 
 **Jamais vérifié non plus** : un soin à domicile avec les actes du
 back-office, et une livraison avec ordonnance photographiée — le point le
