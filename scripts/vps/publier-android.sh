@@ -56,10 +56,25 @@ echo "Version publiée : $COMMIT"
 echo
 
 # --- Dépendances ------------------------------------------------------------
-if [ ! -d "$DEPOT/mobile/node_modules" ]; then
-  echo "Installation des dépendances mobiles…"
-  (cd "$DEPOT/mobile" && npm install --no-audit --no-fund)
-fi
+# Synchroniser À CHAQUE FOIS, pas seulement quand le dossier manque. Un
+# greffon ajouté dans app.json mais absent de node_modules fait échouer
+# « expo config » — et donc la compilation — au bout de quelques secondes,
+# avec un message qui ne nomme pas le paquet manquant. C'est exactement ce
+# qui est arrivé en ajoutant expo-splash-screen.
+echo "Synchronisation des dépendances mobiles…"
+(cd "$DEPOT/mobile" && npm ci --no-audit --no-fund) || {
+  echo "npm ci a échoué — verrou et package.json désaccordés ?" >&2
+  exit 1
+}
+
+# Contrôle avant de lancer vingt minutes de compilation : si la configuration
+# ne se lit pas ici, elle ne se lira pas mieux chez Expo.
+echo "Lecture de la configuration…"
+(cd "$DEPOT/mobile" && npx expo config --json > /dev/null) || {
+  echo "La configuration de l'application est illisible. Compilation annulée." >&2
+  echo "Souvent : un greffon déclaré dans app.json et absent des dépendances." >&2
+  exit 1
+}
 
 # --- Compilation et envoi ---------------------------------------------------
 # --auto-submit-with-profile enchaîne les deux : dès que la compilation est

@@ -67,6 +67,24 @@ describe("le script de publication et eas.json s'accordent", () => {
     expect(SCRIPT).toContain("git pull --ff-only origin main");
   });
 
+
+  // Un greffon déclaré dans app.json mais absent de node_modules fait
+  // échouer « expo config », donc la compilation — avec un message qui ne
+  // nomme même pas le paquet manquant. Le script ne réinstallait que si le
+  // dossier était absent : il ne l'était pas.
+  it("synchronise les dépendances à chaque fois, pas seulement si elles manquent", () => {
+    expect(SCRIPT).toContain("npm ci");
+    expect(SCRIPT, "ne pas conditionner à l'absence du dossier")
+      .not.toMatch(/if \[ ! -d .*node_modules/);
+  });
+
+  // Vingt minutes d'attente pour apprendre que la configuration ne se lit
+  // pas, c'est vingt minutes de trop.
+  it("relit la configuration avant de lancer la compilation", () => {
+    expect(SCRIPT).toContain("expo config --json");
+    expect(SCRIPT.indexOf("expo config --json")).toBeLessThan(SCRIPT.indexOf("eas build"));
+  });
+
   it("le script enchaîne compilation et envoi sans intervention", () => {
     expect(SCRIPT).toContain("--auto-submit-with-profile");
     expect(SCRIPT).toContain("--non-interactive");
