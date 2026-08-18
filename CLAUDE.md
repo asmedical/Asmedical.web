@@ -107,6 +107,17 @@ machine passe par le client.
 | `mcp-playwright` | Playwright MCP | 8769 |
 | `caddy` | adresse publique et certificat | |
 
+**Une seule commande dit tout** — mémoire, services, émulateur, ports MCP,
+adresse publique, processus abandonnés :
+
+```bash
+bash ~/asm/Asmedical.web/scripts/vps/verifier-asm.sh
+sudo bash ~/asm/Asmedical.web/scripts/vps/verifier-asm.sh --reparer
+```
+
+Sans `--reparer`, elle ne touche à rien. Ne pas demander au client cinq
+commandes séparées : lui demander celle-là.
+
 La passerelle tient un journal d'une ligne par requête avec le motif des
 refus : `journalctl -u mcp-oauth -n 30 --no-pager`. C'est le premier endroit
 à regarder quand un connecteur ne s'établit pas.

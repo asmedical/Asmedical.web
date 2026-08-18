@@ -73,3 +73,27 @@ describe("consignes chargées à chaque session", () => {
     }
   });
 });
+
+// Un contrôle qui rassure à tort est pire que pas de contrôle. La première
+// version annonçait « ok — répond 000000 » sur un port mort : curl écrit
+// déjà « 000 » quand rien ne répond, et le repli en ajoutait un second.
+describe("le contrôle du VPS ne se trompe pas sur les ports", () => {
+  const source = lire("scripts/vps/verifier-asm.sh");
+
+  it("ne recolle pas un code de repli derrière celui de curl", () => {
+    expect(source).not.toMatch(/%\{http_code\}[^\n]*\|\|\s*echo/);
+  });
+
+  it("traite l'absence de réponse, le refus et l'erreur serveur comme des problèmes", () => {
+    for (const cas of ["000)", "403)", "5[0-9][0-9])"]) {
+      expect(source, cas).toContain(cas);
+    }
+    // Les trois branches doivent mener à « souci », pas à « ok ».
+    const bloc = source.slice(source.indexOf("verifier_port()"), source.indexOf("verifier_port \"Maestro\""));
+    expect((bloc.match(/souci /g) || []).length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("ne modifie rien sans qu'on le demande", () => {
+    expect(source).toContain('[ "${1:-}" = "--reparer" ]');
+  });
+});
