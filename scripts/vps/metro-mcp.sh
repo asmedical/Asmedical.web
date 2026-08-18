@@ -87,6 +87,11 @@ UNITE
 # metro-mcp parle le protocole MCP sur son entrée standard. supergateway le
 # transforme en service web, seule forme qu'un connecteur distant sait
 # joindre.
+#
+# --stateful et --sessionTimeout ne sont pas décoratifs : sans eux,
+# supergateway ne tue le processus enfant qu'à la fermeture propre de la
+# connexion. Les connecteurs sautent sans se fermer proprement plusieurs fois
+# par jour, et les oubliés s'accumulent jusqu'à saturer la mémoire.
 cat > /etc/systemd/system/mcp-metro.service <<UNITE
 [Unit]
 Description=Metro MCP (via supergateway)
@@ -103,7 +108,9 @@ ExecStart=/usr/bin/env npx -y supergateway \\
   --outputTransport streamableHttp \\
   --port $PORT_MCP \\
   --streamableHttpPath /mcp \\
-  --healthEndpoint /sante
+  --healthEndpoint /sante \\
+  --stateful \\
+  --sessionTimeout 600000
 Restart=always
 RestartSec=5
 

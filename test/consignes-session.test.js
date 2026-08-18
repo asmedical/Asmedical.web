@@ -51,6 +51,15 @@ describe("consignes chargées à chaque session", () => {
     }
   });
 
+  // Sans délai d'expiration, supergateway ne tue le processus enfant qu'à
+  // la fermeture propre de la connexion. Neuf machines virtuelles Maestro
+  // abandonnées ont saturé la mémoire du VPS en une journée.
+  it("les services supergateway expirent leurs sessions abandonnées", () => {
+    const source = lire("scripts/vps/metro-mcp.sh");
+    expect(source).toContain("--stateful");
+    expect(source).toMatch(/--sessionTimeout \d+/);
+  });
+
   // Le tableau des services doit correspondre aux scripts qui les posent :
   // un service annoncé mais jamais installé se cherche longtemps.
   it("les services annoncés sont bien ceux que les scripts installent", () => {
