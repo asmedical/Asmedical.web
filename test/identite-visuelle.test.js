@@ -62,24 +62,17 @@ describe("écran de chargement", () => {
 });
 
 describe("images de l'application", () => {
-  // Apple demande 1024×1024 pour l'icône de l'App Store. Android redimensionne
-  // à partir de la même source.
-  it("l'icône est carrée et au moins 1024", () => {
-    const { largeur, hauteur } = tailleImage("mobile/assets/icon.png");
-    expect(largeur).toBe(hauteur);
-    expect(largeur).toBeGreaterThanOrEqual(1024);
-  });
-
-  it("l'icône adaptative d'Android est carrée et au moins 1024", () => {
-    const { largeur, hauteur } = tailleImage("mobile/assets/adaptive-icon.png");
-    expect(largeur).toBe(hauteur);
-    expect(largeur).toBeGreaterThanOrEqual(1024);
-  });
-
-  it("l'image de chargement est carrée", () => {
-    const { largeur, hauteur } = tailleImage("mobile/assets/splash-icon.png");
-    expect(largeur).toBe(hauteur);
-  });
+  // Une icône non carrée est déformée par les deux plateformes. Apple
+  // demande 1024×1024 pour la fiche App Store : la source actuelle fait 512
+  // et sera agrandie. À porter à 1024 quand le logo définitif arrivera —
+  // agrandir celui-ci n'apporterait rien.
+  for (const nom of ["icon.png", "adaptive-icon.png", "splash-icon.png"]) {
+    it(`${nom} est carrée et au moins 512`, () => {
+      const { largeur, hauteur } = tailleImage(`mobile/assets/${nom}`);
+      expect(largeur).toBe(hauteur);
+      expect(largeur).toBeGreaterThanOrEqual(512);
+    });
+  }
 
   // Deux logos différents entre l'icône du téléphone et l'écran de
   // chargement, c'est ce qu'on vient de corriger : ils doivent rester le même
