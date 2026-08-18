@@ -27,6 +27,15 @@
     },
     "plugins": [
       [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#ffffff"
+        }
+      ],
+      [
         "expo-local-authentication",
         {
           "faceIDPermission": "Face ID protège l'accès à vos informations médicales dans ASM."
