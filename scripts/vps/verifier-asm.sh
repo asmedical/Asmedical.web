@@ -24,8 +24,14 @@ souci()   { printf '  \033[31mSOUCI\033[0m %s\n' "$1"; PROBLEMES=$((PROBLEMES+1)
 info()    { printf '        %s\n' "$1"; }
 titre()   { printf '\n\033[1m%s\033[0m\n' "$1"; }
 
+# Sous sudo, $HOME devient /root et adb reste introuvable. Le serveur adb
+# appartient de toute façon à l'utilisateur, pas à root : on l'interroge
+# sous son identité.
+UTILISATEUR="${SUDO_USER:-$(id -un)}"
+MAISON="$(getent passwd "$UTILISATEUR" | cut -d: -f6)"
 CHEMIN_ADB="$(command -v adb 2>/dev/null || true)"
-[ -z "$CHEMIN_ADB" ] && [ -x "$HOME/android/platform-tools/adb" ] && CHEMIN_ADB="$HOME/android/platform-tools/adb"
+[ -z "$CHEMIN_ADB" ] && [ -x "$MAISON/android/platform-tools/adb" ] && CHEMIN_ADB="$MAISON/android/platform-tools/adb"
+adb_() { sudo -n -u "$UTILISATEUR" "$CHEMIN_ADB" "$@" 2>/dev/null || "$CHEMIN_ADB" "$@" 2>/dev/null; }
 
 # --- Mémoire ---------------------------------------------------------------
 titre "Mémoire"
@@ -53,7 +59,11 @@ fi
 titre "Processus abandonnés"
 # Chaque session MCP laisse une machine virtuelle si supergateway n'a pas de
 # délai d'expiration. Elles s'accumulaient jusqu'à saturer la machine.
-ORPHELINS=$(pgrep -fc "maestro.cli.AppKt" 2>/dev/null || echo 0)
+# On ne compte que de vrais processus « java ». « pgrep -f » attrapait aussi
+# le shell dont la ligne de commande contenait le mot cherché — et « -c »
+# imprime « 0 » puis sort en erreur, si bien qu'un repli y collait un second
+# zéro et cassait la comparaison. awk imprime toujours un nombre.
+ORPHELINS=$(ps -eo comm=,args= | awk '$1 == "java" && /maestro\.cli\.AppKt/ {n++} END {print n+0}')
 if [ "$ORPHELINS" -gt 3 ]; then
   souci "$ORPHELINS machines virtuelles Maestro — au-delà de 3, elles s'accumulent"
   ACTIONS+=("sudo bash $DEPOT/scripts/vps/reparer-sessions-mcp.sh")
@@ -91,11 +101,12 @@ fi
 titre "Émulateur"
 if [ -z "$CHEMIN_ADB" ]; then
   souci "adb introuvable"
-elif "$CHEMIN_ADB" devices 2>/dev/null | grep -qE '^emulator-[0-9]+[[:space:]]+device$'; then
+  ACTIONS+=("export PATH=\$PATH:$MAISON/android/platform-tools")
+elif adb_ devices | grep -qE '^emulator-[0-9]+[[:space:]]+device$'; then
   ok "un appareil répond"
 else
   souci "aucun appareil utilisable"
-  info "$("$CHEMIN_ADB" devices 2>/dev/null | tail -n +2 | tr '\n' ' ')"
+  info "$(adb_ devices | tail -n +2 | tr '\n' ' ')"
   ACTIONS+=("sudo systemctl restart emulateur-asm   # puis attendre 90 s")
 fi
 
@@ -165,7 +176,9 @@ if [ "$PROBLEMES" -eq 0 ]; then
   echo "  s'ils affichent « session expirée » — ça, aucune commande ne peut le faire."
 else
   echo "  $PROBLEMES point(s) à corriger :"
-  printf '%s\n' "${ACTIONS[@]}" | awk '!vu[$0]++' | sed 's/^/    /'
+  if [ ${#ACTIONS[@]} -gt 0 ]; then
+    printf '%s\n' "${ACTIONS[@]}" | awk '!vu[$0]++' | sed 's/^/    /'
+  fi
   echo
   echo "  Ou, pour tout ce qui est automatisable :"
   echo "    sudo bash $DEPOT/scripts/vps/verifier-asm.sh --reparer"

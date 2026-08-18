@@ -93,6 +93,16 @@ describe("le contrôle du VPS ne se trompe pas sur les ports", () => {
     expect((bloc.match(/souci /g) || []).length).toBeGreaterThanOrEqual(3);
   });
 
+  // Deux fois le même piège : une commande qui imprime déjà « 0 » ou
+  // « 000 » puis sort en erreur, et un repli qui colle une seconde valeur.
+  // Le résultat ne correspond plus à rien et passe pour bon.
+  it("ne compte pas les processus avec un repli qui double la valeur", () => {
+    expect(source).not.toMatch(/pgrep[^\n]*\|\|\s*echo/);
+    // Compter les vrais processus java, pas les lignes de commande qui
+    // mentionnent le motif — le shell appelant en fait partie.
+    expect(source).toContain('$1 == "java"');
+  });
+
   it("ne modifie rien sans qu'on le demande", () => {
     expect(source).toContain('[ "${1:-}" = "--reparer" ]');
   });
