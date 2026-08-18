@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { autorise } from "@/lib/ratelimit";
+import { telephoneVerifie } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ async function identifier(req) {
   const { data: { user } } = await admin.auth.getUser(token);
   if (!user) return null;
   const { data: profil } = await admin.from("profil").select("telephone, prenom, nom, etablissement").eq("id", user.id).maybeSingle();
-  return { user, telephone: user.phone || profil?.telephone || "", profil: profil || {} };
+  return { user, telephone: telephoneVerifie(user), profil: profil || {} };
 }
 
 export async function GET(req) {

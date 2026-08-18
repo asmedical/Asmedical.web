@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
+import { telephoneVerifie } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,7 @@ async function telPatient(req) {
   if (!user) return null;
   const { data: profil } = await admin.from("profil").select("telephone").eq("id", user.id).maybeSingle();
   const digits = (s) => String(s || "").replace(/\D/g, "");
-  return digits(user.phone).slice(-8) || digits(profil?.telephone).slice(-8) || null;
+  return digits(telephoneVerifie(user)).slice(-8) || null;
 }
 
 // POST /api/avis { demandeId, note, commentaire } — le patient note SON

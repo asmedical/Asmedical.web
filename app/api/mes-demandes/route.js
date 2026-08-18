@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
+import { telephoneVerifie } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
@@ -30,8 +31,8 @@ export async function GET(req) {
       .maybeSingle();
 
     const digits = (s) => String(s || "").replace(/\D/g, "");
-    const cle =
-      digits(user.phone).slice(-8) || digits(profil?.telephone).slice(-8);
+    // Seul le numéro vérifié par code fait foi — voir telephoneVerifie().
+    const cle = digits(telephoneVerifie(user)).slice(-8);
 
     // Correspondance sur les CHIFFRES uniquement : un numéro enregistré
     // « 0555 44 33 22 » doit matcher la clé « 55443322 » malgré les espaces.

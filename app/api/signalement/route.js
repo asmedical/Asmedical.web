@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { identite, normTel } from "@/lib/rattachements";
 import { autorise } from "@/lib/ratelimit";
+import { telephoneVerifie } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
@@ -29,8 +30,7 @@ export async function POST(req) {
     // Appartenance : mon téléphone OU une procuration ACCEPTE sur ce patient.
     const mienne =
       normTel(demande.telephone) &&
-      (normTel(demande.telephone) === normTel(id.user.phone) ||
-        normTel(demande.telephone) === normTel(id.profil?.telephone));
+      normTel(demande.telephone) === normTel(telephoneVerifie(id.user));
     let auteur = [id.profil?.prenom, id.profil?.nom].filter(Boolean).join(" ") || "Client";
     if (!mienne) {
       const { prochesAutorises } = await import("@/lib/proches");

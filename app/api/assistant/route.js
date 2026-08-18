@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { repondreAssistant } from "@/lib/assistantScenarios";
 import { demanderIA, contexteClient, assistantIAConfigure } from "@/lib/assistantIA";
 import { autorise } from "@/lib/ratelimit";
+import { telephoneVerifie } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
@@ -32,7 +33,7 @@ async function chargerContexte(req) {
       .from("profil").select("prenom, telephone, role").eq("id", user.id).maybeSingle();
 
     const digits = (s) => String(s || "").replace(/\D/g, "");
-    const cle = digits(user.phone).slice(-8) || digits(profil?.telephone).slice(-8);
+    const cle = digits(telephoneVerifie(user)).slice(-8);
     const { idsDemandesParTel } = await import("@/lib/telephones");
     const ids = cle ? await idsDemandesParTel(cle, 20) : [];
     const ou = [{ creeParUserId: user.id }];

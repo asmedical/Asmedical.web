@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 import { autorise } from "@/lib/ratelimit";
+import { telephoneVerifie } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +26,7 @@ export async function POST(req) {
     if (!user) return NextResponse.json({ erreur: "non connecté" }, { status: 401 });
 
     const { data: profil } = await admin.from("profil").select("telephone").eq("id", user.id).maybeSingle();
-    const telephone = user.phone || profil?.telephone || "";
+    const telephone = telephoneVerifie(user);
 
     const corps = await req.json().catch(() => ({}));
     const { marquerRetourPret } = await import("@/lib/trajetLive");

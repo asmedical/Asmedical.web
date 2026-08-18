@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { identite, normTel } from "@/lib/rattachements";
 import { renouvelerCommande } from "@/lib/documentsDemande";
 import { autorise } from "@/lib/ratelimit";
+import { telephoneVerifie } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
@@ -24,8 +25,7 @@ export async function POST(req) {
     // Propriété : mon téléphone OU une procuration ACCEPTE couvrant les médicaments.
     const mienne =
       normTel(source.telephone) &&
-      (normTel(source.telephone) === normTel(id.user.phone) ||
-        normTel(source.telephone) === normTel(id.profil?.telephone));
+      normTel(source.telephone) === normTel(telephoneVerifie(id.user));
     let par = [id.profil?.prenom, id.profil?.nom].filter(Boolean).join(" ") || "patient";
     if (!mienne) {
       const { prochesAutorises } = await import("@/lib/proches");

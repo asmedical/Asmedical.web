@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 import { autorise } from "@/lib/ratelimit";
+import { telephoneVerifie } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
@@ -29,7 +30,7 @@ export async function POST(req) {
     const { modifierDestination } = await import("@/lib/trajetLive");
     const res = await modifierDestination(c.demandeId, {
       userId: user.id,
-      telephone: user.phone || profil?.telephone,
+      telephone: telephoneVerifie(user),
       destination: c.destination, lat: c.lat, lng: c.lng, confirmer: Boolean(c.confirmer),
     });
     if (res.erreur) return NextResponse.json({ erreur: res.erreur }, { status: res.erreur === "introuvable" ? 404 : 400 });

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { identite, normTel } from "@/lib/rattachements";
+import { telephoneVerifie } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
 // Téléphone du patient connecté (compte ou profil).
 function telDe(id) {
-  return normTel(id.user.phone) || normTel(id.profil?.telephone);
+  return normTel(telephoneVerifie(id.user));
 }
 
 // GET → mes rattachements (demandes en attente + autorisations actives).
@@ -49,7 +50,13 @@ export async function POST(req) {
       const code = "ASM-" + Math.random().toString(36).slice(2, 6).toUpperCase() + Math.floor(10 + Math.random() * 90);
       const r = await prisma.rattachement.create({
         data: {
-          patientTel: id.profil?.telephone || id.user.phone || cle,
+          // Ce numéro décide plus tard des demandes que le proche verra
+          // (lib/proches.js). Il prenait le numéro DÉCLARÉ en priorité : il
+          // suffisait d'inscrire celui d'un autre patient dans son profil,
+          // de générer un code et de le confier à un tiers pour lui ouvrir
+          // tout son dossier. Le code ne protégeait rien, puisque c'est le
+          // demandeur qui choisissait le numéro.
+          patientTel: telephoneVerifie(id.user),
           patientNom: [id.profil?.prenom, id.profil?.nom].filter(Boolean).join(" ") || null,
           statut: "CODE_ATTENTE",
           source: "code",

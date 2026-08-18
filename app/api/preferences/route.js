@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { identite } from "@/lib/rattachements";
 import { preferencesDe, enregistrerPreferences, soignantsConnus } from "@/lib/preferences";
 import { autorise } from "@/lib/ratelimit";
+import { telephoneVerifie } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
@@ -10,7 +11,7 @@ export const dynamic = "force-dynamic";
 // Les consignes ne sont montrées qu'à l'intervenant AFFECTÉ à une mission.
 
 function telDe(id) {
-  return id.user.phone || id.profil?.telephone || "";
+  return telephoneVerifie(id.user);
 }
 
 export async function GET(req) {

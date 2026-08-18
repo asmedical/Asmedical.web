@@ -84,6 +84,12 @@ jours de test et perdrait les testeurs.
 Ne pas y toucher sans lire `lib/parcours.js` — des créneaux inexistants
 s'ouvriraient.
 
+**Un accès ne se fonde jamais sur `profil.telephone`.** C'est un champ libre
+que chacun modifie sur son propre compte. Seul `user.phone`, vérifié par
+code, fait foi — `telephoneVerifie()` dans `lib/telephones.js`. Douze routes
+s'y fiaient : on pouvait voir les trajets, les préférences et la position en
+direct d'un autre patient, et modifier sa destination.
+
 **Ne jamais deviner une option de ligne de commande.** Vérifier dans le
 paquet (`npm pack` puis lire le code ou le README) avant de la donner au
 client. Deux commandes fausses lui ont déjà fait perdre une soirée.

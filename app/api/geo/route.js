@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { prisma } from "@/lib/prisma";
 import { autorise } from "@/lib/ratelimit";
-import { cleTel } from "@/lib/telephones";
+import { telephoneVerifie, cleTel } from "@/lib/telephones";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +63,7 @@ export async function GET(req) {
       const { data: profil } = await admin.from("profil").select("telephone").eq("id", user.id).maybeSingle();
 
       const d = await prisma.demande.findUnique({ where: { id: Number(p.get("demande")) } });
-      const cle = cleTel(user.phone || profil?.telephone);
+      const cle = cleTel(telephoneVerifie(user));
       const proprietaire = d && ((cle && cleTel(d.telephone) === cle) || d.parEtabUserId === user.id);
       if (!proprietaire) return NextResponse.json({ erreur: "introuvable" }, { status: 404 });
 
