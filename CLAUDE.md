@@ -153,6 +153,20 @@ bash ~/asm/Asmedical.web/scripts/vps/publier-android.sh            # test fermé
 bash ~/asm/Asmedical.web/scripts/vps/publier-android.sh production
 ```
 
+Deux réglages Google conditionnent l'envoi, à faire une fois : le compte de
+service `envoi-asm-play@envoi-505717.iam.gserviceaccount.com` doit être
+invité dans Play Console comme **Administrateur de versions**, et l'**API
+Google Play Android Developer** doit être activée dans le projet Cloud
+`envoi-505717`. Sans elle, la compilation réussit et seul l'envoi échoue sur
+`PERMISSION_DENIED`.
+
+**Si l'envoi échoue après une compilation réussie, ne pas recompiler** — les
+crédits de compilation sont limités et le fichier existe déjà :
+
+```bash
+cd mobile && eas submit --platform android --profile ferme --id <identifiant du build>
+```
+
 **Application (OTA)** — `cd mobile && eas update --branch production`.
 Ne touche que les appareils en 1.3.0.
 
