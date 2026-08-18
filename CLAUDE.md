@@ -161,9 +161,28 @@ de contrôle à rejouer avant chaque envoi, et le texte des notes d'examen.
 
 ---
 
-## Ce qui n'a jamais été vérifié
+## Où en est la vérification du parcours
 
-**Le parcours de réservation n'a jamais tourné de bout en bout**, ni sur le
-site ni dans l'application, ni contre la base de production. C'est le premier
-travail à faire, et il ne demande plus le client : Maestro pilote
-l'application, Playwright pilote le site.
+**Application — vérifié jusqu'au bouton final, le 18 août 2026.** Déroulé au
+complet sur l'émulateur, sur le code de `main` chargé depuis Metro :
+
+| Étape | Résultat |
+|---|---|
+| 1 · prestation | les sept choix s'affichent, lien urgence présent |
+| 2 · lieux | adresses, commune, besoin « fauteuil roulant » retenus |
+| 3 · date | jours passés grisés, créneaux 07:00–18:00 chargés depuis la base |
+| 4 · récapitulatif | reprend tout sans rien perdre |
+
+**Le bouton « Confirmer la réservation » n'a pas été pressé** : il crée une
+vraie demande en production, et sur une plateforme de transport médical cela
+peut déclencher une intervention. Décision du client. Ce qui reste donc non
+vérifié : `construireDemande()` côté serveur et ce qui arrive réellement en
+base.
+
+**Site — jamais vérifié.** Playwright est installé sur le VPS mais Chromium
+ne démarre pas : chaque commande expire à 60 s. À diagnostiquer avec
+`journalctl -u mcp-playwright`.
+
+**Jamais vérifié non plus** : un soin à domicile avec les actes du
+back-office, et une livraison avec ordonnance photographiée — le point le
+plus fragile.
