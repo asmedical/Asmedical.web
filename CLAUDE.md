@@ -160,6 +160,13 @@ Google Play Android Developer** doit être activée dans le projet Cloud
 `envoi-505717`. Sans elle, la compilation réussit et seul l'envoi échoue sur
 `PERMISSION_DENIED`.
 
+La piste de test fermé s'appelle **`Asm test`** — avec l'espace et la
+majuscule, c'est l'identifiant que renvoie l'API, pas un slug. Une piste
+`alpha` existe aussi mais elle est vide : y envoyer échoue sur « Release in
+track targeting no countries ». En cas de doute, demander la liste à Google
+plutôt que de deviner (`edits.tracks.list`, avec la clé du compte de
+service).
+
 **Si l'envoi échoue après une compilation réussie, ne pas recompiler** — les
 crédits de compilation sont limités et le fichier existe déjà :
 

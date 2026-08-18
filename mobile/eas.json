@@ -39,7 +39,7 @@
     },
     "ferme": {
       "android": {
-        "track": "alpha",
+        "track": "Asm test",
         "releaseStatus": "completed",
         "changesNotSentForReview": false
       },
