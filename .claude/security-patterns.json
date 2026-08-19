@@ -1,0 +1,38 @@
+{
+  "patterns": [
+    {
+      "rule_name": "telephone_declare",
+      "substrings": ["profil.telephone", "profil?.telephone"],
+      "paths": ["**/app/api/**", "**/lib/**"],
+      "reminder": "profil.telephone est un champ libre que chacun modifie sur son propre compte. Il ne peut pas fonder un accès : utiliser telephoneVerifie(user) de lib/telephones.js. Comme donnée de contact (rappeler le patient, l'afficher), c'est légitime."
+    },
+    {
+      "rule_name": "insert_auth_users",
+      "regex": "(?i)(insert\\s+into|update)\\s+\"?auth\"?\\s*\\.\\s*\"?users\"?",
+      "reminder": "Ne jamais créer ni modifier un compte par SQL direct dans auth.users : quatre colonnes de jetons restent NULL et la connexion échoue avant même de comparer le mot de passe. C'est ce qui a fait refuser l'application par Apple. Passer par l'API d'administration Supabase."
+    },
+    {
+      "rule_name": "secret_en_clair",
+      "substrings": [
+        "service_role",
+        "-----BEGIN PRIVATE KEY-----",
+        "sk_live_",
+        "vcp_"
+      ],
+      "exclude_paths": ["**/node_modules/**", "**/.claude/**"],
+      "reminder": "Clé de service, jeton ou clé privée en clair dans le dépôt. Passer par une variable d'environnement. La clé anonyme Supabase et les EXPO_PUBLIC_* sont publiques par construction : elles, c'est normal."
+    },
+    {
+      "rule_name": "cron_sans_secret",
+      "regex": "export\\s+async\\s+function\\s+(GET|POST)",
+      "paths": ["**/app/api/cron/**"],
+      "reminder": "Une route de cron doit exiger CRON_SECRET avant tout traitement. Ouverte, elle laisse déclencher rappels et changements d'état depuis l'extérieur."
+    },
+    {
+      "rule_name": "paiement_simule",
+      "substrings": ["ASM2026"],
+      "exclude_paths": ["**/test/**", "**/.claude/**"],
+      "reminder": "Code de test / simulation de paiement. Vérifier qu'aucun chemin ne valide un paiement sans contrôle réel en production."
+    }
+  ]
+}
